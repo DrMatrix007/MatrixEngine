@@ -6,6 +6,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MatrixEngine.Scenes;
+using MatrixEngine.GameObjects;
+using MatrixEngine.GameObjects.Components;
 
 namespace MatrixEngine.App {
     public sealed class App {
@@ -15,8 +18,10 @@ namespace MatrixEngine.App {
 
         public readonly string AppName;
 
-        public App(string appName) {
+        public Scene scene;
 
+        public App(string appName,Scene scene) {
+            this.scene = scene;
             window = new RenderWindow(new VideoMode(800, 600), appName);
             window.SetKeyRepeatEnabled(true);
 
@@ -43,25 +48,22 @@ namespace MatrixEngine.App {
 
         public void Run() {
 
-            var sh = new RectangleShape(new Vector2f(100, 100)) {
-                FillColor = Color.Blue,
-            };
 
 
             while (window.IsOpen) {
                 window.SetView(new View(new Vector2f(0, 0), new Vector2f(window.Size.X, window.Size.Y)));
 
+                scene.Update(window);
+
+                scene.app = this;
 
                 window.DispatchEvents();
 
                 window.Clear(Color.Black);
 
-                foreach (var item in keyHandler.getCurrentPressedKeys()) {
-                    Debug.Log(item.ToString());
-                }
+                
 
 
-                window.Draw(sh);
 
                 window.Display();
 

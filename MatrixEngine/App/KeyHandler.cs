@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace MatrixEngine {
-    public class KeyHandler {
+    public sealed class KeyHandler {
 
         public enum KeyInput {
             Release,

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace MatrixEngine {
-    public class Debug {
+    public static class Debug {
 
         public enum MessageType {
             Log,
