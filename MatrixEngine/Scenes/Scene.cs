@@ -51,12 +51,12 @@ namespace MatrixEngine.Scenes {
         public virtual void Start() {
 
         }
-        public void Update(RenderWindow window) {
+        public void Update() {
             var list = gameObjects.ToList();
             foreach (var item in list) {
-                item.Update(window);
+                item.Update();
             }
-            Debug.Log(list.Count.ToString());
+            //Debug.Log(list.Count.ToString());
         }
 
     }

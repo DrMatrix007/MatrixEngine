@@ -17,12 +17,10 @@ namespace MatrixEngine.GameObjects.Components {
         }
 
 
-        public override void Update(RenderWindow window) {
+        public override void Update() {
             counter++;
-            //Debug.Log(counter.ToString());
             if (counter > 200) {
-                gameObject.CreateComponent<DebugComponent>();
-                //gameObject.scene.AddGameObject(new GameObject(new DebugComponent()));
+                gameObject.SetComponent<DebugComponent>();
             }
         }
     }

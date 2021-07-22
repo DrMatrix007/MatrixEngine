@@ -12,13 +12,11 @@ namespace MatrixEngine {
         }
 
         private Dictionary<Keyboard.Key, bool> values;
-        private Dictionary<Keyboard.Key, KeyInput> keysEvents;
 
 
         public KeyHandler() {
 
             values = new Dictionary<Keyboard.Key, bool>();
-            keysEvents = new Dictionary<Keyboard.Key, KeyInput>();
 
             foreach (Keyboard.Key key in Enum.GetValues<Keyboard.Key>()) {
                 try {
@@ -35,16 +33,22 @@ namespace MatrixEngine {
                 values[key] = b;
 
             
-            } catch (Exception e) { }
+            } catch (Exception ) { }
             pressedKeys = getCurrentPressedKeys();
 
 
         }
-        public void PressedKey(Keyboard.Key key) {
+        internal void PressedKey(Keyboard.Key key) {
             SetKey(key, true);
         }
-        public void ReleasedKey(Keyboard.Key key) {
+        internal void ReleasedKey(Keyboard.Key key) {
             SetKey(key, false);
+        }
+
+        public bool isPressed(Keyboard.Key key) {
+
+            return values[key];
+
         }
 
         public Keyboard.Key[] getCurrentPressedKeys() {

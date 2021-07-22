@@ -1,0 +1,45 @@
+﻿using SFML.System;
+
+namespace MatrixEngine.Physics {
+    public sealed class Rect {
+
+        public float X, Y, width, height;
+
+
+        public Vector2f Max
+        {
+            get => new Vector2f(X+width,Y+height); 
+        }
+
+        public Vector2f min
+        {
+            get => new Vector2f(X,Y);
+        }
+        public float cx { get => X + width * 0.5f; }
+        public float cy { get => Y + height * 0.5f; }
+
+        public void SetPos(Vector2f pos) {
+            (X,Y) = (pos.X,pos.Y);
+        }
+        public void SetSize(Vector2f size) {
+            (width,height) = (size.X,size.Y);
+        }
+        public void SetAll(Vector2f pos, Vector2f size) {
+            SetSize(size);
+            SetPos(pos);
+        }
+        public Rect(float x = 0, float y = 0, float width = 10, float height = 10) {
+            this.X = x;
+            this.Y = y;
+            this.width = width;
+            this.height = height;
+        }
+        public Rect(Vector2f pos, Vector2f size) {
+            SetAll(pos,size);
+        }
+
+        public new string ToString() {
+            return $"Rect(x:{X.ToString("0.0")}, y:{Y.ToString("0.0")}, width:{width.ToString("0.0")}, height:{height.ToString("0.0")})";
+        }
+    }
+}

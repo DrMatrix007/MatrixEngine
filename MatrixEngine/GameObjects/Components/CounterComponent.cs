@@ -7,7 +7,7 @@ namespace MatrixEngine.GameObjects.Components {
             Debug.Log("Start Counting!");
         }
 
-        public override void Update(RenderWindow window) {
+        public override void Update() {
             Debug.Log($"Count: {c}");
             c++;
         }

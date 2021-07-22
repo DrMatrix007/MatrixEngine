@@ -13,10 +13,10 @@ namespace MatrixEngine {
             Warning,
         }
 
-        public static void Log(string message,MessageType type) {
+        public static void Log(object message,MessageType type) {
             if (type == MessageType.Error) {
                 Console.WriteLine("Error:   " + message);
-                throw new Exception(message);
+                throw new Exception(message.ToString());
             } else if (type == MessageType.Warning) {
                 Console.WriteLine("Warning: " + message);
             } else if (type == MessageType.Log) {
@@ -24,7 +24,7 @@ namespace MatrixEngine {
             }
 
         }
-        public static void Log(string message) {
+        public static void Log(object message) {
             Log(message,MessageType.Log);
         }
         public static void LogError(string message) {

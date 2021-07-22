@@ -1,26 +1,54 @@
 ﻿using MatrixEngine.Scenes;
-using SFML.Graphics;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using SFML.System;
 
 namespace MatrixEngine.GameObjects.Components {
     public abstract class Component {
-        
+
         public GameObject gameObject
         {
             private set;
             get;
         }
+
+        public Vector2f position
+        {
+            get {
+                return gameObject.position;
+            }
+            set {
+                gameObject.position = value;
+            }
+        }
+
         public Scene scene
         {
             get {
                 return gameObject.scene;
             }
         }
+        public App.App app
+        {
+            get {
+                return scene.app;
+            }
+        }
+        public KeyHandler keyHandler
+        {
+            get {
+                return app.keyHandler;
+            }
+        }
 
+        public RigidBodyComponent rigidBodyComponent
+        {
+            get {
+                return GetComponent<RigidBodyComponent>();
+            }
+        }
+
+        public T GetComponent<T>() where T : Component {
+            return gameObject.GetComponent<T>();
+        }
 
         internal bool didStart
         {
@@ -35,11 +63,11 @@ namespace MatrixEngine.GameObjects.Components {
         internal void SetupGameobject(GameObject gameObject) {
             this.gameObject = gameObject;
         }
-        
+
 
 
 
         abstract public void Start();
-        abstract public void Update(RenderWindow window);
+        abstract public void Update();
     }
 }
