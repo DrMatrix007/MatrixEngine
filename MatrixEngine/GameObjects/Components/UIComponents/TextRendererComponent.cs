@@ -33,8 +33,8 @@ namespace MatrixEngine.GameObjects.Components.UIComponents {
                 drawable.Font = font;
             }
 
-            drawable.Position = gameObject.position;
             //+ new Vector2f(0.5f, 0.375f);
+            drawable.Position = gameObject.position;
 
 
             target.Draw(drawable);

@@ -1,21 +1,22 @@
 ﻿using MatrixEngine.Physics;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 
 
 namespace MatrixEngine.GameObjects.Components {
     public class RectComponent : Component {
 
+        private Rect _rect;
+
         public Rect rect
         {
-            get;
-            set;
+            set { _rect = value; }
+            get {
+                _rect.X = position.X;
+                _rect.Y = position.Y;
+                return _rect;
+            }
         }
-        public RectComponent() { 
+        public RectComponent() {
         }
 
         public override void Start() {

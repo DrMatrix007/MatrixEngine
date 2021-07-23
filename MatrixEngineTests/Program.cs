@@ -8,18 +8,34 @@ using MatrixEngine.Scenes;
 using MatrixEngine.System;
 using SFML.Graphics;
 using SFML.System;
-using System;
 
 namespace MatrixEngineTests {
     class Program {
+        class FPSCounterComponent : TextRendererComponent {
 
+            public FPSCounterComponent() : base("", FontManager.CascadiaCode, Color.Red) {
+            }
+
+            public override void Render(RenderTarget target) {
+                base.Render(target);
+            }
+            public override void Update() {
+                base.Update();
+
+                text = $"FPS: {(1.0f / app.deltaTime).ToString("0.0")} \nZoom: {app.camera.zoom}";
+
+            }
+            public override void Start() {
+                base.Start();
+            }
+        }
 
         class RenderTesterComponent : Component {
             public override void Start() {
-                for (int i = 0; i < 100; i++) {
+                for (int i = 0; i < 10000; i++) {
                     scene.AddGameObject(
                         new GameObject(
-                        new Vector2f(new Random().Next(-1000, 1000), 20),
+                        new Vector2f(i, 20),
                         new Component[]
                         {
                         new SpriteRendererComponent("Image1.png",16 ,20),
@@ -44,7 +60,7 @@ namespace MatrixEngineTests {
                             new SimplePlayerControllerComponent(),
                             new RigidBodyComponent(
                                 new Vector2f(0,0),
-                                0.01f,
+                                0.05f,
                                 false ),
                             new CameraControllerComponent()
                         }),
@@ -59,7 +75,7 @@ namespace MatrixEngineTests {
                         new Vector2f(0,0),
                         new Component[]{
 
-                            new TextRendererComponent("Test123123132\ngg",FontManager.CascadiaCode,Color.Red,100)
+                            new FPSCounterComponent()
 
                         }),
 
