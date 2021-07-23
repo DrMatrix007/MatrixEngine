@@ -8,12 +8,10 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
     public class SimplePlayerControllerComponent : Component {
 
 
-        RigidBodyComponent rigidBodyComponent;
 
         public float speed = 1;
 
         public override void Start() {
-            rigidBodyComponent = GetComponent<RigidBodyComponent>();
         }
 
         public override void Update() {

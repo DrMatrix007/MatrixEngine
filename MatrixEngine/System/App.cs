@@ -1,6 +1,6 @@
 ﻿using MatrixEngine.MathM;
 using MatrixEngine.Physics;
-using MatrixEngine.Renderer;
+using MatrixEngine.Renderers;
 using MatrixEngine.Scenes;
 using SFML.Graphics;
 using SFML.System;
@@ -105,7 +105,7 @@ namespace MatrixEngine.System {
 
             deltaTimeClock.Restart();
 
-            window.MouseWheelMoved += (s, e) => {
+            window.MouseWheelScrolled += (s, e) => {
 
                 camera.zoom += (float)e.Delta / 10;
 

@@ -1,8 +1,9 @@
 ﻿using MatrixEngine.GameObjects.Components.RenderComponents;
+using MatrixEngine.System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MatrixEngine.App {
+namespace MatrixEngine.Renderers {
     public sealed class Renderer {
 
         App app;

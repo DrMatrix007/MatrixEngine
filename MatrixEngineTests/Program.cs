@@ -1,7 +1,9 @@
 ﻿using MatrixEngine.fonts;
 using MatrixEngine.GameObjects;
 using MatrixEngine.GameObjects.Components;
-using MatrixEngine.GameObjects.Components.UI;
+using MatrixEngine.GameObjects.Components.PhysicsComponents;
+using MatrixEngine.GameObjects.Components.RenderComponents;
+using MatrixEngine.GameObjects.Components.UIComponents;
 using MatrixEngine.Scenes;
 using MatrixEngine.System;
 using SFML.Graphics;

@@ -5,7 +5,7 @@ using SFML.System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MatrixEngine.Renderer {
+namespace MatrixEngine.Renderers {
     public class CanvasRenderer {
 
         RenderTexture target;
@@ -29,8 +29,8 @@ namespace MatrixEngine.Renderer {
         }
 
         public void Render() {
-            if (target.Size != (Vector2u)app.window.Size) {
-                target = new RenderTexture((uint)app.window.Size.X, (uint)app.window.Size.Y);
+            if (target.Size != app.window.Size) {
+                target = new RenderTexture(app.window.Size.X, app.window.Size.Y);
             }
             target.Clear(Color.Transparent);
             ;

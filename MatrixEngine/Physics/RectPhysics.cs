@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 namespace MatrixEngine.Physics {
     public static partial class Physics {
 
@@ -54,7 +55,7 @@ namespace MatrixEngine.Physics {
 
             float[] f = new float[] { left, right, up, down };
 
-            var val = f.Aggregate((a, b) => { return System.Math.Abs(a) > System.Math.Abs(b) ? b : a; });
+            var val = f.Aggregate((a, b) => { return Math.Abs(a) > Math.Abs(b) ? b : a; });
 
             var index = f.ToList().IndexOf(val);
 
