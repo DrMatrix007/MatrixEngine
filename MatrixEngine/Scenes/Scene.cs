@@ -1,11 +1,6 @@
 ﻿using MatrixEngine.GameObjects;
-using MatrixEngine.App;
-using SFML.Graphics;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MatrixEngine.Scenes {
     public class Scene {
@@ -22,7 +17,7 @@ namespace MatrixEngine.Scenes {
         public GameObject CreateGameObject() {
             var g = new GameObject();
 
-            return g;   
+            return g;
         }
         public GameObject AddGameObject(GameObject gameObject) {
             gameObject.SetupScene(this);
@@ -31,7 +26,7 @@ namespace MatrixEngine.Scenes {
             return gameObject;
 
         }
-        public App.App app
+        public System.App app
         {
             get;
             internal set;

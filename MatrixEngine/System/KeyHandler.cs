@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MatrixEngine {
+namespace MatrixEngine.System {
     public sealed class KeyHandler {
 
         public enum KeyInput {
@@ -32,8 +32,8 @@ namespace MatrixEngine {
             try {
                 values[key] = b;
 
-            
-            } catch (Exception ) { }
+
+            } catch (Exception) { }
             pressedKeys = getCurrentPressedKeys();
 
 
@@ -60,7 +60,7 @@ namespace MatrixEngine {
                     (e) => {
                         return e.Key;
                     }
-            
+
                     ).ToArray();
         }
 
@@ -71,7 +71,7 @@ namespace MatrixEngine {
 
         } = new Keyboard.Key[] { };
 
-        
+
 
     }
 }

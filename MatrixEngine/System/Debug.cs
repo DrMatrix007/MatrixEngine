@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace MatrixEngine {
+namespace MatrixEngine.System {
     public static class Debug {
 
         public enum MessageType {
@@ -13,7 +9,7 @@ namespace MatrixEngine {
             Warning,
         }
 
-        public static void Log(object message,MessageType type) {
+        public static void Log(object message, MessageType type) {
             if (type == MessageType.Error) {
                 Console.WriteLine("Error:   " + message);
                 throw new Exception(message.ToString());
@@ -25,10 +21,10 @@ namespace MatrixEngine {
 
         }
         public static void Log(object message) {
-            Log(message,MessageType.Log);
+            Log(message, MessageType.Log);
         }
         public static void LogError(string message) {
-            Log(message,MessageType.Error);
+            Log(message, MessageType.Error);
         }
     }
 

@@ -1,4 +1,5 @@
-﻿using SFML.Graphics;
+﻿using MatrixEngine.System;
+using SFML.Graphics;
 
 namespace MatrixEngine.GameObjects.Components {
     public sealed class CounterComponent : Component {

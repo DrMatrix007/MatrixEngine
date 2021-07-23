@@ -1,12 +1,9 @@
-﻿using SFML.System;
+﻿using MatrixEngine.GameObjects.Components;
+using MatrixEngine.Scenes;
+using MatrixEngine.System;
+using SFML.System;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MatrixEngine.GameObjects.Components;
-using MatrixEngine.Scenes;
-using SFML.Graphics;
 
 namespace MatrixEngine.GameObjects {
     public sealed class GameObject {
@@ -14,7 +11,7 @@ namespace MatrixEngine.GameObjects {
 
         public Vector2f position = new Vector2f(0, 0);
 
-        private Dictionary<Type,Component> components;
+        private Dictionary<Type, Component> components;
 
         public GameObject gameObject
         {
@@ -23,21 +20,21 @@ namespace MatrixEngine.GameObjects {
             }
         }
 
-        public void SetComponent<T>() where T : Component,new() {
+        public void SetComponent<T>() where T : Component, new() {
             SetComponent(new T());
         }
         public void SetComponent(Type type) {
             try {
                 Component c = (Component)Activator.CreateInstance(type);
                 SetComponent(c);
-            } catch (Exception ) {
+            } catch (Exception) {
                 throw;
             }
 
         }
-        public void SetComponent(Component component)  {
+        public void SetComponent(Component component) {
             //Debug.Log($"Added {component.GetType()}");
-            var requireds = component.GetType().GetCustomAttributes(typeof(RequireComponent),true);
+            var requireds = component.GetType().GetCustomAttributes(typeof(RequireComponent), true);
             foreach (RequireComponent item in requireds) {
                 if (GetComponent(item.type) == null) {
 
@@ -72,7 +69,7 @@ namespace MatrixEngine.GameObjects {
                     }
                 }
             }
-        
+
         }
 
         public Scene scene
@@ -82,20 +79,20 @@ namespace MatrixEngine.GameObjects {
         }
 
         internal void SetupScene(Scene scene) {
-           this.scene = scene;
+            this.scene = scene;
         }
 
-        public T GetComponent<T>() where T:Component {
+        public T GetComponent<T>() where T : Component {
             try {
                 return (T)components[typeof(T)];
-            } catch (Exception ) { }
-            
+            } catch (Exception) { }
+
             return default;
         }
         public Component GetComponent(Type t) {
             try {
                 return components[t];
-            } catch (Exception ) { }
+            } catch (Exception) { }
 
             return default;
         }

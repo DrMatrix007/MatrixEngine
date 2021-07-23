@@ -1,11 +1,12 @@
 ﻿using MatrixEngine.MathM;
 using MatrixEngine.Physics;
+using MatrixEngine.Renderer;
 using MatrixEngine.Scenes;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
 
-namespace MatrixEngine.App {
+namespace MatrixEngine.System {
     public sealed class App {
 
         public PhysicsEngine rigidBodyManager
@@ -26,7 +27,7 @@ namespace MatrixEngine.App {
 
         public Camera camera;
 
-        public SpriteRenderer spriteRenderer
+        public Renderer renderer
         {
             get;
             private set;
@@ -41,6 +42,11 @@ namespace MatrixEngine.App {
         private Clock timeClock = new Clock();
 
         private Clock deltaTimeClock = new Clock();
+        public CanvasRenderer canvasRenderer
+        {
+            get;
+            private set;
+        }
 
         private Time _deltaTime
         {
@@ -72,12 +78,17 @@ namespace MatrixEngine.App {
             window.KeyReleased += Window_KeyReleased;
 
             keyHandler = new KeyHandler();
-            spriteRenderer = new SpriteRenderer();
             camera = new Camera();
+            renderer = new Renderer(this);
             rigidBodyManager = new PhysicsEngine(this);
+            canvasRenderer = new CanvasRenderer(this);
         }
 
-
+        public Vector2f windowSize
+        {
+            get;
+            private set;
+        } = new Vector2f(100, 100);
 
         private void Window_KeyReleased(object sender, KeyEventArgs e) {
             keyHandler.ReleasedKey(e.Code);
@@ -96,20 +107,25 @@ namespace MatrixEngine.App {
 
             window.MouseWheelMoved += (s, e) => {
 
-                camera.zoom += (float)e.Delta/10;
- 
+                camera.zoom += (float)e.Delta / 10;
+
             };
+
+            scene.app = this;
+
 
             while (window.IsOpen) {
                 var size = window.Size;
-                window.SetView(new View(camera.position, new Vector2f((2.0f).Pow(camera.zoom) * ((float)size.X / size.Y).Sqrt() * 100, (2.0f).Pow(camera.zoom) * 100 / ((float)size.X / size.Y).Sqrt())));
 
-                scene.app = this;
+                windowSize = new Vector2f(2.0f.Pow(camera.zoom) * ((float)size.X / size.Y).Sqrt() * 100, 2.0f.Pow(camera.zoom) * 100 / ((float)size.X / size.Y).Sqrt());
+
 
                 window.DispatchEvents();
 
 
                 scene.Update();
+
+                window.SetView(new View(camera.position, windowSize));
 
                 rigidBodyManager.Update();
 
@@ -117,7 +133,10 @@ namespace MatrixEngine.App {
 
 
 
-                spriteRenderer.Render();
+                renderer.Render();
+
+                canvasRenderer.Render();
+
 
                 window.Display();
 

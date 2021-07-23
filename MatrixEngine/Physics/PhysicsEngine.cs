@@ -1,5 +1,4 @@
-﻿using MatrixEngine.GameObjects.Components;
-using MatrixEngine.MathM;
+﻿using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -8,13 +7,13 @@ namespace MatrixEngine.Physics {
 
         private List<RigidBodyComponent> rigidBodies;
 
-        public App.App app
+        public System.App app
         {
             get;
             private set;
         }
 
-        public PhysicsEngine(App.App app) {
+        public PhysicsEngine(System.App app) {
             this.app = app;
             rigidBodies = new List<RigidBodyComponent>();
         }
@@ -29,13 +28,26 @@ namespace MatrixEngine.Physics {
 
             foreach (var item in rigidBodies) {
                 if (!item.isStatic) {
+                    //TODO: Fix the goddamn drag shit!
+                    var multiplier = 1 - item.velocityDrag;
+                    if (1 - multiplier <= 0)
+                        multiplier = 0;
+
+
 
                     item.velocity += item.gravity;
 
+
+
                     item.position += item.velocity * app.deltaTime;
 
-                    item.velocity.X = MathUtils.LerpToZero(item.velocity.X, item.velocityDrag.X);
-                    item.velocity.Y = MathUtils.LerpToZero(item.velocity.Y, item.velocityDrag.Y);
+                    item.velocity = item.velocity * multiplier;
+
+
+                    //new Vector2f(item.velocity.X - item.velocityDrag.X * app.deltaTime, item.velocity.Y - item.velocityDrag.Y * app.deltaTime);
+
+
+
                 }
             }
 
@@ -53,6 +65,7 @@ namespace MatrixEngine.Physics {
                             continue;
                         }
 
+
                         if (objectA.isStatic) {
                             @static = objectA;
                             nonstatic = objectB;
@@ -61,6 +74,7 @@ namespace MatrixEngine.Physics {
                             @static = objectB;
                             nonstatic = objectA;
                         }
+
 
                         var result = nonstatic.rect.GetCollidingFixFromB(@static.rect);
 
@@ -83,10 +97,6 @@ namespace MatrixEngine.Physics {
 
 
                         }
-
-
-
-
                     }
                 }
             }

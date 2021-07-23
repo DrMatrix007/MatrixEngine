@@ -1,7 +1,10 @@
-﻿using MatrixEngine.App;
+﻿using MatrixEngine.fonts;
 using MatrixEngine.GameObjects;
 using MatrixEngine.GameObjects.Components;
+using MatrixEngine.GameObjects.Components.UI;
 using MatrixEngine.Scenes;
+using MatrixEngine.System;
+using SFML.Graphics;
 using SFML.System;
 using System;
 
@@ -17,7 +20,7 @@ namespace MatrixEngineTests {
                         new Vector2f(new Random().Next(-1000, 1000), 20),
                         new Component[]
                         {
-                        new SpriteRendererComponent("Image1.png", 20),
+                        new SpriteRendererComponent("Image1.png",16 ,20),
                         new RigidBodyComponent(true),
                         }
                         ));
@@ -33,21 +36,29 @@ namespace MatrixEngineTests {
                 new Scene(
                     new GameObject[] {
                         new GameObject(
+                            new Vector2f(0,0),
                             new Component[]{
-                            new SpriteRendererComponent("Image1.png",0) ,
+                            new SpriteRendererComponent("Image1.png",16,0) ,
                             new SimplePlayerControllerComponent(),
                             new RigidBodyComponent(
                                 new Vector2f(0,0),
-                                new Vector2f(0.00000001f,0.000000001f),
+                                0.01f,
                                 false ),
                             new CameraControllerComponent()
                         }),
                     new GameObject(
                         new Vector2f(-20,-20),
                         new Component[]{
-                            new SpriteRendererComponent("Image1.png",-1),
+                            new SpriteRendererComponent("Image2.png",800,-1),
                             new RigidBodyComponent() { isStatic = true },
                             new RenderTesterComponent()
+                        }),
+                    new GameObject(
+                        new Vector2f(0,0),
+                        new Component[]{
+
+                            new TextRendererComponent("Test123123132\ngg",FontManager.CascadiaCode,Color.Red,100)
+
                         }),
 
                     }

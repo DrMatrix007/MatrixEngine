@@ -1,7 +1,7 @@
 ﻿using MatrixEngine.Physics;
 using SFML.System;
 
-namespace MatrixEngine.GameObjects.Components {
+namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
     [RequireComponent(typeof(RectComponent))]
     public class RigidBodyComponent : Component {
 
@@ -9,13 +9,13 @@ namespace MatrixEngine.GameObjects.Components {
 
         public Vector2f gravity = new Vector2f(0, 0);
 
-        public Vector2f velocityDrag = new Vector2f(0.001f, 0.001f);
+        public float velocityDrag = 0.1f;
 
         public RigidBodyComponent() {
             isStatic = false;
         }
 
-        public RigidBodyComponent(Vector2f gravity, Vector2f velocityDrag, bool isStatic) {
+        public RigidBodyComponent(Vector2f gravity, float velocityDrag, bool isStatic) {
             this.gravity = gravity;
             this.velocityDrag = velocityDrag;
             this.isStatic = isStatic;

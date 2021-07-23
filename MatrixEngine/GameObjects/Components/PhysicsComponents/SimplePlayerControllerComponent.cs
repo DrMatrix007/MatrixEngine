@@ -3,7 +3,7 @@ using SFML.System;
 using SFML.Window;
 using System;
 
-namespace MatrixEngine.GameObjects.Components {
+namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
     [RequireComponent(typeof(RigidBodyComponent))]
     public class SimplePlayerControllerComponent : Component {
 
@@ -31,15 +31,9 @@ namespace MatrixEngine.GameObjects.Components {
             if (keyHandler.isPressed(Keyboard.Key.S)) {
                 add.Y = speed;
             }
-            if (rigidBodyComponent.velocity.Length() > speed) {
-                var vec = rigidBodyComponent.velocity;
-                vec.X = Math.Clamp(vec.X, -speed * 100, speed * 100);
-                vec.Y = Math.Clamp(vec.Y, -speed * 100, speed * 100);
-                rigidBodyComponent.velocity = vec;
-            }
 
-            rigidBodyComponent.velocity += add.Normalize() * app.deltaTime * 100;
 
+            rigidBodyComponent.velocity += add.Normalize();
 
 
 
