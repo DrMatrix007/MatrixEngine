@@ -1,7 +1,8 @@
 ﻿using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-
+using Debug = MatrixEngine.System.Debug;
 namespace MatrixEngine.Physics {
     public class PhysicsEngine {
 
@@ -25,6 +26,7 @@ namespace MatrixEngine.Physics {
 
         }
         public void Update() {
+
 
             foreach (var item in rigidBodies) {
                 if (!item.isStatic) {
@@ -52,55 +54,93 @@ namespace MatrixEngine.Physics {
             }
 
             //work
-            for (int i = 0; i < rigidBodies.Count; i++) {
-                for (int x = 0; x < rigidBodies.Count; x++) {
-                    if (x > i) {
-                        var objectA = rigidBodies.ElementAt(x);
-                        var objectB = rigidBodies.ElementAt(i);
 
-                        RigidBodyComponent nonstatic;
-                        RigidBodyComponent @static;
+            var watch = new Stopwatch();
+            watch.Start();
 
-                        if ((objectA.isStatic && objectB.isStatic) || ((!objectA.isStatic) && (!objectB.isStatic))) {
-                            continue;
-                        }
+            //Parallel.For(0, rigidBodies.Count, (i) => {
+            //    Parallel.For(0, rigidBodies.Count, (x) => {
+            //        if (x > i) {
+            //            var objectA = rigidBodies.ElementAt(x);
+            //            var objectB = rigidBodies.ElementAt(i);
 
+            //            RigidBodyComponent nonstatic;
+            //            RigidBodyComponent @static;
 
-                        if (objectA.isStatic) {
-                            @static = objectA;
-                            nonstatic = objectB;
-
-                        } else {
-                            @static = objectB;
-                            nonstatic = objectA;
-                        }
+            //            if ((objectA.isStatic && objectB.isStatic) || ((!objectA.isStatic) && (!objectB.isStatic))) {
+            //                return;
+            //            }
 
 
-                        var result = nonstatic.rect.GetCollidingFixFromB(@static.rect);
+            //            if (objectA.isStatic) {
+            //                @static = objectA;
+            //                nonstatic = objectB;
 
-                        if (result.axis == Physics.CollidingAxis.X) {
-                            var pos = nonstatic.position;
-                            pos.X -= result.fixValue;
-
-                            nonstatic.position = pos;
-
-                            nonstatic.velocity.X = 0;
-
-                        }
-                        if (result.axis == Physics.CollidingAxis.Y) {
-                            var pos = nonstatic.position;
-                            pos.Y -= result.fixValue;
-
-                            nonstatic.position = pos;
-
-                            nonstatic.velocity.Y = 0;
+            //            } else {
+            //                @static = objectB;
+            //                nonstatic = objectA;
+            //            }
 
 
-                        }
+            //            var result = nonstatic.rect.GetCollidingFixFromB(@static.rect);
+
+            //            if (result.axis == Physics.CollidingAxis.X) {
+            //                var pos = nonstatic.position;
+            //                pos.X -= result.fixValue;
+
+            //                nonstatic.position = pos;
+
+            //                nonstatic.velocity.X = 0;
+
+            //            }
+            //            if (result.axis == Physics.CollidingAxis.Y) {
+            //                var pos = nonstatic.position;
+            //                pos.Y -= result.fixValue;
+
+            //                nonstatic.position = pos;
+
+            //                nonstatic.velocity.Y = 0;
+
+
+            //            }
+            //        }
+
+            //    });
+            //});
+
+            var static_list = rigidBodies.Where(r => r.isStatic).ToArray();
+            var non_static_list = rigidBodies.Where(r => !r.isStatic).ToArray();
+
+
+            foreach (var @static in static_list) {
+                foreach (var nonstatic in non_static_list) {
+                    var result = nonstatic.rect.GetCollidingFixFromB(@static.rect);
+                    if (result.axis == Physics.CollidingAxis.None) {
+                        continue;
+                    }
+                    if (result.axis == Physics.CollidingAxis.X) {
+                        var pos = nonstatic.position;
+                        pos.X -= result.fixValue;
+
+                        nonstatic.position = pos;
+
+                        nonstatic.velocity.X = 0;
+
+                    }
+                    else if (result.axis == Physics.CollidingAxis.Y) {
+                        var pos = nonstatic.position;
+                        pos.Y -= result.fixValue;
+
+                        nonstatic.position = pos;
+
+                        nonstatic.velocity.Y = 0;
+
+
                     }
                 }
             }
-
+            watch.Stop();
+            Debug.Log("ph: " + watch.Elapsed.TotalSeconds.ToString());
 
 
             rigidBodies.Clear();

@@ -55,7 +55,6 @@ namespace MatrixEngine.Renderers {
             //sp.Position =
             //-(Vector2f)app.window.Size / 2;
 
-            Debug.Log(app.window.GetView().Size);
 
 
             app.window.Draw(sp);

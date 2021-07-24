@@ -32,6 +32,7 @@ namespace MatrixEngineTests {
 
         class RenderTesterComponent : Component {
             public override void Start() {
+
                 for (int i = 0; i < 10000; i++) {
                     scene.AddGameObject(
                         new GameObject(
@@ -42,7 +43,25 @@ namespace MatrixEngineTests {
                         new RigidBodyComponent(true),
                         }
                         ));
+                    if (i % 1000 == 0) {
+                        Debug.Log(i);
+                    }
                 }
+                //Parallel.For(0, 1000, (i) => {
+
+                //    scene.AddGameObject(
+                //        new GameObject(
+                //        new Vector2f(i, 20),
+                //        new Component[]
+                //        {
+                //        new SpriteRendererComponent("Image1.png",16 ,20),
+                //        new RigidBodyComponent(true),
+                //        }
+                //        ));
+
+                //});
+
+
             }
 
             public override void Update() {
