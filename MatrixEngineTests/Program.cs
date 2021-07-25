@@ -1,13 +1,17 @@
-﻿using MatrixEngine.fonts;
+﻿using MatrixEngine.Content;
+using MatrixEngine.fonts;
 using MatrixEngine.GameObjects;
 using MatrixEngine.GameObjects.Components;
 using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using MatrixEngine.GameObjects.Components.RenderComponents;
+using MatrixEngine.GameObjects.Components.TilemapComponents;
 using MatrixEngine.GameObjects.Components.UIComponents;
 using MatrixEngine.Scenes;
 using MatrixEngine.System;
+using MatrixEngine.System.AsyncOperations;
 using SFML.Graphics;
 using SFML.System;
+using System.Collections;
 
 namespace MatrixEngineTests {
     class Program {
@@ -32,39 +36,28 @@ namespace MatrixEngineTests {
 
         class RenderTesterComponent : Component {
             public override void Start() {
+                app.asyncOperationManager.AddAsyncOperation(new AsyncOperation(create()));
 
-                for (int i = 0; i < 10000; i++) {
-                    scene.AddGameObject(
-                        new GameObject(
-                        new Vector2f(i, 20),
-                        new Component[]
-                        {
-                        new SpriteRendererComponent("Image1.png",16 ,20),
-                        new RigidBodyComponent(true),
-                        }
-                        ));
-                    if (i % 1000 == 0) {
-                        Debug.Log(i);
-                    }
-                }
-                //Parallel.For(0, 1000, (i) => {
-
-                //    scene.AddGameObject(
-                //        new GameObject(
-                //        new Vector2f(i, 20),
-                //        new Component[]
-                //        {
-                //        new SpriteRendererComponent("Image1.png",16 ,20),
-                //        new RigidBodyComponent(true),
-                //        }
-                //        ));
-
-                //});
+                gameObject.SetComponent<TilemapComponent>();
+                gameObject.SetComponent<TilemapRendererComponent>();
 
 
             }
 
             public override void Update() {
+            }
+            private IEnumerator create() {
+                var t = GetComponent<TilemapComponent>();
+
+                for (int x = 0; x < 1000; x++) {
+                    for (int y = 0; y < 100; y++) {
+                        t.SetTile(new Vector2i(x, y), new Tile(TextureManager.GetTexture("Image1.png")));
+
+                    }
+                    yield return null;
+
+                }
+
             }
         }
 

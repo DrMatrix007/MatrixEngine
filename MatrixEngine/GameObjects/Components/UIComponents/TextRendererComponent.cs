@@ -3,6 +3,7 @@
 namespace MatrixEngine.GameObjects.Components.UIComponents {
     public class TextRendererComponent : UIRendererComponent {
 
+
         public Font font;
 
         public string text;

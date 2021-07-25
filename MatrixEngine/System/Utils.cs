@@ -1,12 +1,25 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace MatrixEngine.System {
-    public static class Debug {
+    public static class Utils {
 
         public enum MessageType {
             Log,
             Error,
             Warning,
+        }
+        public static float GetTimeInSeconds(Action action) {
+            var watch = new Stopwatch();
+
+            watch.Start();
+
+            action();
+
+            watch.Stop();
+
+            return (float)watch.Elapsed.TotalSeconds;
+
         }
 
         public static void Log(object message, MessageType type) {

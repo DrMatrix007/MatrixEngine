@@ -24,7 +24,7 @@ namespace MatrixEngine.System {
                     values[key] = false;
 
                 } catch (Exception e) {
-                    Debug.LogError(e.ToString());
+                    Utils.LogError(e.ToString());
                 }
             }
         }

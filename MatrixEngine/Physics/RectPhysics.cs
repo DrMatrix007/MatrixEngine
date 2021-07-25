@@ -27,11 +27,7 @@ namespace MatrixEngine.Physics {
             float d2x = a.X - b.X - b.width;
             float d2y = a.Y - b.Y - b.height;
 
-            if (d1x > 0 || d1y > 0) {
-                return false;
-            }
-            if (d2x > 0 || d2y > 0) {
-
+            if ((d1x > 0 || d1y > 0) || (d2x > 0 || d2y > 0)) {
                 return false;
             }
             return true;

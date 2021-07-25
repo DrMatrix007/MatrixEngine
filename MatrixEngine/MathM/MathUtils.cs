@@ -41,5 +41,9 @@ namespace MatrixEngine.MathM {
             return (v.X.Sqr() + v.Y.Sqr()).Sqrt();
 
         }
+
+        public static float Distance(this Vector2f v1, Vector2f v2) {
+            return Length(v1 - v2);
+        }
     }
 }

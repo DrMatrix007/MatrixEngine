@@ -39,9 +39,12 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
             }
         }
         public override void Update() {
+            if (isStatic) {
+                app.rigidBodyManager.AddStaticToFrameComputing(this.rect);
+            } else {
+                app.rigidBodyManager.AddNonStaticToFrameComputing(this);
+            }
 
-
-            app.rigidBodyManager.AddToFrameComputing(this);
         }
     }
 }

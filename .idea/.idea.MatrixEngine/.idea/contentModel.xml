@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ContentModelStore">
+    <e p="C:\Users\ofrih\AppData\Local\JetBrains\Rider2020.1\extResources" t="IncludeRecursive" />
+    <e p="C:\Users\ofrih\AppData\Local\JetBrains\Rider2020.1\resharper-host\Local\Transient\ReSharperHost\v201\SolutionCaches\_MatrixEngine.1137706001.00" t="ExcludeRecursive" />
+    <e p="C:\Users\ofrih\Documents\Code\CSharp\MatrixEngine" t="IncludeFlat">
+      <e p="MatrixEngine" t="IncludeRecursive">
+        <e p="bin" t="ExcludeRecursive" />
+        <e p="Content" t="Include">
+          <e p="TextureManager.cs" t="Include" />
+        </e>
+        <e p="fonts" t="Include">
+          <e p="CascadiaCode.ttf" t="Include" />
+          <e p="FontManager.cs" t="Include" />
+        </e>
+        <e p="GameObjects" t="Include">
+          <e p="Components" t="Include">
+            <e p="Component.cs" t="Include" />
+            <e p="CounterComponent.cs" t="Include" />
+            <e p="DebugComponent.cs" t="Include" />
+            <e p="PhysicsComponents" t="Include">
+              <e p="RigidBodyComponent.cs" t="Include" />
+              <e p="SimplePlayerControllerComponent.cs" t="Include" />
+            </e>
+            <e p="RectComponent.cs" t="Include" />
+            <e p="RenderComponents" t="Include">
+              <e p="RendererComponent.cs" t="Include" />
+              <e p="SpriteRendererComponent.cs" t="Include" />
+            </e>
+            <e p="RequireComponent.cs" t="Include" />
+            <e p="UIComponents" t="Include">
+              <e p="TextRendererComponent.cs" t="Include" />
+              <e p="UIRendererComponent.cs" t="Include" />
+            </e>
+          </e>
+          <e p="GameObject.cs" t="Include" />
+        </e>
+        <e p="MathM" t="Include">
+          <e p="MathUtils.cs" t="Include" />
+        </e>
+        <e p="MatrixEngine.csproj" t="IncludeRecursive" />
+        <e p="obj" t="ExcludeRecursive">
+          <e p="Debug" t="Include">
+            <e p="net5.0" t="Include">
+              <e p="MatrixEngine.AssemblyInfo.cs" t="Include" />
+            </e>
+          </e>
+        </e>
+        <e p="Physics" t="Include">
+          <e p="PhysicsEngine.cs" t="Include" />
+          <e p="Rect.cs" t="Include" />
+          <e p="RectPhysics.cs" t="Include" />
+        </e>
+        <e p="Renderers" t="Include">
+          <e p="CanvasRenderer.cs" t="Include" />
+          <e p="Renderer.cs" t="Include" />
+        </e>
+        <e p="Scenes" t="Include">
+          <e p="Scene.cs" t="Include" />
+        </e>
+        <e p="System" t="Include">
+          <e p="App.cs" t="Include" />
+          <e p="AsyncOperations" t="Include">
+            <e p="AsyncOperation.cs" t="Include" />
+            <e p="AsyncOperationManager.cs" t="Include" />
+          </e>
+          <e p="Camera.cs" t="Include" />
+          <e p="DebugOLD.cs" t="Include" />
+          <e p="KeyHandler.cs" t="Include" />
+        </e>
+        <e p="Utils" t="Include">
+          <e p="MatrixUtils.cs" t="Include" />
+        </e>
+      </e>
+      <e p="MatrixEngine.sln" t="IncludeFlat" />
+      <e p="MatrixEngineTests" t="IncludeRecursive">
+        <e p="bin" t="ExcludeRecursive" />
+        <e p="CameraControllerComponent.cs" t="Include" />
+        <e p="Image1.png" t="Include" />
+        <e p="Image2.png" t="Include" />
+        <e p="MatrixEngineTests.csproj" t="IncludeRecursive" />
+        <e p="obj" t="ExcludeRecursive">
+          <e p="Debug" t="Include">
+            <e p="net5.0" t="Include">
+              <e p="MatrixEngineTests.AssemblyInfo.cs" t="Include" />
+            </e>
+          </e>
+        </e>
+        <e p="Program.cs" t="Include" />
+        <e p="Properties" t="Include">
+          <e p="launchSettings.json" t="Include" />
+          <e p="PublishProfiles" t="Include">
+            <e p="FolderProfile.pubxml" t="Include" />
+          </e>
+        </e>
+      </e>
+      <e p="packages" t="ExcludeRecursive" />
+    </e>
+  </component>
+</project>

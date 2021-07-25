@@ -5,11 +5,11 @@ namespace MatrixEngine.GameObjects.Components {
     public sealed class CounterComponent : Component {
         int c = 0;
         public override void Start() {
-            Debug.Log("Start Counting!");
+            System.Utils.Log("Start Counting!");
         }
 
         public override void Update() {
-            Debug.Log($"Count: {c}");
+            System.Utils.Log($"Count: {c}");
             c++;
         }
     }

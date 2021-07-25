@@ -1,12 +1,13 @@
-﻿using MatrixEngine.Physics;
+﻿using MatrixEngine.Content;
+using MatrixEngine.Physics;
 using SFML.Graphics;
 using SFML.System;
+using System;
+using System.Diagnostics;
 
 namespace MatrixEngine.GameObjects.Components.RenderComponents {
-    [RequireComponent(typeof(RectComponent))]
     public sealed class SpriteRendererComponent : RendererComponent {
 
-        private RectComponent rectComponent;
 
         private Sprite sprite;
         public int pixelperunit;
@@ -19,23 +20,22 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
 
 
         public SpriteRendererComponent(string localpathtoimg, int pixelperunit, int layer) {
-            sprite = new Sprite(new Texture(localpathtoimg));
+
+            sprite = new Sprite(TextureManager.GetTexture(localpathtoimg));
+
             this.layer = layer;
             this.pixelperunit = pixelperunit;
         }
+
 
         public override void Render(RenderTarget target) {
             target.Draw(sprite);
         }
 
-        public override void Start() {
-            rectComponent = GetComponent<RectComponent>();
-
-        }
 
         public override void Update() {
             sprite.Position = gameObject.position;
-            app.renderer.addToDrawQueue(this);
+            app.renderer.AddToDrawQueue(this);
             var trect = sprite.TextureRect;
 
             var new_sprite_rect = spriteRect;

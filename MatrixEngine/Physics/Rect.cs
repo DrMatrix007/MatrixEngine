@@ -15,8 +15,8 @@ namespace MatrixEngine.Physics {
         {
             get => new Vector2f(X,Y);
         }
-        public float cx { get => X + width * 0.5f; }
-        public float cy { get => Y + height * 0.5f; }
+        public float cX { get => X + width * 0.5f; }
+        public float cY { get => Y + height * 0.5f; }
 
         public void SetPos(Vector2f pos) {
             (X,Y) = (pos.X,pos.Y);
@@ -41,5 +41,21 @@ namespace MatrixEngine.Physics {
         public new string ToString() {
             return $"Rect(x:{X.ToString("0.0")}, y:{Y.ToString("0.0")}, width:{width.ToString("0.0")}, height:{height.ToString("0.0")})";
         }
+        public Vector2f position
+        {
+            get { return new Vector2f(X, Y); }
+        }
+
+        public Vector2f center
+        {
+            get => new Vector2f(cX,cY);
+        }
+
+        public bool IsInside(Vector2f pos) {
+            
+            return (pos.X >= this.X && pos.Y >= this.Y && pos.X<=this.Max.X && pos.Y <= this.Max.Y);
+        
+        }
+
     }
 }

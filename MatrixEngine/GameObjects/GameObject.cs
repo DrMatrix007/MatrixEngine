@@ -1,9 +1,9 @@
 ﻿using MatrixEngine.GameObjects.Components;
 using MatrixEngine.Scenes;
-using MatrixEngine.System;
 using SFML.System;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MatrixEngine.GameObjects {
     public sealed class GameObject {
@@ -24,13 +24,20 @@ namespace MatrixEngine.GameObjects {
             SetComponent(new T());
         }
         public void SetComponent(Type type) {
-            try {
-                Component c = (Component)Activator.CreateInstance(type);
-                SetComponent(c);
-            } catch (Exception) {
-                throw;
+            Component c = (Component)Activator.CreateInstance(type);
+            SetComponent(c);
+
+
+        }
+        private void PureSetComponent(Component component) {
+
+            if (component.gameObject != null) {
+                System.Utils.LogError($"{component} is already stored by a gameobject!!!");
             }
 
+            component.SetupGameobject(this);
+            var t = component.GetType();
+            components[t] = component;
         }
         public void SetComponent(Component component) {
             //Debug.Log($"Added {component.GetType()}");
@@ -42,33 +49,40 @@ namespace MatrixEngine.GameObjects {
 
                 }
             }
-            if (component.gameObject != null) {
-                Debug.LogError($"{component} is already stored by a gameobject!!!");
-            }
-
-            component.SetupGameobject(this);
-            var t = component.GetType();
-            components[t] = component;
+            PureSetComponent(component);
         }
 
         public void SetComponents(IEnumerable<Component> comps) {
 
             foreach (var component in comps) {
                 if (component.gameObject != null) {
-                    Debug.LogError($"{component} is already stored by a gameobject!!!");
+                    System.Utils.LogError($"{component} is already stored by a gameobject!!!");
                 }
                 component.SetupGameobject(this);
                 var t = component.GetType();
                 components[t] = component;
             }
+
             foreach (var component in comps) {
+
                 var requireds = component.GetType().GetCustomAttributes(typeof(RequireComponent), true);
+
+
+                if (requireds.Length == 0) {
+                    continue;
+                }
+
+
                 foreach (RequireComponent item in requireds) {
+
                     if (GetComponent(item.type) == null) {
                         SetComponent(item.type);
                     }
                 }
+
             }
+
+
 
         }
 
@@ -90,11 +104,13 @@ namespace MatrixEngine.GameObjects {
             return default;
         }
         public Component GetComponent(Type t) {
-            try {
-                return components[t];
-            } catch (Exception) { }
+            if (components.ContainsKey(t)) {
 
-            return default;
+                return components[t];
+            } else {
+                return default;
+            }
+
         }
 
         public GameObject() {
@@ -115,7 +131,8 @@ namespace MatrixEngine.GameObjects {
         }
 
         public void Update() {
-            foreach (var component in components.Values) {
+            var l = components.Values.ToList();
+            foreach (var component in l) {
                 if (!component.didStart) {
                     component.didStart = true;
                     component.Start();

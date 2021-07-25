@@ -1,10 +1,11 @@
-﻿using MatrixEngine.MathM;
-using MatrixEngine.Physics;
+﻿using MatrixEngine.Physics;
 using MatrixEngine.Renderers;
 using MatrixEngine.Scenes;
+using MatrixEngine.System.AsyncOperations;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
+using System;
 
 namespace MatrixEngine.System {
     public sealed class App {
@@ -16,6 +17,12 @@ namespace MatrixEngine.System {
         }
 
         public KeyHandler keyHandler
+        {
+            get;
+            private set;
+        }
+
+        public AsyncOperationManager asyncOperationManager
         {
             get;
             private set;
@@ -63,6 +70,8 @@ namespace MatrixEngine.System {
         }
 
 
+
+
         public App(string appName, Scene scene) {
             AppName = appName;
 
@@ -70,7 +79,7 @@ namespace MatrixEngine.System {
             window = new RenderWindow(new VideoMode(800, 600), AppName);
             window.SetKeyRepeatEnabled(true);
 
-            window.SetFramerateLimit(144);
+            //window.SetFramerateLimit(144);
 
 
             window.Closed += (s, e) => {
@@ -81,17 +90,17 @@ namespace MatrixEngine.System {
             window.KeyReleased += Window_KeyReleased;
 
             keyHandler = new KeyHandler();
-            camera = new Camera();
+            camera = new Camera(this);
             renderer = new Renderer(this);
             rigidBodyManager = new PhysicsEngine(this);
             canvasRenderer = new CanvasRenderer(this);
+            asyncOperationManager = new AsyncOperationManager(this);
         }
 
         public Vector2f windowSize
         {
-            get;
-            private set;
-        } = new Vector2f(100, 100);
+            get => camera.size;
+        }
 
         private void Window_KeyReleased(object sender, KeyEventArgs e) {
             keyHandler.ReleasedKey(e.Code);
@@ -100,6 +109,7 @@ namespace MatrixEngine.System {
         private void Window_KeyPressed(object sender, KeyEventArgs e) {
             keyHandler.PressedKey(e.Code);
         }
+
 
 
         public void Run() {
@@ -116,11 +126,12 @@ namespace MatrixEngine.System {
 
             scene.app = this;
 
+            //window.SetFramerateLimit(145);
+
 
             while (window.IsOpen) {
-                var size = window.Size;
 
-                windowSize = new Vector2f(2.0f.Pow(camera.zoom) * ((float)size.X / size.Y).Sqrt() * 100, 2.0f.Pow(camera.zoom) * 100 / ((float)size.X / size.Y).Sqrt());
+
 
 
                 window.DispatchEvents();
@@ -128,17 +139,29 @@ namespace MatrixEngine.System {
 
                 scene.Update();
 
-                window.SetView(new View(camera.position, windowSize));
+                asyncOperationManager.Update();
+
+                window.SetView(new View(camera.position, camera.size));
 
                 rigidBodyManager.Update();
 
+
                 window.Clear(Color.Black);
 
+                Utils.GetTimeInSeconds(() => {
+
+                    renderer.Render();
+                    canvasRenderer.Render();
+
+                });
+
+                //window.Draw(
+                //        new Vertex[] {
+                //        new Vertex(camera.rect.position+new Vector2f(5,5)),
+                //        new Vertex(camera.rect.position+new Vector2f(5,-5+camera.size.Y))
+                //}, PrimitiveType.Lines);
 
 
-                renderer.Render();
-
-                canvasRenderer.Render();
 
 
                 window.Display();

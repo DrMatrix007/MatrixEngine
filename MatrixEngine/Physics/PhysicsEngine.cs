@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Debug = MatrixEngine.System.Debug;
+using Debug = MatrixEngine.System.Utils;
 namespace MatrixEngine.Physics {
     public class PhysicsEngine {
 
-        private List<RigidBodyComponent> rigidBodies;
+        private List<RigidBodyComponent> dynamicRigidBodies;
+        private List<Rect> rectBodies;
+
 
         public System.App app
         {
@@ -16,19 +18,24 @@ namespace MatrixEngine.Physics {
 
         public PhysicsEngine(System.App app) {
             this.app = app;
-            rigidBodies = new List<RigidBodyComponent>();
+            dynamicRigidBodies = new List<RigidBodyComponent>();
+            rectBodies = new List<Rect>();
         }
 
-        public void AddToFrameComputing(RigidBodyComponent rigidBodyComponent) {
+        public void AddNonStaticToFrameComputing(RigidBodyComponent rigidBodyComponent) {
 
-            rigidBodies.Add(rigidBodyComponent);
+            dynamicRigidBodies.Add(rigidBodyComponent);
 
 
         }
+        public void AddStaticToFrameComputing(Rect rect) {
+
+        }
+
         public void Update() {
 
 
-            foreach (var item in rigidBodies) {
+            foreach (var item in dynamicRigidBodies) {
                 if (!item.isStatic) {
                     //TODO: Fix the goddamn drag shit!
                     var multiplier = 1 - item.velocityDrag;
@@ -55,66 +62,16 @@ namespace MatrixEngine.Physics {
 
             //work
 
-            var watch = new Stopwatch();
-            watch.Start();
 
-            //Parallel.For(0, rigidBodies.Count, (i) => {
-            //    Parallel.For(0, rigidBodies.Count, (x) => {
-            //        if (x > i) {
-            //            var objectA = rigidBodies.ElementAt(x);
-            //            var objectB = rigidBodies.ElementAt(i);
+            
 
-            //            RigidBodyComponent nonstatic;
-            //            RigidBodyComponent @static;
-
-            //            if ((objectA.isStatic && objectB.isStatic) || ((!objectA.isStatic) && (!objectB.isStatic))) {
-            //                return;
-            //            }
-
-
-            //            if (objectA.isStatic) {
-            //                @static = objectA;
-            //                nonstatic = objectB;
-
-            //            } else {
-            //                @static = objectB;
-            //                nonstatic = objectA;
-            //            }
-
-
-            //            var result = nonstatic.rect.GetCollidingFixFromB(@static.rect);
-
-            //            if (result.axis == Physics.CollidingAxis.X) {
-            //                var pos = nonstatic.position;
-            //                pos.X -= result.fixValue;
-
-            //                nonstatic.position = pos;
-
-            //                nonstatic.velocity.X = 0;
-
-            //            }
-            //            if (result.axis == Physics.CollidingAxis.Y) {
-            //                var pos = nonstatic.position;
-            //                pos.Y -= result.fixValue;
-
-            //                nonstatic.position = pos;
-
-            //                nonstatic.velocity.Y = 0;
-
-
-            //            }
-            //        }
-
-            //    });
-            //});
-
-            var static_list = rigidBodies.Where(r => r.isStatic).ToArray();
-            var non_static_list = rigidBodies.Where(r => !r.isStatic).ToArray();
+            var static_list = rectBodies.ToArray();
+            var non_static_list = dynamicRigidBodies.ToArray();
 
 
             foreach (var @static in static_list) {
                 foreach (var nonstatic in non_static_list) {
-                    var result = nonstatic.rect.GetCollidingFixFromB(@static.rect);
+                    var result = nonstatic.rect.GetCollidingFixFromB(@static);
                     if (result.axis == Physics.CollidingAxis.None) {
                         continue;
                     }
@@ -139,11 +96,10 @@ namespace MatrixEngine.Physics {
                     }
                 }
             }
-            watch.Stop();
-            Debug.Log("ph: " + watch.Elapsed.TotalSeconds.ToString());
 
 
-            rigidBodies.Clear();
+            dynamicRigidBodies.Clear();
+            rectBodies.Clear();
 
         }
     }

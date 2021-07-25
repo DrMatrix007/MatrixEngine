@@ -61,6 +61,8 @@ namespace MatrixEngine.Renderers {
 
             app.window.SetView(tmp);
 
+            list.Clear();
+
         }
 
 
