@@ -46,9 +46,9 @@ namespace MatrixEngineTests {
                 var r = new Random();
                 for (int x = 0; x < 1000; x++) {
                     for (int y = 0; y < 1000; y++) {
-                        //if(r.NextDouble() < 0.5f) {
+                        if(r.NextDouble() < 0.5f) {
                         t.SetTile(new Vector2i(x, y), new Tile(TextureManager.GetTexture("Image1.png")));
-                        //}
+                        }
                     }
                 }
                     

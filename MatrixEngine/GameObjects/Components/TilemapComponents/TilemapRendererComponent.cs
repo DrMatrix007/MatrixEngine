@@ -29,7 +29,6 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
 
             tilemap = GetComponent<TilemapComponent>();
 
-            RenderTexture();
 
         }
         public override void Update() {
@@ -47,12 +46,31 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
             //}
             foreach (var item in tilemap.chunks) {
 
-                if (!item.Value.isRenderedUpdated) {
+                if ((!item.Value.isRenderedUpdated) && new Rect((Vector2f)item.Key, (Vector2f)item.Value.size).isColliding(app.camera.rect)) {
+                    Utils.Log("R");
+                    if (chunkTextures.ContainsKey(item.Key)) {
 
+                        chunkTextures[item.Key].Dispose();
+                        chunkTextures.Remove(item.Key);
+                    }
                     chunkTextures[item.Key] = RenderChunk(item.Value);
                     item.Value.isRenderedUpdated = true;
 
 
+                }
+                if (!new Rect((Vector2f)item.Key, (Vector2f)item.Value.size).isColliding(app.camera.rect)) {
+                    if (chunkTextures.ContainsKey(item.Key)) {
+
+                        chunkTextures[item.Key].Dispose();
+                        chunkTextures.Remove(item.Key);
+                    }
+                } else {
+                    if (!chunkTextures.ContainsKey(item.Key)) {
+
+                        chunkTextures[item.Key] = RenderChunk(item.Value);
+                        item.Value.isRenderedUpdated = true;
+                    }
+                    
                 }
             }
         }
@@ -65,7 +83,6 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
             foreach (var item in chunk) {
 
                 var s = new Sprite(item.Value.texture);
-                //item.Value.Texture.CopyToImage().GetPixel(0, 0).Log();
                 s.Position = (Vector2f)item.Key * tilemap.pixelsPerUnit;
                 //s.Scale /= tilemap.pixelsPerUnit;
                 tex.Draw(s);
@@ -83,6 +100,8 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
 
             foreach (var item in chunkTextures) {
                 if (!(new Rect((Vector2f)item.Key, (Vector2f)item.Value.Size)).isColliding(app.camera.rect)) {
+                    item.Value.Dispose();
+                    chunkTextures.Remove(item.Key);
                     continue;
                 }
                 var sprite = new Sprite(item.Value.Texture);

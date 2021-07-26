@@ -7,9 +7,14 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
     public class Chunk : IEnumerable<KeyValuePair<Vector2i,Tile>>{
         public int chunkSize = 16;
 
-        public bool isRenderedUpdated = false;
+        public bool isRenderedUpdated = true;
 
         public Vector2i fullPosition;
+
+        public Vector2f size
+        {
+            get => new Vector2f(chunkSize, chunkSize);
+        }
 
         public Tile[,] tiles;
 

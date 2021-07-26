@@ -6,7 +6,7 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
         public readonly int pixelsPerUnit;
         internal Dictionary<Vector2i,Chunk> chunks;
 
-        public const int chunkSize = 10;
+        public const int chunkSize = 50;
 
         public TilemapComponent() : this(16) {
 
