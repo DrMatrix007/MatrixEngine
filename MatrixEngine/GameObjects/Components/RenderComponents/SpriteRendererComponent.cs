@@ -1,5 +1,6 @@
 ﻿using MatrixEngine.Content;
 using MatrixEngine.Physics;
+using MatrixEngine.System;
 using SFML.Graphics;
 using SFML.System;
 using System;
@@ -22,7 +23,6 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
         public SpriteRendererComponent(string localpathtoimg, int pixelperunit, int layer) {
 
             sprite = new Sprite(TextureManager.GetTexture(localpathtoimg));
-
             this.layer = layer;
             this.pixelperunit = pixelperunit;
         }
@@ -47,6 +47,9 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
             //Debug.Log(sprite.Scale);
 
             rectComponent.rect = new_sprite_rect;
+
+            
+
         }
     }
 }

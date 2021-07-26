@@ -140,6 +140,9 @@ namespace MatrixEngine.GameObjects {
                 component.Update();
 
             }
+            foreach (var item in l) {
+                item.LateUpdate();
+            }
         }
     }
 }

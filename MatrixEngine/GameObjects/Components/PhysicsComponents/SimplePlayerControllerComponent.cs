@@ -31,7 +31,7 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
             }
 
 
-            rigidBodyComponent.velocity += add.Normalize();
+            rigidBodyComponent.velocity = add*speed*10;
 
 
 

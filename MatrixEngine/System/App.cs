@@ -126,7 +126,7 @@ namespace MatrixEngine.System {
 
             scene.app = this;
 
-            //window.SetFramerateLimit(145);
+            window.SetFramerateLimit(1450);
 
 
             while (window.IsOpen) {

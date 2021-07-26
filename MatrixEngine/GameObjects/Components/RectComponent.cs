@@ -11,8 +11,8 @@ namespace MatrixEngine.GameObjects.Components {
         {
             set { _rect = value; }
             get {
-                _rect.X = position.X;
-                _rect.Y = position.Y;
+                _rect.x = position.X;
+                _rect.y = position.Y;
                 return _rect;
             }
         }

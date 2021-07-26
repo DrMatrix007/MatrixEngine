@@ -11,6 +11,7 @@ using MatrixEngine.System;
 using MatrixEngine.System.AsyncOperations;
 using SFML.Graphics;
 using SFML.System;
+using System;
 using System.Collections;
 
 namespace MatrixEngineTests {
@@ -36,29 +37,35 @@ namespace MatrixEngineTests {
 
         class RenderTesterComponent : Component {
             public override void Start() {
-                app.asyncOperationManager.AddAsyncOperation(new AsyncOperation(create()));
+                //app.asyncOperationManager.AddAsyncOperation(new AsyncOperation(create()));
 
                 gameObject.SetComponent<TilemapComponent>();
                 gameObject.SetComponent<TilemapRendererComponent>();
 
-
+                var t = GetComponent<TilemapComponent>();
+                var r = new Random();
+                for (int x = 0; x < 1000; x++) {
+                    for (int y = 0; y < 1000; y++) {
+                        //if(r.NextDouble() < 0.5f) {
+                        t.SetTile(new Vector2i(x, y), new Tile(TextureManager.GetTexture("Image1.png")));
+                        //}
+                    }
+                }
+                    
             }
 
             public override void Update() {
+                if (app.keyHandler.isPressed(SFML.Window.Keyboard.Key.G)) {
+                    GetComponent<TilemapComponent>().SetTile(new Vector2i(0, 0), null);
+                }
             }
             private IEnumerator create() {
-                var t = GetComponent<TilemapComponent>();
 
-                for (int x = 0; x < 1000; x++) {
-                    for (int y = 0; y < 100; y++) {
-                        t.SetTile(new Vector2i(x, y), new Tile(TextureManager.GetTexture("Image1.png")));
-
-                    }
-                    yield return null;
-
-                }
+                yield return null;
+                //Utils.LogTimeInSeconds(GetComponent<TilemapRendererComponent>().RenderTexture);
 
             }
+
         }
 
         static void Main(string[] args) {
@@ -72,15 +79,14 @@ namespace MatrixEngineTests {
                             new SimplePlayerControllerComponent(),
                             new RigidBodyComponent(
                                 new Vector2f(0,0),
-                                0.05f,
+                                0.5f,
                                 false ),
                             new CameraControllerComponent()
                         }),
                     new GameObject(
-                        new Vector2f(-20,-20),
+                        new Vector2f(0,0),
                         new Component[]{
-                            new SpriteRendererComponent("Image2.png",800,-1),
-                            new RigidBodyComponent() { isStatic = true },
+                            //new RigidBodyComponent() { isStatic = true },
                             new RenderTesterComponent()
                         }),
                     new GameObject(

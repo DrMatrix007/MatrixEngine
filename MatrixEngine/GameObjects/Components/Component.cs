@@ -71,5 +71,9 @@ namespace MatrixEngine.GameObjects.Components {
 
         abstract public void Start();
         abstract public void Update();
+
+        public virtual void LateUpdate() {
+
+        }
     }
 }

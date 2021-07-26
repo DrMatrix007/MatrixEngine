@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace MatrixEngine.GameObjects.Components {
-    class RequireComponent : Attribute {
+    public class RequireComponent : Attribute {
 
         public Type type;
 

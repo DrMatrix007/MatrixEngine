@@ -1,14 +1,12 @@
 ﻿using SFML.System;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MatrixEngine.GameObjects.Components.TilemapComponents {
-    public class TilemapComponent : Component {
+    public sealed class TilemapComponent : Component {
         public readonly int pixelsPerUnit;
-        internal Dictionary<Vector2i, Tile> tiles;
+        internal Dictionary<Vector2i,Chunk> chunks;
+
+        public const int chunkSize = 10;
 
         public TilemapComponent() : this(16) {
 
@@ -17,14 +15,20 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
         public TilemapComponent(int pixelperunit) {
             this.pixelsPerUnit = pixelperunit;
 
-            tiles = new Dictionary<Vector2i, Tile>();
+            chunks = new Dictionary<Vector2i, Chunk>();
         }
         public void SetTile(Vector2i i, Tile tile) {
-            if (tile != null) {
-                tiles[i] = tile;
-            } else {
-                tiles.Remove(i);
+            var chunk_vec = new Vector2i(i.X/chunkSize, i.Y/chunkSize)*chunkSize;
+            if (!chunks.ContainsKey(chunk_vec)) {
+                chunks[chunk_vec] = new Chunk(chunk_vec,chunkSize);
             }
+            chunks[chunk_vec].isRenderedUpdated = false;
+            chunks[chunk_vec].SetTileFromLocalPos(i-chunk_vec,tile);
+
+
+
+        }
+        public override void LateUpdate() {
 
         }
 

@@ -22,10 +22,10 @@ namespace MatrixEngine.Physics {
 
         }
         public static bool isColliding(this Rect a, Rect b) {
-            float d1x = b.X - a.X - a.width;
-            float d1y = b.Y - a.Y - a.height;
-            float d2x = a.X - b.X - b.width;
-            float d2y = a.Y - b.Y - b.height;
+            float d1x = b.x - a.x - a.width;
+            float d1y = b.y - a.y - a.height;
+            float d2x = a.x - b.x - b.width;
+            float d2y = a.y - b.y - b.height;
 
             if ((d1x > 0 || d1y > 0) || (d2x > 0 || d2y > 0)) {
                 return false;
@@ -38,10 +38,10 @@ namespace MatrixEngine.Physics {
                 return CollidingFix.None;
             }
 
-            var left = a.Max.X - b.X;
-            var right = a.X - b.Max.X;
-            var up = a.Y - b.Max.Y;
-            var down = a.Max.Y - b.Y;
+            var left = a.max.X - b.x;
+            var right = a.x - b.max.X;
+            var up = a.y - b.max.Y;
+            var down = a.max.Y - b.y;
 
             //left = (float)Math.Round(left, 3, MidpointRounding.ToZero);
             //right = (float)Math.Round(right, 3, MidpointRounding.ToZero);
