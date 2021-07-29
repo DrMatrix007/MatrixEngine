@@ -1,11 +1,22 @@
 ﻿using MatrixEngine.Physics;
+using MatrixEngine.System;
 using SFML.System;
+using System;
 
 namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
-    [RequireComponent(typeof(RectComponent))]
+    [RequireComponent(typeof(ColliderComponent))]
     public class RigidBodyComponent : Component {
 
-        public Vector2f velocity = new Vector2f(0, 0);
+        private Vector2f _vel = new Vector2f(0, 0);
+            
+        public Vector2f velocity
+        {
+            get { return _vel; }
+            set {
+                //Environment.StackTrace.Log();
+
+                _vel = value; }
+        }
 
         public Vector2f gravity = new Vector2f(0, 0);
 
@@ -26,23 +37,21 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
             this.isStatic = isStatic;
         }
 
-        private RectComponent rectComponent;
+
         public bool isStatic = false;
 
         public override void Start() {
-            rectComponent = GetComponent<RectComponent>();
         }
-        public Rect rect
-        {
-            get {
-                return rectComponent.rect;
-            }
-        }
+        
         public override void Update() {
+            if(colliderComponent.colliderType == ColliderComponent.ColliderType.Tilemap) {
+                isStatic = true;
+            }
+
             if (isStatic) {
-                app.rigidBodyManager.AddStaticToFrameComputing(this.rect);
+                app.rigidBodyManager.AddColliderToFrame(this.colliderComponent);
             } else {
-                app.rigidBodyManager.AddNonStaticToFrameComputing(this);
+                app.rigidBodyManager.AddRigidbodyToFrame(this);
             }
 
         }

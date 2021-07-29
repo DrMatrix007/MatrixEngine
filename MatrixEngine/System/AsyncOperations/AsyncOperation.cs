@@ -16,6 +16,8 @@ namespace MatrixEngine.System.AsyncOperations {
             
             this.fullOperation = fullOperation;
         }
+        public AsyncOperation(Func<IEnumerator> action) : this(action()) {
+        }
 
         public bool MoveNext() {
             return fullOperation.MoveNext();

@@ -1,4 +1,5 @@
 ﻿using MatrixEngine.GameObjects.Components;
+using MatrixEngine.Physics;
 using MatrixEngine.Scenes;
 using SFML.System;
 using System;
@@ -9,15 +10,32 @@ namespace MatrixEngine.GameObjects {
     public sealed class GameObject {
 
 
-        public Vector2f position = new Vector2f(0, 0);
+        public Vector2f position
+        {
+            get => transform.position;
+            set => transform.position = value;
+        }
+        public Vector2f scale
+        {
+            get => transform.scale;
+            set => transform.scale = value;
+        }
+        public Rect rect
+        {
+            get => transform.rect;
+        }
 
         private Dictionary<Type, Component> components;
 
+        public TransformComponent transform
+        {
+            get;
+            private set;
+        }
+
         public GameObject gameObject
         {
-            get {
-                return this;
-            }
+            get => this;
         }
 
         public void SetComponent<T>() where T : Component, new() {
@@ -115,6 +133,7 @@ namespace MatrixEngine.GameObjects {
 
         public GameObject() {
             components = new Dictionary<Type, Component>();
+            transform = new TransformComponent();
         }
         public GameObject(IEnumerable<Component> components) : this() {
             SetComponents(components);

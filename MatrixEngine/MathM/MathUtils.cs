@@ -45,5 +45,12 @@ namespace MatrixEngine.MathM {
         public static float Distance(this Vector2f v1, Vector2f v2) {
             return Length(v1 - v2);
         }
+
+        public static Vector2f Round(this Vector2f v,int r) {
+            return new Vector2f((float)Math.Round(v.X,r,MidpointRounding.ToZero),(float)Math.Round(v.Y,r,MidpointRounding.ToZero));
+        }
+        public static Vector2f Round(this Vector2f v, MidpointRounding r) {
+            return new Vector2f((float)Math.Round(v.X, 0, r), (float)Math.Round(v.Y, 0, r));
+        }
     }
 }

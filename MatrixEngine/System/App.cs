@@ -79,7 +79,7 @@ namespace MatrixEngine.System {
             window = new RenderWindow(new VideoMode(800, 600), AppName);
             window.SetKeyRepeatEnabled(true);
 
-            //window.SetFramerateLimit(144);
+            window.SetFramerateLimit(144);
 
 
             window.Closed += (s, e) => {
@@ -132,10 +132,13 @@ namespace MatrixEngine.System {
             while (window.IsOpen) {
 
 
+                window.Clear(Color.Black);
 
 
                 window.DispatchEvents();
 
+                renderer.Render();
+                canvasRenderer.Render();
 
                 scene.Update();
 
@@ -146,12 +149,10 @@ namespace MatrixEngine.System {
                 rigidBodyManager.Update();
 
 
-                window.Clear(Color.Black);
 
                 Utils.GetTimeInSeconds(() => {
 
-                    renderer.Render();
-                    canvasRenderer.Render();
+
 
                 });
 

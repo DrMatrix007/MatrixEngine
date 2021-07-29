@@ -5,8 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace MatrixEngine.GameObjects.Components {
+    [AttributeUsage(AttributeTargets.Class,AllowMultiple =true,Inherited =true)]
     public class RequireComponent : Attribute {
-
+        
         public Type type;
 
         public RequireComponent(Type componentType) {

@@ -1,4 +1,5 @@
 ﻿using MatrixEngine.Content;
+using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using MatrixEngine.Physics;
 using MatrixEngine.System;
 using SFML.Graphics;
@@ -31,22 +32,22 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
         public override void Render(RenderTarget target) {
             target.Draw(sprite);
         }
+        public override void Start() {
+            var c = this.GetComponent<ColliderComponent>();
+            if (c != null && c.colliderType == ColliderComponent.ColliderType.Rect) {
+                var tr = sprite.TextureRect;
+                transform.rect = new Rect(position,new Vector2f(tr.Width,tr.Height)/pixelperunit);
+            }
+        }
 
 
         public override void Update() {
             sprite.Position = gameObject.position;
             app.renderer.AddToDrawQueue(this);
-            var trect = sprite.TextureRect;
 
-            var new_sprite_rect = spriteRect;
-
-
-            new_sprite_rect.SetSize(new Vector2f(trect.Width, trect.Height) / pixelperunit);
-
-            sprite.Scale = new Vector2f(1, 1) / pixelperunit;
+            sprite.Scale = new Vector2f(transform.scale.X, transform.scale.Y) / (float)pixelperunit;
             //Debug.Log(sprite.Scale);
 
-            rectComponent.rect = new_sprite_rect;
 
             
 

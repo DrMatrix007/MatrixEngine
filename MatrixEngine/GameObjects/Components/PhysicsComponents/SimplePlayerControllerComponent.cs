@@ -1,7 +1,6 @@
-﻿using MatrixEngine.MathM;
+﻿using MatrixEngine.System;
 using SFML.System;
 using SFML.Window;
-using System;
 
 namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
     [RequireComponent(typeof(RigidBodyComponent))]
@@ -15,24 +14,31 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
         }
 
         public override void Update() {
-            var add = new Vector2f(0, 0);
-
+            var x = (float)0;
+            var y = (float)0;
+            var isx = false;
+            var isy = false;
             if (keyHandler.isPressed(Keyboard.Key.A)) {
-                add.X = -speed;
+                x = -speed;
+                isx = true;
             }
             if (keyHandler.isPressed(Keyboard.Key.D)) {
-                add.X = speed;
+                x = speed;
+                isx = true;
+
             }
             if (keyHandler.isPressed(Keyboard.Key.W)) {
-                add.Y = -speed;
+                y = -speed;
+                isy = true;
             }
             if (keyHandler.isPressed(Keyboard.Key.S)) {
-                add.Y = speed;
+                y = speed;
+                isy = true;
+
             }
-
-
-            rigidBodyComponent.velocity = add*speed*10;
-
+            //add = new Vector2f(add.X == 0 ? rigidBodyComponent.velocity.X : add.X, add.Y == 0 ? rigidBodyComponent.velocity.Y : add.Y);
+            //rigidBodyComponent.velocity = new SFML.System.Vector2f(isx?x:rigidBodyComponent.velocity.X,isy?y:rigidBodyComponent.velocity.Y) * speed * 10;
+            rigidBodyComponent.velocity = new Vector2f(x,y)*speed*10;
 
 
 

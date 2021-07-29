@@ -1,5 +1,6 @@
 ﻿
 using MatrixEngine.GameObjects.Components;
+using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,19 +9,16 @@ using System.Threading.Tasks;
 
 
 namespace MatrixEngineTests {
-    [RequireComponent(typeof(RectComponent))]
     public class CameraControllerComponent : Component {
         public CameraControllerComponent() : base() {
             
         
         }
-        private RectComponent rectComponent;
         public override void Start() {
-            rectComponent = GetComponent<RectComponent>();
         }
 
         public override void Update() {
-            app.camera.position = position+rectComponent.rect.size/2;
+            app.camera.position = position+transform.fullRect.size/2;
         }
     }
 }

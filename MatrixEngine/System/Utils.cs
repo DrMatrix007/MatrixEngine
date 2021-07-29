@@ -37,8 +37,9 @@ namespace MatrixEngine.System {
             }
 
         }
-        public static void Log(this object message) {
+        public static T Log<T>(this T message) {
             Log(message, MessageType.Log);
+            return message;
         }
         public static void LogError(string message) {
             Log(message, MessageType.Error);

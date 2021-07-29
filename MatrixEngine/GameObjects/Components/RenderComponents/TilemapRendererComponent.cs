@@ -1,11 +1,11 @@
-﻿using MatrixEngine.GameObjects.Components.RenderComponents;
+﻿using MatrixEngine.GameObjects.Components.TilemapComponents;
 using MatrixEngine.Physics;
 using MatrixEngine.System;
 using SFML.Graphics;
 using SFML.System;
 using System.Collections.Generic;
 
-namespace MatrixEngine.GameObjects.Components.TilemapComponents {
+namespace MatrixEngine.GameObjects.Components.RenderComponents {
     [RequireComponent(typeof(TilemapComponent))]
     public class TilemapRendererComponent : RendererComponent {
 
@@ -15,7 +15,7 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
         private Dictionary<Vector2i, RenderTexture> chunkTextures;
 
         public TilemapRendererComponent() {
-            this.layer = -50;
+            layer = -50;
             chunkTextures = new Dictionary<Vector2i, RenderTexture>();
         }
 
@@ -46,8 +46,8 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
             //}
             foreach (var item in tilemap.chunks) {
 
-                if ((!item.Value.isRenderedUpdated) && new Rect((Vector2f)item.Key, (Vector2f)item.Value.size).isColliding(app.camera.rect)) {
-                    Utils.Log("R");
+                if (!item.Value.isRenderedUpdated && new Rect((Vector2f)item.Key, item.Value.size).isColliding(app.camera.rect)) {
+                    "R".Log();
                     if (chunkTextures.ContainsKey(item.Key)) {
 
                         chunkTextures[item.Key].Dispose();
@@ -58,7 +58,7 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
 
 
                 }
-                if (!new Rect((Vector2f)item.Key, (Vector2f)item.Value.size).isColliding(app.camera.rect)) {
+                if (!new Rect((Vector2f)item.Key, tilemap.chunkRectSize).isColliding(app.camera.rect)) {
                     if (chunkTextures.ContainsKey(item.Key)) {
 
                         chunkTextures[item.Key].Dispose();
@@ -70,7 +70,7 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
                         chunkTextures[item.Key] = RenderChunk(item.Value);
                         item.Value.isRenderedUpdated = true;
                     }
-                    
+
                 }
             }
         }
@@ -99,14 +99,16 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
 
 
             foreach (var item in chunkTextures) {
-                if (!(new Rect((Vector2f)item.Key, (Vector2f)item.Value.Size)).isColliding(app.camera.rect)) {
+                if (!new Rect((Vector2f)item.Key + gameObject.position, (Vector2f)new Vector2f(item.Value.Size.X * transform.scale.X, item.Value.Size.Y * transform.scale.Y)/tilemap.pixelsPerUnit).isColliding(app.camera.rect)) {
                     item.Value.Dispose();
                     chunkTextures.Remove(item.Key);
                     continue;
                 }
                 var sprite = new Sprite(item.Value.Texture);
-                sprite.Position = (Vector2f)item.Key;
+                sprite.Position =  gameObject.position;
+                sprite.Position = new Vector2f(item.Key.X*transform.scale.X, item.Key.Y *transform.scale.Y);
                 sprite.Scale /= tilemap.pixelsPerUnit;
+                sprite.Scale = new Vector2f(sprite.Scale.X*transform.scale.X,sprite.Scale.Y*transform.scale.Y); 
                 app.window.Draw(sprite);
 
             }

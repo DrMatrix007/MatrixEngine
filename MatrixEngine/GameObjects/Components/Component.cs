@@ -1,4 +1,5 @@
 ﻿using MatrixEngine.GameObjects.Components.PhysicsComponents;
+using MatrixEngine.Physics;
 using MatrixEngine.Scenes;
 using MatrixEngine.System;
 using SFML.System;
@@ -47,6 +48,20 @@ namespace MatrixEngine.GameObjects.Components {
                 return GetComponent<RigidBodyComponent>();
             }
         }
+        public ColliderComponent colliderComponent
+        {
+            get {
+                return GetComponent<ColliderComponent>();
+            }
+        }
+
+        public TransformComponent transform
+        {
+            get => gameObject.transform;
+        }
+
+
+
 
         public T GetComponent<T>() where T : Component {
             return gameObject.GetComponent<T>();
