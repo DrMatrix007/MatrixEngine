@@ -1,5 +1,4 @@
-﻿using MatrixEngine.MathM;
-using MatrixEngine.Physics;
+﻿using MatrixEngine.Physics;
 using SFML.System;
 
 

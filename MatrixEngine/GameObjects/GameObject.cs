@@ -3,11 +3,12 @@ using MatrixEngine.Physics;
 using MatrixEngine.Scenes;
 using SFML.System;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace MatrixEngine.GameObjects {
-    public sealed class GameObject {
+    public sealed class GameObject : IEnumerable<Component> {
 
 
         public Vector2f position
@@ -38,16 +39,16 @@ namespace MatrixEngine.GameObjects {
             get => this;
         }
 
-        public void SetComponent<T>() where T : Component, new() {
-            SetComponent(new T());
+        public T SetComponent<T>() where T : Component, new() {
+            return (T)SetComponent(new T());
         }
-        public void SetComponent(Type type) {
+        public Component SetComponent(Type type) {
             Component c = (Component)Activator.CreateInstance(type);
-            SetComponent(c);
+            return SetComponent(c);
 
 
         }
-        private void PureSetComponent(Component component) {
+        private Component PureSetComponent(Component component) {
 
             if (component.gameObject != null) {
                 System.Utils.LogError($"{component} is already stored by a gameobject!!!");
@@ -56,8 +57,10 @@ namespace MatrixEngine.GameObjects {
             component.SetupGameobject(this);
             var t = component.GetType();
             components[t] = component;
+
+            return component;
         }
-        public void SetComponent(Component component) {
+        public Component SetComponent(Component component) {
             //Debug.Log($"Added {component.GetType()}");
             var requireds = component.GetType().GetCustomAttributes(typeof(RequireComponent), true);
             foreach (RequireComponent item in requireds) {
@@ -67,7 +70,7 @@ namespace MatrixEngine.GameObjects {
 
                 }
             }
-            PureSetComponent(component);
+            return PureSetComponent(component);
         }
 
         public void SetComponents(IEnumerable<Component> comps) {
@@ -148,20 +151,48 @@ namespace MatrixEngine.GameObjects {
         public GameObject(Component component) : this() {
             SetComponent(component);
         }
+        
+        public void Setup() {
+            foreach (var component in this.ToArray()) {
+                if (!component.didStart) {
+                    component.Setup();
+                }
+            }
+        }
 
-        public void Update() {
-            var l = components.Values.ToList();
-            foreach (var component in l) {
+        public void Start() {
+
+            foreach (var component in this.ToArray()) {
                 if (!component.didStart) {
                     component.didStart = true;
                     component.Start();
                 }
-                component.Update();
-
             }
-            foreach (var item in l) {
+        }
+
+        public void Update() {
+           
+            foreach (var component in this.ToArray()) {
+                component.Update();
+            }
+
+
+        }
+        public void LateUpdate() {
+            foreach (var item in this.ToArray()) {
                 item.LateUpdate();
             }
+        }
+
+        public IEnumerator<Component> GetEnumerator() {
+            var l = components.Values.ToList();
+            foreach (var item in l) {
+                yield return item;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
         }
     }
 }

@@ -1,6 +1,5 @@
 ﻿using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using MatrixEngine.GameObjects.Components.TilemapComponents;
-using MatrixEngine.MathM;
 using MatrixEngine.System;
 using SFML.Graphics;
 using SFML.System;
@@ -48,10 +47,10 @@ namespace MatrixEngine.Physics {
 
 
 
-                    item.velocity += (item.gravity*app.deltaTime);
+                    item.velocity += (item.gravity*app.deltaTime   ).Log();
 
 
-                    item.velocity.Log();
+                    //item.velocity.Log();
 
                     item.position += (item.velocity * app.deltaTime);
                     //item.velocity -= new Vector2f(item.velocity.X>0?item.velocityDrag:-item.velocityDrag, item.velocity.Y > 0 ? item.velocityDrag : -item.velocityDrag)*app.deltaTime;
@@ -59,7 +58,8 @@ namespace MatrixEngine.Physics {
                     //Utils.Log(item.velocity);
                     
                     
-                    var fric = (item.velocity.Length() < 1 ? item.velocity : new Vector2f(item.velocity.X, item.velocity.Y).Normalize()) * (-1) * item.velocityDrag;
+                    var fric = (item.velocity.Length() < 1 ? item.velocity : item.velocity.Normalize()).Multiply(item.velocityDrag) * (-1)/100.0f
+                        ;
 
 
 

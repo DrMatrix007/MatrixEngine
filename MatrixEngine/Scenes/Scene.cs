@@ -1,9 +1,10 @@
 ﻿using MatrixEngine.GameObjects;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace MatrixEngine.Scenes {
-    public class Scene {
+    public class Scene : IEnumerable<GameObject> {
 
         public Scene scene
         {
@@ -47,12 +48,31 @@ namespace MatrixEngine.Scenes {
 
         }
         public void Update() {
-            var list = gameObjects.ToList();
-            foreach (var item in list) {
+            var l = this.ToArray();
+
+            foreach (var item in l) {
+                item.Setup();
+            }
+
+            foreach (var item in l) {
+                item.Start();
+            }
+
+            foreach (var item in l) {
                 item.Update();
             }
-            //Debug.Log(list.Count.ToString());
+
+            foreach (var item in l) {
+                item.LateUpdate();
+            }
         }
 
+        public IEnumerator<GameObject> GetEnumerator() {
+            return gameObjects.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
+        }
     }
 }

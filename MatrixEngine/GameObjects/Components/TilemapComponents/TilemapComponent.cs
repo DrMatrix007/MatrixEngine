@@ -1,5 +1,4 @@
-﻿using MatrixEngine.MathM;
-using SFML.System;
+﻿using SFML.System;
 using System;
 using System.Collections.Generic;
 

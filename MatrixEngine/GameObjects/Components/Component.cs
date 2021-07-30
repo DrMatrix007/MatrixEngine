@@ -90,5 +90,8 @@ namespace MatrixEngine.GameObjects.Components {
         public virtual void LateUpdate() {
 
         }
+
+        public virtual void Setup() {
+        }
     }
 }

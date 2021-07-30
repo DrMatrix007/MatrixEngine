@@ -9,7 +9,6 @@ namespace MatrixEngine.GameObjects.Components {
     public class DebugComponent : Component {
 
 
-
         int counter = 0;
 
         public override void Start() {

@@ -79,7 +79,6 @@ namespace MatrixEngine.System {
             window = new RenderWindow(new VideoMode(800, 600), AppName);
             window.SetKeyRepeatEnabled(true);
 
-            window.SetFramerateLimit(144);
 
 
             window.Closed += (s, e) => {
