@@ -1,5 +1,4 @@
 ﻿using MatrixEngine.Content;
-using MatrixEngine.fonts;
 using MatrixEngine.GameObjects;
 using MatrixEngine.GameObjects.Components;
 using MatrixEngine.GameObjects.Components.RenderComponents;
@@ -12,6 +11,10 @@ using MatrixEngine.System;
 using MatrixEngine.GameObjects.Components.StateManagementComponents;
 using SFML.Graphics;
 using SFML.System;
+using static MatrixEngineTests.Program;
+using SFML.Window;
+using System;
+using MatrixEngine.GameObjects.Components.PhysicsComponents;
 
 namespace MatrixEngineTests {
     class Program {
@@ -34,20 +37,42 @@ namespace MatrixEngineTests {
             }
         }
 
+        public class Counter {
+            int data = 0;
+            public void Increment() {
+                data++;
+            }
+            public int GetCounter() {
+                return data;
+            }
+            public override string ToString() {
+                return $"Counter: {data}";
+            }
+        }
+
         static void Main(string[] args) {
 
             var prov = new ComponentProvider<TilemapComponent>();
 
+            var counterProv = new StateProvider<Counter>(new Counter());
+
 
             App app = new App("Tests",
+                true,
                 new Scene(
                     new GameObject[] {
 
                     new GameObject(
+                        new Vector2f(-10,-10),
                         new Component[] {
-                            new SpriteRendererComponent("Image1.png",16,2),
+                            new SpriteRendererComponent("Image1.png",20,2),
                             new ConsumerComponent<TilemapComponent>(prov),
                             new ProviderTesterComponent(),
+                            new ConsumerComponent<Counter>(counterProv),
+                            new SimplePlayerControllerComponent(),
+                            new RigidBodyComponent(false),
+                            new ColliderComponent(ColliderComponent.ColliderType.Rect),
+                            new CameraControllerComponent(),
                         }
 
                         ),
@@ -57,7 +82,9 @@ namespace MatrixEngineTests {
                             new FPSCounterComponent(),
                             new TilemapComponent(),
                             new TilemapRendererComponent(),
-                            new ComponentProviderSetterComponent<TilemapComponent>(prov)
+                            new ComponentProviderSetterComponent<TilemapComponent>(prov),
+                            new RigidBodyComponent(true),
+                            new ColliderComponent(ColliderComponent.ColliderType.Tilemap),
                         }
 
                     ),
@@ -71,20 +98,34 @@ namespace MatrixEngineTests {
 
         }
     }
-    internal class ProviderTesterComponent : Component {
+    public  class ProviderTesterComponent : Component {
+
+        Counter t;
         public override void Start() {
+            var r = new Random();
             var p = GetComponent<ConsumerComponent<TilemapComponent>>().GetOutput();
             for (int i = 0; i < 1000; i++) {
                 for (int j = 0; j < 1000; j++) {
-                    p.SetTile(new Vector2i(i,j),new Tile(TextureManager.GetTexture("Image1.png")));
+                    if(r.NextDouble()>0.5)
+                    p.SetTile(new Vector2i(i,j),new Tile(TextureManager.GetTexture("grass.png")));
                 }
             }
-        }
+            var p1 = GetComponent<ConsumerComponent<Counter>>();
+            t = p1.GetOutput();
+            app.AddToDebug(t);
 
+        }
         public override void Update() {
-
+            var p = GetComponent<ConsumerComponent<Counter>>();
+           
+            if (app.keyHandler.isPressed(Keyboard.Key.G)) {
+                p.GetOutput().Increment();
+            }
+            
 
 
         }
+
     }
+
 }

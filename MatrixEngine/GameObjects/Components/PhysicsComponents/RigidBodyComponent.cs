@@ -1,26 +1,21 @@
-﻿using MatrixEngine.Physics;
-using MatrixEngine.System;
+﻿using MatrixEngine.System;
 using SFML.System;
-using System;
 
 namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
     [RequireComponent(typeof(ColliderComponent))]
     public class RigidBodyComponent : Component {
 
         private Vector2f _vel = new Vector2f(0, 0);
-            
+
         public Vector2f velocity
         {
-            get { return _vel; }
-            set {
-                //Environment.StackTrace.Log();
-
-                _vel = value; }
+            get => _vel;
+            set => _vel = value;
         }
 
-        public Vector2f gravity = new Vector2f(0, 0);
+        public Vector2f gravity = new Vector2f(0, 5);
 
-        public Vector2f velocityDrag = new Vector2f(0.5f,0.5f);
+        public Vector2f velocityDrag = new Vector2f(0.7f, 0f);
 
         public RigidBodyComponent() {
             isStatic = false;
@@ -42,9 +37,9 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
 
         public override void Start() {
         }
-        
+
         public override void Update() {
-            if(colliderComponent.colliderType == ColliderComponent.ColliderType.Tilemap) {
+            if (colliderComponent.colliderType == ColliderComponent.ColliderType.Tilemap) {
                 isStatic = true;
             }
 
@@ -54,6 +49,9 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
                 app.rigidBodyManager.AddRigidbodyToFrame(this);
             }
 
+        }
+        public override string ToString() {
+            return $"rigidbody: \nVelocity: {velocity.Round(2)}, \nPosition: {position.Round(2)}";
         }
     }
 }

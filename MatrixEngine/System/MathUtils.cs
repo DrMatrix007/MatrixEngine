@@ -56,6 +56,26 @@ namespace MatrixEngine.System {
             return new Vector2f(v1.X *v2.X, v1.Y *v2.Y);
         
         }
+        public static float Abs(this float f) {
+            return MathF.Abs(f);
+        }
+        public static float Round(this float f, int r) {
+            
+            return MathF.Round(f, r);
+
+        }
+        public static float AbsMin(this float f, float r) {
+            if (MathF.Min(r.Abs(), f.Abs()) == r.Abs()) {
+                return r;
+            }
+            return f;
+        }
+
+        public static bool IsBetween(this float f, float small, float big) {
+
+            return small < f && f < big;
+
+        }
 
     }
 }

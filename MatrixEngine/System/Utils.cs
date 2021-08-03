@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SFML.System;
+using System;
 using System.Diagnostics;
 
 namespace MatrixEngine.System {
@@ -43,6 +44,12 @@ namespace MatrixEngine.System {
         }
         public static void LogError(string message) {
             Log(message, MessageType.Error);
+        }
+        public static Vector2f OnlyWithX(this Vector2f v) {
+            return new Vector2f(v.X, 0);
+        }
+        public static Vector2f OnlyWithY(this Vector2f v) {
+            return new Vector2f(0, v.Y);
         }
 
     }

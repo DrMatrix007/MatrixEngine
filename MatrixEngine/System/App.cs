@@ -2,6 +2,7 @@
 using MatrixEngine.Renderers;
 using MatrixEngine.Scenes;
 using MatrixEngine.System.AsyncOperations;
+using MatrixEngine.Testing;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
@@ -29,7 +30,7 @@ namespace MatrixEngine.System {
         }
 
         public readonly string AppName;
-
+        private readonly bool isDebug;
         public Scene scene;
 
         public Camera camera;
@@ -69,14 +70,31 @@ namespace MatrixEngine.System {
             get => timeClock.ElapsedTime.AsSeconds();
         }
 
+        private TestingWindow testingWindow
+        {
+            get;
+            set;
+        }
+        public void AddToDebug<T>(T obj) where T:class {
+            if (isDebug) {
+                testingWindow.Add(obj);
+            }
+        }
 
 
 
-        public App(string appName, Scene scene) {
+        public App(string appName,bool isDebug, Scene scene) {
+            var screen_size = VideoMode.DesktopMode;
             AppName = appName;
-
+            this.isDebug = isDebug;
             this.scene = scene;
-            window = new RenderWindow(new VideoMode(800, 600), AppName);
+            if (isDebug) {
+            window = new RenderWindow(new VideoMode(screen_size.Width-10, (uint)(screen_size.Height * ((float)4 / 5) - 100-40 )), AppName);
+                window.Position = new Vector2i();
+            } else {
+                window = new RenderWindow(new VideoMode(800, 600), AppName);
+
+            }
             window.SetKeyRepeatEnabled(true);
 
 
@@ -94,6 +112,9 @@ namespace MatrixEngine.System {
             rigidBodyManager = new PhysicsEngine(this);
             canvasRenderer = new CanvasRenderer(this);
             asyncOperationManager = new AsyncOperationManager(this);
+            if(isDebug)
+            testingWindow = new TestingWindow((4, 2));
+
         }
 
         public Vector2f windowSize
@@ -125,8 +146,9 @@ namespace MatrixEngine.System {
 
             scene.app = this;
 
-            window.SetFramerateLimit(1450);
+            window.SetFramerateLimit(14500);
 
+            
 
             while (window.IsOpen) {
 
@@ -148,12 +170,8 @@ namespace MatrixEngine.System {
                 rigidBodyManager.Update();
 
 
+                testingWindow.Update();
 
-                Utils.GetTimeInSeconds(() => {
-
-
-
-                });
 
                 //window.Draw(
                 //        new Vertex[] {
@@ -163,8 +181,13 @@ namespace MatrixEngine.System {
 
 
 
+                if (isDebug) {
+                    window.Display();
+                    if (!window.IsOpen) {
+                        break;
+                    }
 
-                window.Display();
+                }
 
                 _deltaTime = deltaTimeClock.Restart();
 

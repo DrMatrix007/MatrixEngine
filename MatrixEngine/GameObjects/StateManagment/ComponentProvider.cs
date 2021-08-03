@@ -8,21 +8,19 @@ using System.Threading.Tasks;
 
 namespace MatrixEngine.GameObjects.StateManagment {
     public class ComponentProvider<T> : Provider<T> where T : Component {
-        T Provider<T>.data { get; set; }
+        public T data { get; set; }
 
 
         public void AddToState(T input) {
-            ((Provider<T>)this).data = input;
+            this.data = input;
         }
 
         public T Get() {
-            return ((Provider<T>)this).data;
+            return data;
         }
 
 
 
-        T Provider<T>.Get() {
-            return ((Provider<T>)this).data;
-        }
+        
     }
 }

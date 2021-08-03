@@ -54,7 +54,6 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
                     };
                 }
                 return chunks[chunk_vec].GetTileFromLocalPosition(new Vector2i(i.X%chunkSize,i.Y%chunkSize));
-                //Error!
             }
             return default;
         }

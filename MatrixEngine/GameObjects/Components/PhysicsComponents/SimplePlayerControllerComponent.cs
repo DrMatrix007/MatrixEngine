@@ -11,6 +11,9 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
         public float speed = 2;
 
         public override void Start() {
+
+            app.AddToDebug(rigidBodyComponent);
+
         }
 
         public override void Update() {

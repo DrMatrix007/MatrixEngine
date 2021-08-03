@@ -1,12 +1,17 @@
 ﻿using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using MatrixEngine.GameObjects.Components.TilemapComponents;
 using MatrixEngine.System;
-using SFML.Graphics;
 using SFML.System;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+
 namespace MatrixEngine.Physics {
     public class PhysicsEngine {
+
+        public const float Threshold = 0.010f;
+
+
 
         private List<RigidBodyComponent> dynamicRigidBodies;
         private List<ColliderComponent> colliders;
@@ -40,35 +45,17 @@ namespace MatrixEngine.Physics {
             foreach (var item in dynamicRigidBodies) {
                 if (!item.isStatic) {
 
-                    //var multiplier = 1 - item.velocityDrag * app.deltaTime;
-                    //multiplier *= app.deltaTime;
-                    //if (1 - multiplier <= 0)
-                    //multiplier = 0;
-
-
-
-                    item.velocity += (item.gravity*app.deltaTime   ).Log();
-
-
-                    //item.velocity.Log();
-
-                    item.position += (item.velocity * app.deltaTime);
-                    //item.velocity -= new Vector2f(item.velocity.X>0?item.velocityDrag:-item.velocityDrag, item.velocity.Y > 0 ? item.velocityDrag : -item.velocityDrag)*app.deltaTime;
-                    //item.velocity += -1 * item.velocity.Normalize() * item.velocity.Length()*item.velocityDrag;
-                    //Utils.Log(item.velocity);
-                    
-                    
-                    var fric = (item.velocity.Length() < 1 ? item.velocity : item.velocity.Normalize()).Multiply(item.velocityDrag) * (-1)/100.0f
-                        ;
-
-
+                    item.velocity += (item.gravity * app.deltaTime).Log();
+                    var fric = (item.velocity.Length() < 1 ? item.velocity : item.velocity.Normalize()).Multiply(item.velocityDrag) * (-1) / 1.0f * app.deltaTime * 100;
 
                     item.velocity += fric;
+
+                    item.position += (item.velocity * app.deltaTime);
+
 
                 }
             }
 
-            //work
 
 
 
@@ -105,6 +92,10 @@ namespace MatrixEngine.Physics {
             }
 
 
+
+
+
+
             dynamicRigidBodies.Clear();
             colliders.Clear();
 
@@ -123,17 +114,27 @@ namespace MatrixEngine.Physics {
 
             var pos = new Vector2f(0, 0);
 
-            for (float x = -tile_scale.X*2; x < nonstatic_rect.width + tile_scale.X*2; x += tile_scale.X) {
-                for (float y = -tile_scale.Y*2; y < nonstatic_rect.height + tile_scale.Y*2; y += tile_scale.Y) {
+            for (float x = -tile_scale.X * 2; x < nonstatic_rect.width + tile_scale.X * 2; x += tile_scale.X) {
+                for (float y = -tile_scale.Y * 2; y < nonstatic_rect.height + tile_scale.Y * 2; y += tile_scale.Y) {
                     pos = new Vector2f(x, y) + tilemap.position;
                     if (tilemap.GetTileFromWorldPos(pos + nonstatic.position) != null) {
-                        list_rects.Add(new Rect((pos + (Vector2f)(Vector2i)nonstatic.position.Round(10)), tile_scale));
+                        var r = new Rect((pos + (Vector2f)(Vector2i)nonstatic.position.Round(10)), tile_scale);
+                        //if (x == (nonstatic.velocity.X>0?0: tile_scale.X) || y == (nonstatic.velocity.Y > 0 ? tile_scale.Y : 0)) {
+                        list_rects.Insert(0, r);
+                        //} else {
+                        list_rects.Add(r);
+
+                        //}
 
 
                     }
                 }
             }
-            foreach (var item in list_rects) {
+            foreach (var item in list_rects.OrderBy((o)=> {
+            
+                   return nonstatic.transform.fullRect.center.Distance(o.center); 
+
+            })) {
                 //item.position.Log();
                 HandleRectToRect(nonstatic, item);
 
@@ -142,36 +143,52 @@ namespace MatrixEngine.Physics {
 
         }
 
+
+
+
+
         void HandleRectToRect(RigidBodyComponent nonstatic, Rect @static) {
-            var result = nonstatic.gameObject.transform.fullRect.GetCollidingFixFromB(@static);
+            var result = nonstatic.gameObject.transform.fullRect.GetCollidingFixFromRect(@static);
 
 
-            if (result.axis == Physics.CollidingAxis.None) {
+            if (!result.isCollide) {
                 return;
             }
+            var isX = result.fixValue.X.Abs() < result.fixValue.Y.Abs();
 
-            var vel = nonstatic.velocity;
+            if (isX) {
+
+                var isleft = nonstatic.transform.fullRect.cX < @static.cX;
+                if (isleft) {
+                    nonstatic.position = new Vector2f(@static.position.X - nonstatic.transform.fullRect.width, nonstatic.position.Y);
+                } else {
+                    nonstatic.position = new Vector2f(@static.max.X, nonstatic.position.Y);
+
+                }
 
 
-            if (result.axis == Physics.CollidingAxis.X) {
-                var pos = nonstatic.position;
-                pos.X -= result.fixValue;
-
-                nonstatic.position = pos;
-                vel.X = 0;
+                nonstatic.velocity = new Vector2f(0, nonstatic.velocity.Y);
 
 
-            } else if (result.axis == Physics.CollidingAxis.Y) {
-                var pos = nonstatic.position;
-                pos.Y -= result.fixValue;
-                nonstatic.position = pos;
-                
-                vel.Y = 0;
+
+            } else {
+                var isup = nonstatic.transform.fullRect.cY < @static.cY;
+
+                if (isup) {
+
+                    nonstatic.position = new Vector2f(nonstatic.position.X,@static.position.Y-nonstatic.transform.fullRect.height);
+
+                } else {
+                    nonstatic.position = new Vector2f(nonstatic.position.X, @static.max.Y);
+
+                }
+                nonstatic.velocity = new Vector2f(nonstatic.velocity.X, 0);
 
 
             }
-            nonstatic.velocity = vel;
-        }
 
+        }
     }
+
 }
+
