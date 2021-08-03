@@ -70,7 +70,7 @@ namespace MatrixEngineTests {
                             new ProviderTesterComponent(),
                             new ConsumerComponent<Counter>(counterProv),
                             new SimplePlayerControllerComponent(),
-                            new RigidBodyComponent(false),
+                            new RigidBodyComponent(new Vector2f(),new Vector2f(0.5f,0.5f),false),
                             new ColliderComponent(ColliderComponent.ColliderType.Rect),
                             new CameraControllerComponent(),
                         }
@@ -88,7 +88,16 @@ namespace MatrixEngineTests {
                         }
 
                     ),
+                    new GameObject(
+                        
+                        new Component[] {
+                            new SpriteRendererComponent("Image2.png",400,55),
+                            new RigidBodyComponent(true),
+                            new ColliderComponent(ColliderComponent.ColliderType.Rect),
 
+                        
+                        }
+                        )
 
                     }
                 )
@@ -104,6 +113,9 @@ namespace MatrixEngineTests {
         public override void Start() {
             var r = new Random();
             var p = GetComponent<ConsumerComponent<TilemapComponent>>().GetOutput();
+            if (p == null) {
+                return;
+            }
             for (int i = 0; i < 1000; i++) {
                 for (int j = 0; j < 1000; j++) {
                     if(r.NextDouble()>0.5)

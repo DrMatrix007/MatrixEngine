@@ -1,4 +1,5 @@
 ﻿using MatrixEngine.System;
+using SFML.Graphics.Glsl;
 using SFML.System;
 using System;
 using System.Linq;
@@ -20,18 +21,24 @@ namespace MatrixEngine.Physics {
             }
 
         }
-        public static bool isColliding(this Rect a, Rect b) {
-            float d1x = b.X - a.X - a.width;
-            float d1y = b.Y - a.Y - a.height;
-            float d2x = a.X - b.X - b.width;
-            float d2y = a.Y - b.Y - b.height;
+        public static bool isColliding(this Rect rect1, Rect rect2) {
+            //float d1x = b.X - a.X - a.width;
+            //float d1y = b.Y - a.Y - a.height;
+            //float d2x = a.X - b.X - b.width;
+            //float d2y = a.Y - b.Y - b.height;
 
-            var threshhold = 0.01f;
+            //var threshhold = 0.0f;
 
-            if ((d1x > threshhold || d1y > threshhold) || (d2x > threshhold || d2y > threshhold)) {
-                return false;
-            }
-            return true;
+            //if ((d1x > threshhold || d1y > threshhold) || (d2x > threshhold || d2y > threshhold)) {
+            //    return false;
+            //}
+            //return true;
+
+            return rect1.X < rect2.X + rect2.width &&
+               rect1.X + rect1.width > rect2.X &&
+               rect1.Y < rect2.Y + rect2.height &&
+               rect1.Y + rect1.height > rect2.Y;
+
         }
         public static CollidingFix GetCollidingFixFromRect(this Rect a, Rect b) {
 

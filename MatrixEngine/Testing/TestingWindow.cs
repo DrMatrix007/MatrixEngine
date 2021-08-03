@@ -60,11 +60,9 @@ namespace MatrixEngine.Testing {
 
         void Draw() {
             var size = window.Size;
-            Utils.Log(size.X);
 
             var cellxs = (uint)size.X / (uint)gridSize.width;
             var cellys = (uint)size.Y / (uint)gridSize.height;
-            Utils.Log(cellxs);
 
             var l = objects.ToList();
             var finalpos = l.Count - 1;
@@ -84,7 +82,6 @@ namespace MatrixEngine.Testing {
                     clampValue = y;
                 }
 
-                Utils.Log($"{x} {y}");
                 var t = new RenderTexture(cellxs,cellys);
 
                 var r = new Random(i+toAddSeed);

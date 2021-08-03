@@ -2,9 +2,7 @@
 using MatrixEngine.GameObjects.Components.TilemapComponents;
 using MatrixEngine.System;
 using SFML.System;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace MatrixEngine.Physics {
     public class PhysicsEngine {
@@ -13,8 +11,10 @@ namespace MatrixEngine.Physics {
 
 
 
-        private List<RigidBodyComponent> dynamicRigidBodies;
-        private List<ColliderComponent> colliders;
+        private List<RigidBodyComponent> dynamicRigidBodiesToCalc;
+        private List<ColliderComponent> collidersToCalc;
+
+        private List<Rect> rectsToCalc;
 
 
         public System.App app
@@ -25,32 +25,27 @@ namespace MatrixEngine.Physics {
 
         public PhysicsEngine(System.App app) {
             this.app = app;
-            dynamicRigidBodies = new List<RigidBodyComponent>();
-            colliders = new List<ColliderComponent>();
+            dynamicRigidBodiesToCalc = new List<RigidBodyComponent>();
+            collidersToCalc = new List<ColliderComponent>();
+            rectsToCalc = new List<Rect>();
         }
 
         public void AddRigidbodyToFrame(RigidBodyComponent rigidBodyComponent) {
 
-            dynamicRigidBodies.Add(rigidBodyComponent);
+            dynamicRigidBodiesToCalc.Add(rigidBodyComponent);
 
 
         }
         public void AddColliderToFrame(ColliderComponent rect) {
-            colliders.Add(rect);
+            collidersToCalc.Add(rect);
         }
 
         public void Update() {
 
 
-            foreach (var item in dynamicRigidBodies) {
-                if (!item.isStatic) {
+            foreach (var nonstatic in dynamicRigidBodiesToCalc) {
+                if (!nonstatic.isStatic) {
 
-                    item.velocity += (item.gravity * app.deltaTime).Log();
-                    var fric = (item.velocity.Length() < 1 ? item.velocity : item.velocity.Normalize()).Multiply(item.velocityDrag) * (-1) / 1.0f * app.deltaTime * 100;
-
-                    item.velocity += fric;
-
-                    item.position += (item.velocity * app.deltaTime);
 
 
                 }
@@ -60,8 +55,8 @@ namespace MatrixEngine.Physics {
 
 
 
-            var static_list = colliders.ToArray();
-            var non_static_list = dynamicRigidBodies.ToArray();
+            var static_list = collidersToCalc.ToArray();
+            var non_static_list = dynamicRigidBodiesToCalc.ToArray();
 
 
             foreach (var @static in static_list) {
@@ -79,10 +74,12 @@ namespace MatrixEngine.Physics {
                     if (nonstatic.colliderComponent.colliderType == ColliderComponent.ColliderType.Rect) {
 
                         if (@static.colliderType == ColliderComponent.ColliderType.Rect) {
-                            HandleRectToRect(nonstatic, @static.rect);
+
+                            AddRectToCollision(@static.rect);
+
                         }
                         if (@static.colliderType == ColliderComponent.ColliderType.Tilemap) {
-                            HandleRectToTilemap(nonstatic, @static);
+                            AddTilemapToCollision(nonstatic, @static);
                         }
 
 
@@ -91,17 +88,89 @@ namespace MatrixEngine.Physics {
                 }
             }
 
+            var rs = rectsToCalc.ToArray();
+
+            foreach (var nonstatic in dynamicRigidBodiesToCalc) {
+                var add_to_vel = (nonstatic.gravity * app.deltaTime);
+                var fric = (nonstatic.velocity.Length() < 1 ? nonstatic.velocity : nonstatic.velocity.Normalize()).Multiply(nonstatic.velocityDrag) * (-1) / 1.0f * app.deltaTime * 100;
+                add_to_vel += fric;
+
+
+                add_to_vel += (nonstatic.gravity * app.deltaTime);
+
+                //add_to_vel;
+                //*=app.deltaTime;
+
+                nonstatic.velocity += add_to_vel ;
+
+                //nonstatic.position += (nonstatic.velocity * app.deltaTime);
+
+
+
+                nonstatic.position += nonstatic.velocity.OnlyWithX() * app.deltaTime;
+                var nonstatic_rect = nonstatic.transform.fullRect;
+
+                foreach (var rect in rectsToCalc) {
+                    if (nonstatic_rect.isColliding(rect)) {
+
+                        if(nonstatic_rect.cX<rect.cX) {
+                            nonstatic.position = new Vector2f(rect.X - nonstatic_rect.width, nonstatic.position.Y);
+                            if (nonstatic.velocity.X> 0) {
+                                nonstatic.velocity = nonstatic.velocity.OnlyWithY();
+                            }
+                        } else {
+                            nonstatic.position = new Vector2f(rect.max.X, nonstatic.position.Y);
+                            if (nonstatic.velocity.X < 0) {
+                                nonstatic.velocity = nonstatic.velocity.OnlyWithY();
+                            }
+                        }
+
+                    }
+
+                }
+
+
+                nonstatic.position += nonstatic.velocity.OnlyWithY() * app.deltaTime;
+                nonstatic_rect = nonstatic.transform.fullRect;
+
+                foreach (var rect in rectsToCalc) {
+                    if (nonstatic_rect.isColliding(rect)) {
+
+
+                        if (nonstatic_rect.cY < rect.cY) {
+                            nonstatic.position = new Vector2f(nonstatic.position.X, rect.Y - nonstatic_rect.height);
+
+                            if (nonstatic.velocity.Y < 0) {
+                                nonstatic.velocity = nonstatic.velocity.OnlyWithX();
+                            }
+                        } else {
+                            nonstatic.position = new Vector2f(nonstatic.position.X,rect.max.Y);
+                            if (nonstatic.velocity.Y > 0) {
+                                nonstatic.velocity = nonstatic.velocity.OnlyWithX();
+                            }
+                        }
+
+                    }
+
+                }
+
+
+            }
 
 
 
 
 
-            dynamicRigidBodies.Clear();
-            colliders.Clear();
 
+
+
+
+            dynamicRigidBodiesToCalc.Clear();
+            collidersToCalc.Clear();
+            rectsToCalc.Clear();
         }
 
-        private void HandleRectToTilemap(RigidBodyComponent nonstatic, ColliderComponent @static) {
+        private void AddTilemapToCollision(RigidBodyComponent nonstatic, ColliderComponent @static) {
             var tilemap = @static.GetComponent<TilemapComponent>();
             if (tilemap == null) {
                 return;
@@ -130,13 +199,9 @@ namespace MatrixEngine.Physics {
                     }
                 }
             }
-            foreach (var item in list_rects.OrderBy((o)=> {
-            
-                   return nonstatic.transform.fullRect.center.Distance(o.center); 
-
-            })) {
-                //item.position.Log();
-                HandleRectToRect(nonstatic, item);
+            foreach (var item in list_rects) {
+               
+                AddRectToCollision(item);
 
             }
 
@@ -147,45 +212,12 @@ namespace MatrixEngine.Physics {
 
 
 
-        void HandleRectToRect(RigidBodyComponent nonstatic, Rect @static) {
-            var result = nonstatic.gameObject.transform.fullRect.GetCollidingFixFromRect(@static);
+        void AddRectToCollision(Rect @static) {
 
+            rectsToCalc.Add(@static);
 
-            if (!result.isCollide) {
-                return;
-            }
-            var isX = result.fixValue.X.Abs() < result.fixValue.Y.Abs();
+            
 
-            if (isX) {
-
-                var isleft = nonstatic.transform.fullRect.cX < @static.cX;
-                if (isleft) {
-                    nonstatic.position = new Vector2f(@static.position.X - nonstatic.transform.fullRect.width, nonstatic.position.Y);
-                } else {
-                    nonstatic.position = new Vector2f(@static.max.X, nonstatic.position.Y);
-
-                }
-
-
-                nonstatic.velocity = new Vector2f(0, nonstatic.velocity.Y);
-
-
-
-            } else {
-                var isup = nonstatic.transform.fullRect.cY < @static.cY;
-
-                if (isup) {
-
-                    nonstatic.position = new Vector2f(nonstatic.position.X,@static.position.Y-nonstatic.transform.fullRect.height);
-
-                } else {
-                    nonstatic.position = new Vector2f(nonstatic.position.X, @static.max.Y);
-
-                }
-                nonstatic.velocity = new Vector2f(nonstatic.velocity.X, 0);
-
-
-            }
 
         }
     }
