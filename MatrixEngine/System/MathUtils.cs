@@ -1,7 +1,7 @@
 ﻿using SFML.System;
 using System;
 
-namespace MatrixEngine.System {
+namespace MatrixGDK.System {
     static class MathUtils {
 
         public static float Sqrt(this float x) {
@@ -76,6 +76,10 @@ namespace MatrixEngine.System {
             return small < f && f < big;
 
         }
+
+
+
+
 
     }
 }

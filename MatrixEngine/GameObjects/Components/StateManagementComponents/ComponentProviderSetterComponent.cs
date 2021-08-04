@@ -1,6 +1,6 @@
-﻿using MatrixEngine.GameObjects.StateManagment;
+﻿using MatrixGDK.GameObjects.StateManagment;
 
-namespace MatrixEngine.GameObjects.Components.StateManagementComponents {
+namespace MatrixGDK.GameObjects.Components.StateManagementComponents {
     public class ComponentProviderSetterComponent<Comp> : Component where Comp : Component {
         private readonly Provider<Comp> provider;
 

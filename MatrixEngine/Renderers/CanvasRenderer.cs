@@ -1,11 +1,11 @@
-﻿using MatrixEngine.GameObjects.Components.UIComponents;
-using MatrixEngine.System;
+﻿using MatrixGDK.GameObjects.Components.UIComponents;
+using MatrixGDK.System;
 using SFML.Graphics;
 using SFML.System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MatrixEngine.Renderers {
+namespace MatrixGDK.Renderers {
     public class CanvasRenderer {
 
         RenderTexture target;

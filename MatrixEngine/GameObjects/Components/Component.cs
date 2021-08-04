@@ -1,10 +1,10 @@
-﻿using MatrixEngine.GameObjects.Components.PhysicsComponents;
-using MatrixEngine.Physics;
-using MatrixEngine.Scenes;
-using MatrixEngine.System;
+﻿using MatrixGDK.GameObjects.Components.PhysicsComponents;
+using MatrixGDK.Physics;
+using MatrixGDK.Scenes;
+using MatrixGDK.System;
 using SFML.System;
 
-namespace MatrixEngine.GameObjects.Components {
+namespace MatrixGDK.GameObjects.Components {
     public abstract class Component {
 
         public GameObject gameObject

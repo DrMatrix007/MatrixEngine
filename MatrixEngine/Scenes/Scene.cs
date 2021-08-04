@@ -1,9 +1,9 @@
-﻿using MatrixEngine.GameObjects;
+﻿using MatrixGDK.GameObjects;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MatrixEngine.Scenes {
+namespace MatrixGDK.Scenes {
     public class Scene : IEnumerable<GameObject> {
 
         public Scene scene

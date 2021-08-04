@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixEngine.Content {
+namespace MatrixGDK.Content {
     public static class TextureManager {
         private static Dictionary<string, Texture> textures = new Dictionary<string, Texture>();
 

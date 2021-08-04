@@ -1,8 +1,8 @@
-﻿using MatrixEngine.Physics;
+﻿using MatrixGDK.Physics;
 using SFML.System;
 
 
-namespace MatrixEngine.System {
+namespace MatrixGDK.System {
     public class Camera {
 
         App app;

@@ -1,11 +1,11 @@
-﻿using MatrixEngine.Physics;
+﻿using MatrixGDK.Physics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
+namespace MatrixGDK.GameObjects.Components.PhysicsComponents {
     public sealed class ColliderComponent : Component {
 
         public enum ColliderType {

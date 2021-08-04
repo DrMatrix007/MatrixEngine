@@ -1,24 +1,24 @@
-﻿using MatrixEngine.Content;
-using MatrixEngine.GameObjects;
-using MatrixEngine.GameObjects.Components;
-using MatrixEngine.GameObjects.Components.RenderComponents;
-using MatrixEngine.GameObjects.Components.StateManagementComponents;
-using MatrixEngine.GameObjects.Components.TilemapComponents;
-using MatrixEngine.GameObjects.Components.UIComponents;
-using MatrixEngine.GameObjects.StateManagment;
-using MatrixEngine.Scenes;
-using MatrixEngine.System;
-using MatrixEngine.GameObjects.Components.StateManagementComponents;
+﻿using MatrixGDK.Content;
+using MatrixGDK.GameObjects;
+using MatrixGDK.GameObjects.Components;
+using MatrixGDK.GameObjects.Components.PhysicsComponents;
+using MatrixGDK.GameObjects.Components.RenderComponents;
+using MatrixGDK.GameObjects.Components.StateManagementComponents;
+using MatrixGDK.GameObjects.Components.TilemapComponents;
+using MatrixGDK.GameObjects.Components.UIComponents;
+using MatrixGDK.GameObjects.StateManagment;
+using MatrixGDK.Scenes;
+using MatrixGDK.System;
 using SFML.Graphics;
 using SFML.System;
-using static MatrixEngineTests.Program;
 using SFML.Window;
 using System;
-using MatrixEngine.GameObjects.Components.PhysicsComponents;
+using static MatrixEngineTests.Program;
 
 namespace MatrixEngineTests {
     class Program {
         class FPSCounterComponent : TextRendererComponent {
+
 
             public FPSCounterComponent() : base("", FontManager.CascadiaCode, Color.Red) {
             }
@@ -29,7 +29,7 @@ namespace MatrixEngineTests {
             public override void Update() {
                 base.Update();
 
-                text = $"FPS: {(1.0f / app.deltaTime).ToString("0.0")} \nZoom: {app.camera.zoom}";
+                text = $"FPS: {(1.0f / app.deltaTime).ToString("0")} \nZoom: {app.camera.zoom}";
 
             }
             public override void Start() {
@@ -65,7 +65,7 @@ namespace MatrixEngineTests {
                     new GameObject(
                         new Vector2f(-10,-10),
                         new Component[] {
-                            new SpriteRendererComponent("Image1.png",20,2),
+                            new SpriteRendererComponent("Image1.png",16,2),
                             new ConsumerComponent<TilemapComponent>(prov),
                             new ProviderTesterComponent(),
                             new ConsumerComponent<Counter>(counterProv),
@@ -89,13 +89,13 @@ namespace MatrixEngineTests {
 
                     ),
                     new GameObject(
-                        
+
                         new Component[] {
                             new SpriteRendererComponent("Image2.png",400,55),
                             new RigidBodyComponent(true),
                             new ColliderComponent(ColliderComponent.ColliderType.Rect),
 
-                        
+
                         }
                         )
 
@@ -107,7 +107,7 @@ namespace MatrixEngineTests {
 
         }
     }
-    public  class ProviderTesterComponent : Component {
+    public class ProviderTesterComponent : Component {
 
         Counter t;
         public override void Start() {
@@ -116,10 +116,11 @@ namespace MatrixEngineTests {
             if (p == null) {
                 return;
             }
+            p.transform.scale = new Vector2f(0.05f, 0.05f);
             for (int i = 0; i < 1000; i++) {
                 for (int j = 0; j < 1000; j++) {
-                    if(r.NextDouble()>0.5)
-                    p.SetTile(new Vector2i(i,j),new Tile(TextureManager.GetTexture("grass.png")));
+                    if (r.NextDouble() < 0.2)
+                        p.SetTile(new Vector2i(i, j), new Tile(TextureManager.GetTexture("grass.png")));
                 }
             }
             var p1 = GetComponent<ConsumerComponent<Counter>>();
@@ -129,11 +130,11 @@ namespace MatrixEngineTests {
         }
         public override void Update() {
             var p = GetComponent<ConsumerComponent<Counter>>();
-           
+
             if (app.keyHandler.isPressed(Keyboard.Key.G)) {
                 p.GetOutput().Increment();
             }
-            
+
 
 
         }

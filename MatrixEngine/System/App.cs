@@ -1,14 +1,14 @@
-﻿using MatrixEngine.Physics;
-using MatrixEngine.Renderers;
-using MatrixEngine.Scenes;
-using MatrixEngine.System.AsyncOperations;
-using MatrixEngine.Testing;
+﻿using MatrixGDK.Physics;
+using MatrixGDK.Renderers;
+using MatrixGDK.Scenes;
+using MatrixGDK.System.AsyncOperations;
+using MatrixGDK.Testing;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
 using System;
 
-namespace MatrixEngine.System {
+namespace MatrixGDK.System {
     public sealed class App {
 
         public PhysicsEngine rigidBodyManager

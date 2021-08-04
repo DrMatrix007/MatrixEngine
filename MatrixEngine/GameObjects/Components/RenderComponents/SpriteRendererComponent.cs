@@ -1,13 +1,13 @@
-﻿using MatrixEngine.Content;
-using MatrixEngine.GameObjects.Components.PhysicsComponents;
-using MatrixEngine.Physics;
-using MatrixEngine.System;
+﻿using MatrixGDK.Content;
+using MatrixGDK.GameObjects.Components.PhysicsComponents;
+using MatrixGDK.Physics;
+using MatrixGDK.System;
 using SFML.Graphics;
 using SFML.System;
 using System;
 using System.Diagnostics;
 
-namespace MatrixEngine.GameObjects.Components.RenderComponents {
+namespace MatrixGDK.GameObjects.Components.RenderComponents {
     public sealed class SpriteRendererComponent : RendererComponent {
 
 

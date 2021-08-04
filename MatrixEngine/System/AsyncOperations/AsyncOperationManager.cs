@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixEngine.System.AsyncOperations {
+namespace MatrixGDK.System.AsyncOperations {
     public class AsyncOperationManager {
 
         private App app;

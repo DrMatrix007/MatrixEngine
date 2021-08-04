@@ -1,10 +1,11 @@
-﻿using MatrixEngine.GameObjects.Components.PhysicsComponents;
-using MatrixEngine.GameObjects.Components.TilemapComponents;
-using MatrixEngine.System;
+﻿using MatrixGDK.GameObjects.Components.PhysicsComponents;
+using MatrixGDK.GameObjects.Components.TilemapComponents;
+using MatrixGDK.System;
+using SFML.Graphics;
 using SFML.System;
 using System.Collections.Generic;
 
-namespace MatrixEngine.Physics {
+namespace MatrixGDK.Physics {
     public class PhysicsEngine {
 
         public const float Threshold = 0.010f;
@@ -101,7 +102,7 @@ namespace MatrixEngine.Physics {
                 //add_to_vel;
                 //*=app.deltaTime;
 
-                nonstatic.velocity += add_to_vel ;
+                nonstatic.velocity += add_to_vel;
 
                 //nonstatic.position += (nonstatic.velocity * app.deltaTime);
 
@@ -111,11 +112,20 @@ namespace MatrixEngine.Physics {
                 var nonstatic_rect = nonstatic.transform.fullRect;
 
                 foreach (var rect in rectsToCalc) {
+
+
+                    var s = new RectangleShape(rect.size);
+                    s.Position = rect.position;
+                    s.FillColor = new Color(255, 255, 255, 100);
+                    app.window.Draw(s);
+                    s.Dispose();
+
+
                     if (nonstatic_rect.isColliding(rect)) {
 
-                        if(nonstatic_rect.cX<rect.cX) {
+                        if (nonstatic_rect.cX < rect.cX) {
                             nonstatic.position = new Vector2f(rect.X - nonstatic_rect.width, nonstatic.position.Y);
-                            if (nonstatic.velocity.X> 0) {
+                            if (nonstatic.velocity.X > 0) {
                                 nonstatic.velocity = nonstatic.velocity.OnlyWithY();
                             }
                         } else {
@@ -144,7 +154,7 @@ namespace MatrixEngine.Physics {
                                 nonstatic.velocity = nonstatic.velocity.OnlyWithX();
                             }
                         } else {
-                            nonstatic.position = new Vector2f(nonstatic.position.X,rect.max.Y);
+                            nonstatic.position = new Vector2f(nonstatic.position.X, rect.max.Y);
                             if (nonstatic.velocity.Y > 0) {
                                 nonstatic.velocity = nonstatic.velocity.OnlyWithX();
                             }
@@ -157,19 +167,11 @@ namespace MatrixEngine.Physics {
 
             }
 
-
-
-
-
-
-
-
-
             dynamicRigidBodiesToCalc.Clear();
             collidersToCalc.Clear();
             rectsToCalc.Clear();
         }
-
+         
         private void AddTilemapToCollision(RigidBodyComponent nonstatic, ColliderComponent @static) {
             var tilemap = @static.GetComponent<TilemapComponent>();
             if (tilemap == null) {
@@ -187,38 +189,17 @@ namespace MatrixEngine.Physics {
                 for (float y = -tile_scale.Y * 2; y < nonstatic_rect.height + tile_scale.Y * 2; y += tile_scale.Y) {
                     pos = new Vector2f(x, y) + tilemap.position;
                     if (tilemap.GetTileFromWorldPos(pos + nonstatic.position) != null) {
-                        var r = new Rect((pos + (Vector2f)(Vector2i)nonstatic.position.Round(10)), tile_scale);
-                        //if (x == (nonstatic.velocity.X>0?0: tile_scale.X) || y == (nonstatic.velocity.Y > 0 ? tile_scale.Y : 0)) {
-                        list_rects.Insert(0, r);
-                        //} else {
+                        var r = new Rect(((Vector2f)tilemap.GetPosOfTileFromWorldPos(pos + nonstatic.position)).Multiply(tile_scale), tile_scale);
                         list_rects.Add(r);
-
-                        //}
-
-
                     }
                 }
             }
             foreach (var item in list_rects) {
-               
                 AddRectToCollision(item);
-
             }
-
-
         }
-
-
-
-
-
         void AddRectToCollision(Rect @static) {
-
             rectsToCalc.Add(@static);
-
-            
-
-
         }
     }
 

@@ -1,4 +1,4 @@
-﻿namespace MatrixEngine.GameObjects.StateManagment {
+﻿namespace MatrixGDK.GameObjects.StateManagment {
     public class Consumer<Output> {
 
         public Provider<Output> provider

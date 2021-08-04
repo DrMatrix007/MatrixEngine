@@ -1,8 +1,8 @@
-﻿using MatrixEngine.System;
+﻿using MatrixGDK.System;
 using SFML.System;
 using SFML.Window;
 
-namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
+namespace MatrixGDK.GameObjects.Components.PhysicsComponents {
     [RequireComponent(typeof(RigidBodyComponent))]
     public class SimplePlayerControllerComponent : Component {
 

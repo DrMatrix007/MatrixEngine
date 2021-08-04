@@ -1,12 +1,12 @@
 ﻿
-using MatrixEngine.GameObjects.Components;
+using MatrixGDK.GameObjects.Components;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixEngine.GameObjects.StateManagment {
+namespace MatrixGDK.GameObjects.StateManagment {
     public class ComponentProvider<T> : Provider<T> where T : Component {
         public T data { get; set; }
 

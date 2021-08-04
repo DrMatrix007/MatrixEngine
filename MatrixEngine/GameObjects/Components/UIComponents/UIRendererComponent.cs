@@ -1,6 +1,6 @@
-﻿using MatrixEngine.GameObjects.Components.RenderComponents;
+﻿using MatrixGDK.GameObjects.Components.RenderComponents;
 
-namespace MatrixEngine.GameObjects.Components.UIComponents {
+namespace MatrixGDK.GameObjects.Components.UIComponents {
     public abstract class UIRendererComponent : RendererComponent {
 
 

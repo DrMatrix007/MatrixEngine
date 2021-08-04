@@ -1,11 +1,11 @@
-﻿using MatrixEngine.GameObjects.StateManagment;
+﻿using MatrixGDK.GameObjects.StateManagment;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixEngine.GameObjects.Components.StateManagementComponents {
+namespace MatrixGDK.GameObjects.Components.StateManagementComponents {
     public class ConsumerComponent<Output> : Component {
         public ConsumerComponent(Provider<Output> provider)  {
             this.provider = provider;

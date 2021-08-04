@@ -1,6 +1,6 @@
 ﻿using SFML.Graphics;
 
-namespace MatrixEngine.GameObjects.Components.UIComponents {
+namespace MatrixGDK.GameObjects.Components.UIComponents {
     public class TextRendererComponent : UIRendererComponent {
 
 
