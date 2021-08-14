@@ -6,6 +6,7 @@ namespace MatrixEngine.UI {
             this.maxSizeInPercentage = maxSizeInPercentage;
             this.positionInPercentage = positionInPercentage;
         }
+        
 
         public Vector2f maxSizeInPercentage;
 
