@@ -1,7 +1,7 @@
-﻿using MatrixGDK.System;
+﻿using MatrixEngine.System;
 using SFML.System;
 
-namespace MatrixGDK.GameObjects.Components.PhysicsComponents {
+namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
     [RequireComponent(typeof(ColliderComponent))]
     public class RigidBodyComponent : Component {
 

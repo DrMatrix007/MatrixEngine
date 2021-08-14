@@ -1,8 +1,8 @@
-﻿using MatrixGDK.Physics;
+﻿using MatrixEngine.Physics;
 using SFML.System;
 
 
-namespace MatrixGDK.System {
+namespace MatrixEngine.System {
     public class Camera {
 
         App app;
@@ -16,7 +16,7 @@ namespace MatrixGDK.System {
 
         public Vector2f size
         {
-            get => new Vector2f(2.0f.Pow(zoom) * ((float)app.window.Size.X / app.window.Size.Y).Sqrt() * 100, 2.0f.Pow(zoom) * 100 / ((float)app.window.Size.X / app.window.Size.Y).Sqrt());
+            get => new Vector2f(2.0f.Pow(zoom) /* here is the freaking multuply*/ * ((float)app.window.Size.X / app.window.Size.Y).Sqrt() * 100, 2.0f.Pow(zoom) * 100 / ((float)app.window.Size.X / app.window.Size.Y).Sqrt());
         }
 
         public Rect rect

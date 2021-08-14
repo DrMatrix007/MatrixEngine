@@ -1,17 +1,20 @@
-﻿using MatrixGDK.GameObjects.StateManagment;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MatrixEngine.StateManagment;
 
-namespace MatrixEngineTests {
-    class CounterProvider : Provider<int> {
+namespace MatrixEngine {
+    public class CounterProvider : StateProvider<int> {
         public int data { get; set; } = 0;
 
-        public int Get() {
+        public CounterProvider() : base(0) {
+        }
+
+        public void Add() {
+            this.OperateState((i) => i + 1);
+        }
+
+        public new int Get() {
             return data;
         }
 
     }
+    
 }

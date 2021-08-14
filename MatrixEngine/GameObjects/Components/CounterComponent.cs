@@ -1,7 +1,7 @@
-﻿using MatrixGDK.System;
+﻿using MatrixEngine.System;
 using SFML.Graphics;
 
-namespace MatrixGDK.GameObjects.Components {
+namespace MatrixEngine.GameObjects.Components {
     public sealed class CounterComponent : Component {
         int c = 0;
         public override void Start() {

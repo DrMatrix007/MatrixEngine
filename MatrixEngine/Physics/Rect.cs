@@ -1,6 +1,6 @@
 ﻿using SFML.System;
 
-namespace MatrixGDK.Physics {
+namespace MatrixEngine.Physics {
     public sealed class Rect {
 
         public float X, Y, width, height;

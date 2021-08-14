@@ -3,7 +3,7 @@ using SFML.System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace MatrixGDK.GameObjects.Components.TilemapComponents {
+namespace MatrixEngine.GameObjects.Components.TilemapComponents {
     public class Chunk : IEnumerable<KeyValuePair<Vector2i,Tile>>{
         public int chunkSize = 16;
 

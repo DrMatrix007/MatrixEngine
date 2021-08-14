@@ -1,14 +1,6 @@
-﻿
-using MatrixGDK.GameObjects.Components;
-using MatrixGDK.GameObjects.Components.PhysicsComponents;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MatrixEngine.GameObjects.Components;
 
-
-namespace MatrixEngineTests {
+namespace MatrixEngine {
     public class CameraControllerComponent : Component {
         public CameraControllerComponent() : base() {
             

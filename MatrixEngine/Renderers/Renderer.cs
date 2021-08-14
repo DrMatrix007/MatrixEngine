@@ -1,10 +1,10 @@
-﻿using MatrixGDK.GameObjects.Components.RenderComponents;
-using MatrixGDK.Physics;
-using MatrixGDK.System;
+﻿using MatrixEngine.Physics;
 using System.Collections.Generic;
 using System.Linq;
+using MatrixEngine.GameObjects.Components.RenderComponents;
+using MatrixEngine.System;
 
-namespace MatrixGDK.Renderers {
+namespace MatrixEngine.Renderers {
     public sealed class Renderer {
 
         App app;

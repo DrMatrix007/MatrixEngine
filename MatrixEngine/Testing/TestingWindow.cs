@@ -1,5 +1,4 @@
-﻿using MatrixGDK.Content;
-using MatrixGDK.System;
+﻿using MatrixEngine.System;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
@@ -8,8 +7,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MatrixEngine.Content;
 
-namespace MatrixGDK.Testing {
+namespace MatrixEngine.Testing {
     public class TestingWindow {
         public (int width, int height) gridSize;
 

@@ -2,7 +2,7 @@
 using System;
 using System.Diagnostics;
 
-namespace MatrixGDK.System {
+namespace MatrixEngine.System {
     public static class Utils {
 
         public enum MessageType {

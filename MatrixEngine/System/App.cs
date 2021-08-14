@@ -1,14 +1,16 @@
-﻿using MatrixGDK.Physics;
-using MatrixGDK.Renderers;
-using MatrixGDK.Scenes;
-using MatrixGDK.System.AsyncOperations;
-using MatrixGDK.Testing;
-using SFML.Graphics;
+﻿using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
 using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Runtime.Serialization.Formatters.Binary;
+using MatrixEngine.Physics;
+using MatrixEngine.Renderers;
+using MatrixEngine.System.AsyncOperations;
+using MatrixEngine.Testing;
 
-namespace MatrixGDK.System {
+namespace MatrixEngine.System {
     public sealed class App {
 
         public PhysicsEngine rigidBodyManager
@@ -152,7 +154,6 @@ namespace MatrixGDK.System {
 
             while (window.IsOpen) {
 
-
                 window.Clear(Color.Black);
 
 
@@ -169,8 +170,10 @@ namespace MatrixGDK.System {
 
                 rigidBodyManager.Update();
 
-
-                testingWindow.Update();
+                if (isDebug) {
+                    testingWindow.Update();
+                    
+                }
 
 
                 //window.Draw(
@@ -180,16 +183,16 @@ namespace MatrixGDK.System {
                 //}, PrimitiveType.Lines);
 
 
+                window.Display();
 
-                if (isDebug) {
-                    window.Display();
-                    if (!window.IsOpen) {
-                        break;
-                    }
-
+                if (!window.IsOpen) {
+                    break;
                 }
 
+
                 _deltaTime = deltaTimeClock.Restart();
+
+                
 
             }
 

@@ -15,4 +15,9 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="GameObjects\Components\UIComponents\" />
+    <Folder Include="Scenes" />
+  </ItemGroup>
+
 </Project>

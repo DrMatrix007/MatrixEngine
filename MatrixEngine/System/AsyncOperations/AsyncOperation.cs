@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixGDK.System.AsyncOperations {
+namespace MatrixEngine.System.AsyncOperations {
     public class AsyncOperation {
         private readonly IEnumerator fullOperation;
 

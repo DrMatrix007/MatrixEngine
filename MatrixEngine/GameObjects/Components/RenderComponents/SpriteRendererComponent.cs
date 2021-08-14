@@ -1,13 +1,13 @@
-﻿using MatrixGDK.Content;
-using MatrixGDK.GameObjects.Components.PhysicsComponents;
-using MatrixGDK.Physics;
-using MatrixGDK.System;
+﻿using MatrixEngine.Content;
+using MatrixEngine.System;
 using SFML.Graphics;
 using SFML.System;
 using System;
 using System.Diagnostics;
+using MatrixEngine.GameObjects.Components.PhysicsComponents;
+using MatrixEngine.Physics;
 
-namespace MatrixGDK.GameObjects.Components.RenderComponents {
+namespace MatrixEngine.GameObjects.Components.RenderComponents {
     public sealed class SpriteRendererComponent : RendererComponent {
 
 
@@ -23,7 +23,7 @@ namespace MatrixGDK.GameObjects.Components.RenderComponents {
 
         public SpriteRendererComponent(string localpathtoimg, int pixelperunit, int layer) {
 
-            sprite = new Sprite(TextureManager.GetTexture(localpathtoimg));
+            sprite = new Sprite(new Texture(localpathtoimg));
             this.layer = layer;
             this.pixelperunit = pixelperunit;
         }

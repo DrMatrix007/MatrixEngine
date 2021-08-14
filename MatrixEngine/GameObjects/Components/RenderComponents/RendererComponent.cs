@@ -1,7 +1,7 @@
-﻿using MatrixGDK.GameObjects.Components.PhysicsComponents;
+﻿using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using SFML.Graphics;
 
-namespace MatrixGDK.GameObjects.Components.RenderComponents {
+namespace MatrixEngine.GameObjects.Components.RenderComponents {
 
     public abstract class RendererComponent : Component {
 

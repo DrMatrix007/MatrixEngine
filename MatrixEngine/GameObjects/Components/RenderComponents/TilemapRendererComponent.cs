@@ -1,11 +1,11 @@
-﻿using MatrixGDK.GameObjects.Components.TilemapComponents;
-using MatrixGDK.Physics;
-using MatrixGDK.System;
+﻿using MatrixEngine.System;
 using SFML.Graphics;
 using SFML.System;
 using System.Collections.Generic;
+using MatrixEngine.GameObjects.Components.TilemapComponents;
+using MatrixEngine.Physics;
 
-namespace MatrixGDK.GameObjects.Components.RenderComponents {
+namespace MatrixEngine.GameObjects.Components.RenderComponents {
     [RequireComponent(typeof(TilemapComponent))]
     public class TilemapRendererComponent : RendererComponent {
 
@@ -58,7 +58,7 @@ namespace MatrixGDK.GameObjects.Components.RenderComponents {
 
 
                 }
-                if (!new Rect(((Vector2f)item.Key).Multiply(tilemap.transform.scale), tilemap.chunkRectSize.Multiply(tilemap.transform.scale)).isColliding(app.camera.rect)) {
+                if (!new Rect(((Vector2f)item.Key).Multiply(tilemap.transform.scale)+gameObject.position, tilemap.chunkRectSize.Multiply(tilemap.transform.scale)).isColliding(app.camera.rect)) {
                     if (chunkTextures.ContainsKey(item.Key)) {
 
                         chunkTextures[item.Key].Dispose();
@@ -99,7 +99,7 @@ namespace MatrixGDK.GameObjects.Components.RenderComponents {
 
 
             foreach (var item in chunkTextures) {
-                if (!new Rect(((Vector2f)item.Key).Multiply(tilemap.transform.scale) + gameObject.position, (Vector2f)new Vector2f(item.Value.Size.X * transform.scale.X, item.Value.Size.Y * transform.scale.Y)/tilemap.pixelsPerUnit).isColliding(app.camera.rect)) {
+                if (!new Rect(((Vector2f)item.Key).Multiply(tilemap.transform.scale) + gameObject.position, (Vector2f)new Vector2f(item.Value.Size.X * transform.scale.X, item.Value.Size.Y * transform.scale.Y)*2.0f/tilemap.pixelsPerUnit).isColliding(app.camera.rect)) {
                     item.Value.Dispose();
                     chunkTextures.Remove(item.Key);
                     continue;

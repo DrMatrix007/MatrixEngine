@@ -1,20 +1,16 @@
-﻿using MatrixGDK.GameObjects;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using MatrixEngine.GameObjects;
+using MatrixEngine.UI;
 
-namespace MatrixGDK.Scenes {
+namespace MatrixEngine.System {
     public class Scene : IEnumerable<GameObject> {
 
-        public Scene scene
-        {
-            get {
-                return scene;
-            }
-        }
 
         private List<GameObject> gameObjects;
 
+        private List<UIObject> uiObjects;
         public GameObject CreateGameObject() {
             var g = new GameObject();
 
@@ -34,16 +30,25 @@ namespace MatrixGDK.Scenes {
         }
 
         public Scene() {
-            this.gameObjects = new List<GameObject>();
+            gameObjects = new List<GameObject>();
+            uiObjects = new List<UIObject>();
         }
         public Scene(IEnumerable<GameObject> gameObjects) {
             this.gameObjects = new List<GameObject>();
+            uiObjects = new List<UIObject>();
+
             var l = gameObjects.ToList();
             foreach (var item in l) {
                 AddGameObject(item);
             }
 
+
         }
+
+        public Scene(IEnumerable<GameObject> gameobjects, IEnumerable<UIObject> objects) : this(gameobjects) {
+            uiObjects.AddRange(objects);
+        }
+        
         public virtual void Start() {
 
         }
@@ -64,6 +69,10 @@ namespace MatrixGDK.Scenes {
 
             foreach (var item in l) {
                 item.LateUpdate();
+            }
+
+            foreach (var uiObject in uiObjects) {
+                app.canvasRenderer.Add(uiObject);
             }
         }
 

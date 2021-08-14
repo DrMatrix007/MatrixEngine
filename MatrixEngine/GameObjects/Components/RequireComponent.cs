@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixGDK.GameObjects.Components {
+namespace MatrixEngine.GameObjects.Components {
     [AttributeUsage(AttributeTargets.Class,AllowMultiple =true,Inherited =true)]
     public class RequireComponent : Attribute {
         

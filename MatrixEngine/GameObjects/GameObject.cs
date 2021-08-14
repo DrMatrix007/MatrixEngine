@@ -1,13 +1,13 @@
-﻿using MatrixGDK.GameObjects.Components;
-using MatrixGDK.Physics;
-using MatrixGDK.Scenes;
-using SFML.System;
+﻿using SFML.System;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using MatrixEngine.GameObjects.Components;
+using MatrixEngine.Physics;
+using MatrixEngine.System;
 
-namespace MatrixGDK.GameObjects {
+namespace MatrixEngine.GameObjects {
     public sealed class GameObject : IEnumerable<Component> {
 
 

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixGDK.GameObjects.Components.TilemapComponents {
+namespace MatrixEngine.GameObjects.Components.TilemapComponents {
     [Serializable]
     public class Tile {
         public Texture texture;

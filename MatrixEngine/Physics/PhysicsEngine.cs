@@ -1,11 +1,11 @@
-﻿using MatrixGDK.GameObjects.Components.PhysicsComponents;
-using MatrixGDK.GameObjects.Components.TilemapComponents;
-using MatrixGDK.System;
+﻿using MatrixEngine.System;
 using SFML.Graphics;
 using SFML.System;
 using System.Collections.Generic;
+using MatrixEngine.GameObjects.Components.PhysicsComponents;
+using MatrixEngine.GameObjects.Components.TilemapComponents;
 
-namespace MatrixGDK.Physics {
+namespace MatrixEngine.Physics {
     public class PhysicsEngine {
 
         public const float Threshold = 0.010f;
@@ -93,7 +93,7 @@ namespace MatrixGDK.Physics {
 
             foreach (var nonstatic in dynamicRigidBodiesToCalc) {
                 var add_to_vel = (nonstatic.gravity * app.deltaTime);
-                var fric = (nonstatic.velocity.Length() < 1 ? nonstatic.velocity : nonstatic.velocity.Normalize()).Multiply(nonstatic.velocityDrag) * (-1) / 1.0f * app.deltaTime * 100;
+                var fric = (nonstatic.velocity.Length() < 1 ? nonstatic.velocity : nonstatic.velocity.Normalize()).Multiply(nonstatic.velocityDrag) * (-1) * app.deltaTime * 100;
                 add_to_vel += fric;
 
 
@@ -150,12 +150,12 @@ namespace MatrixGDK.Physics {
                         if (nonstatic_rect.cY < rect.cY) {
                             nonstatic.position = new Vector2f(nonstatic.position.X, rect.Y - nonstatic_rect.height);
 
-                            if (nonstatic.velocity.Y < 0) {
+                            if (nonstatic.velocity.Y > 0) {
                                 nonstatic.velocity = nonstatic.velocity.OnlyWithX();
                             }
                         } else {
                             nonstatic.position = new Vector2f(nonstatic.position.X, rect.max.Y);
-                            if (nonstatic.velocity.Y > 0) {
+                            if (nonstatic.velocity.Y < 0) {
                                 nonstatic.velocity = nonstatic.velocity.OnlyWithX();
                             }
                         }

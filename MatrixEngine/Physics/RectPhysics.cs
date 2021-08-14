@@ -1,9 +1,9 @@
-﻿using MatrixGDK.System;
+﻿using MatrixEngine.System;
 using SFML.Graphics.Glsl;
 using SFML.System;
 using System;
 using System.Linq;
-namespace MatrixGDK.Physics {
+namespace MatrixEngine.Physics {
     public static partial class Physics {
 
 

@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 
-namespace MatrixGDK.GameObjects.Components.TilemapComponents {
+namespace MatrixEngine.GameObjects.Components.TilemapComponents {
     public sealed class TilemapComponent : Component {
         public readonly int pixelsPerUnit;
         internal Dictionary<Vector2i, Chunk> chunks;
 
-        public const int chunkSize = 50;
+        public const int chunkSize = 100;
 
         public Vector2f chunkRectSize { get => new Vector2f(chunkSize * transform.scale.X, chunkSize * transform.scale.Y); }
 

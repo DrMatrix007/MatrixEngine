@@ -1,11 +1,11 @@
-﻿using MatrixGDK.GameObjects.Components.UIComponents;
-using MatrixGDK.System;
+﻿using MatrixEngine.UI;
 using SFML.Graphics;
 using SFML.System;
 using System.Collections.Generic;
 using System.Linq;
+using MatrixEngine.System;
 
-namespace MatrixGDK.Renderers {
+namespace MatrixEngine.Renderers {
     public class CanvasRenderer {
 
         RenderTexture target;
@@ -13,23 +13,24 @@ namespace MatrixGDK.Renderers {
 
         App app;
 
-        List<UIRendererComponent> list;
+        List<UIObject> list;
 
         public CanvasRenderer(App app) {
             this.app = app;
-            list = new List<UIRendererComponent>();
+            list = new List<UIObject>();
 
             target = new RenderTexture((uint)app.windowSize.X, (uint)app.windowSize.Y);
 
 
         }
 
-        public void Add(UIRendererComponent component) {
+        public void Add(UIObject component) {
             list.Add(component);
         }
 
         public void Render() {
             if (target.Size != app.window.Size) {
+                target.Dispose();
                 target = new RenderTexture(app.window.Size.X, app.window.Size.Y);
             }
             target.Clear(Color.Transparent);
@@ -48,7 +49,8 @@ namespace MatrixGDK.Renderers {
 
             var tmp = app.window.GetView();
             var window_size = app.window.Size;
-            app.window.SetView(new View(new Vector2f(+window_size.X / 2, +window_size.Y / 2), (Vector2f)app.window.Size));
+            // ReSharper disable once PossibleLossOfFraction
+            app.window.SetView(new View(new Vector2f(window_size.X / 2, window_size.Y / 2), (Vector2f)app.window.Size));
             /* draw your stuff */
             var sp = new Sprite(target.Texture);
 

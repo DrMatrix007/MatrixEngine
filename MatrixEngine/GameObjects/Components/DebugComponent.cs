@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixGDK.GameObjects.Components {
+namespace MatrixEngine.GameObjects.Components {
     public class DebugComponent : Component {
 
 

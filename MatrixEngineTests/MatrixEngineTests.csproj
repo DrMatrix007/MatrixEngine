@@ -7,20 +7,23 @@
     <ApplicationIcon />
     <StartupObject />
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <AssemblyName>MatrixEngineTests</AssemblyName>
+    <RootNamespace>MatrixEngineTests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\MatrixEngine\MatrixEngine.csproj" />
+
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="grass.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="Image1.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Image2.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="grass.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -1,12 +1,12 @@
-﻿using MatrixGDK.Physics;
-using SFML.System;
+﻿using SFML.System;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MatrixEngine.Physics;
 
-namespace MatrixGDK.GameObjects.Components {
+namespace MatrixEngine.GameObjects.Components {
     public class TransformComponent {
 
         private Vector2f _position = new Vector2f(0,0);
