@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using MatrixEngine.Content;
 using MatrixEngine.UI;
 using MatrixEngine.GameObjects;
 using MatrixEngine.GameObjects.Components;
@@ -74,7 +75,24 @@ namespace MatrixEngine {
                         // new SpriteRendererUIObject(new Anchor(new Vector2f(),new Vector2f(10,10) ),new Texture("Image1.png") ),
 
                         new TextRendererConsumerUIObject(new Anchor(new Vector2f(), new Vector2f(20, 10)),
-                            new ProviderConverter<string, int>(counterProv, e => e.ToString())),
+                            new ProviderConverter<string, int>(counterProv, e => e.ToString()),
+                            new UITextStyle(10, Color.White, Color.Cyan, FontManager.CascadiaCode,
+                                isResize: true),
+                            10,
+                            (o, f, arg3) => {
+                                arg3.Log();
+                            },
+                                    
+                            (o, f) => {
+                                
+                            }
+                        ),
+                        new SpriteRendererUIObject(new Anchor(new Vector2f(0, 10), new Vector2f(10, 10)),
+                            new Texture("Image1.png"), new UIStyle(1, Color.White, Color.Blue), 1,
+                            (o, f) => { },
+                            (o, f) => { },
+                            (o, f) => { }
+                        )
                     }
                 )
             );

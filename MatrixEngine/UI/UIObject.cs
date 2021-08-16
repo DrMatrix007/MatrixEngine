@@ -5,19 +5,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using SFML.System;
+using SFML.Window;
 
 namespace MatrixEngine.UI {
-    public enum FromVertical {
-        Bottom,
-        Up
-    }
 
-    public enum FromHorizontal {
-        Left,
-        Right,
-    }
+
 
     public abstract class UIObject {
+
+        public Drawable drawable;
+
+        public UIStyle style;
+        
         public int layer = 0;
 
 
@@ -30,19 +29,28 @@ namespace MatrixEngine.UI {
                 OnAnchorChange();
             }
         }
-        protected UIObject(Anchor anchor) {
-            this._anchor = anchor;
+        // protected UIObject(Anchor anchor,UIStyle uiStyle) {
+        //     this._anchor = anchor;
+        //     style = uiStyle;
+        // }
+
+        public UIObject( Anchor anchor,UIStyle style, int layer, Action<UIObject, Vector2f> onHover, Action<UIObject, Vector2f,Mouse.Button> onClick) {
+            this.style = style;
+            this.layer = layer;
+            _anchor = anchor;
+            OnHover = onHover;
+            OnClick = onClick;
         }
 
         protected void OnAnchorChange() {
             
         }
 
-        public abstract void OnHover(Vector2f hoverPos);
+        public Action<UIObject,Vector2f> OnHover;
+        public Action<UIObject,Vector2f,Mouse.Button> OnClick;
 
-        public abstract void OnClick(Vector2f clickPos);
 
 
-        public abstract void Render(RenderTarget target);
+        public abstract (Vector2f pos,Vector2f size) Render(RenderTarget target);
     }
 }

@@ -22,7 +22,7 @@ namespace MatrixEngine.System {
             return (float)watch.Elapsed.TotalSeconds;
 
         }
-        public static void LogTimeInSeconds(Action action) { 
+        public static void LogTimeInSeconds(this Action action) { 
             var s = GetTimeInSeconds(action);
             Utils.Log($"Time to execute: {s}");        
         }

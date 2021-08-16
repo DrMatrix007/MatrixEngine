@@ -1,9 +1,12 @@
-﻿using MatrixEngine.UI;
+﻿using System;
+using MatrixEngine.UI;
 using SFML.Graphics;
 using SFML.System;
 using System.Collections.Generic;
 using System.Linq;
+using MatrixEngine.Physics;
 using MatrixEngine.System;
+using SFML.Window;
 
 namespace MatrixEngine.Renderers {
     public class CanvasRenderer {
@@ -41,21 +44,25 @@ namespace MatrixEngine.Renderers {
             });
             foreach (var component in new_list) {
 
-                component.Render(target);
+                var (pos, size) = component.Render(target);
+                var rect = new Rect(pos+size/2, size);
+                var po = Mouse.GetPosition()-app.window.Position;
+                if (!rect.IsInside((Vector2f)po)) continue;
+                component.OnHover(component, (Vector2f)po);
+                foreach (var value in Enum.GetValues<Mouse.Button>()) {
+                    if (Mouse.IsButtonPressed(value)) {
+                        component.OnClick(component,(Vector2f)po,value);
+                    }
+                }
 
 
             }
             target.Display();
 
             var tmp = app.window.GetView();
-            var window_size = app.window.Size;
-            // ReSharper disable once PossibleLossOfFraction
+            var window_size = (Vector2f)app.window.Size;
             app.window.SetView(new View(new Vector2f(window_size.X / 2, window_size.Y / 2), (Vector2f)app.window.Size));
-            /* draw your stuff */
             var sp = new Sprite(target.Texture);
-
-            //sp.Position =
-            //-(Vector2f)app.window.Size / 2;
 
 
 

@@ -1,22 +1,19 @@
 ﻿using System;
 using MatrixEngine.StateManagment;
 using SFML.Graphics;
+using SFML.System;
+using SFML.Window;
 
 namespace MatrixEngine.UI {
     public class TextRendererConsumerUIObject : TextRendererUIObject {
         private Provider<string> provider;
         
-        public TextRendererConsumerUIObject(Anchor anchor, Provider<string> prov, Font font, bool auto_size = true, uint charsize = 10) : base(anchor, "" , font, auto_size, charsize) {
+        public TextRendererConsumerUIObject(Anchor anchor, Provider<string> prov, UITextStyle uiTextStyle,int layer,Action<UIObject,Vector2f,Mouse.Button> onClick,Action<UIObject,Vector2f> onHover) : base(anchor, "" , uiTextStyle,layer,onClick,onHover) {
             provider = prov;
         }
-
-        public TextRendererConsumerUIObject(Anchor anchor, Provider<String> prov, bool isAutoSize = true, uint charsize = 10) : base(anchor, "", isAutoSize, charsize) {
-            provider = prov;
-        }
-
-        public override void Render(RenderTarget target) {
+        public override  (Vector2f pos, Vector2f size) Render(RenderTarget target) {
             text = provider.Get();
-            base.Render(target);
+            return base.Render(target);
         }
     }
 }
