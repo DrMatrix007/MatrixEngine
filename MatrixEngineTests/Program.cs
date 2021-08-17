@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Linq;
 using MatrixEngine.Content;
 using MatrixEngine.UI;
@@ -10,19 +11,42 @@ using MatrixEngine.GameObjects.Components.StateManagementComponents;
 using MatrixEngine.GameObjects.Components.TilemapComponents;
 using MatrixEngine.StateManagment;
 using MatrixEngine.System;
+using MatrixEngine.System.AsyncOperations;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
 
 namespace MatrixEngine {
-    class Program {
-        static void Main(string[] args) {
+
+    class FPSProvider : Provider<float> {
+
+
+        private App app;
+
+        public void SetApp(App app) {
+            this.app = app;
+        }
+
+        private new float data {
+            get;
+            set;
+        }
+
+        public override float Get() {
+            return 1/app.deltaTime;
+        }
+    }
+
+    internal static class Program {
+        private static void Main(string[] args) {
             var prov = new ComponentProvider<TilemapComponent>();
 
             var counterProv = new CounterProvider();
 
             var isDebug = false;
 
+            var fpsProvider = new FPSProvider();
+            
 
             App app = new App("Tests",
                 isDebug,
@@ -75,7 +99,7 @@ namespace MatrixEngine {
                         // new SpriteRendererUIObject(new Anchor(new Vector2f(),new Vector2f(10,10) ),new Texture("Image1.png") ),
 
                         new TextRendererConsumerUIObject(new Anchor(new Vector2f(), new Vector2f(20, 10)),
-                            new ProviderConverter<string, int>(counterProv, e => e.ToString()),
+                            new ProviderConverter<string, float>(fpsProvider, e => e.ToString()),
                             new UITextStyle(10, Color.White, Color.Cyan, FontManager.CascadiaCode,
                                 isResize: true),
                             10,
@@ -96,36 +120,48 @@ namespace MatrixEngine {
                     }
                 )
             );
-
+    
+            fpsProvider.SetApp(app);
+            
             app.Run();
         }
     }
 
     public class ProviderTesterComponent : Component {
         public override void Start() {
-            var r = new Random();
-            var p = GetComponent<ConsumerComponent<TilemapComponent>>().GetOutput();
-            if (p == null) {
-                return;
-            }
-
-            p.transform.scale = new Vector2f(1f, 1f);
-            // for (int i = 0; i < 900; i++) {
-            //     for (int j = 0; j < 900; j++) {
-            //         if (r.NextDouble() < 0.2)
-            //             p.SetTile(new Vector2i(i, j), new Tile(new Texture("grass.png")));
-            //     }
-            // }
-
+            
+            // app.asyncOperationManager.AddAsyncOperation(new AsyncOperation(Enumerator()));
+            
             var p1 = GetComponent<ConsumerComponent<int>>();
             app.AddToDebug(p1.provider);
+            
+            var p = GetComponent<ConsumerComponent<TilemapComponent>>().GetOutput();
+            if (p == null) {
+                // yield break;
+            }
+            var r = new Random();
+            // var t = new Texture("grass.png");
+            p.transform.scale = new Vector2f(1f, 1f);
+            for (var i = 0; i < 1000; i++) {
+                for (var j = 0; j < 1000; j++) {
+                    if (r.NextDouble() < 0.2)
+                        p.SetTile(new Vector2i(i, j), new Tile(TextureManager.GetTexture("grass.png")));
+                }
+                //yield return null;
+
+            }
         }
 
+        // public IEnumerator Enumerator() {
+        //
+        //
+        // }
+        
         public override void Update() {
             var p = GetComponent<ConsumerComponent<int>>().provider as CounterProvider;
 
             if (app.keyHandler.isPressed(Keyboard.Key.G)) {
-                p.Add();
+                p?.Add();
             }
         }
     }

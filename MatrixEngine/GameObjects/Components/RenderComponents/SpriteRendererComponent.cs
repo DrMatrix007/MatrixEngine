@@ -33,11 +33,11 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
             target.Draw(sprite);
         }
         public override void Start() {
-            var c = this.GetComponent<ColliderComponent>();
-            if (c != null && c.colliderType == ColliderComponent.ColliderType.Rect) {
+            // var c = this.GetComponent<ColliderComponent>();
+            // if (c != null && c.colliderType == ColliderComponent.ColliderType.Rect) {
                 var tr = sprite.TextureRect;
                 transform.rect = new Rect(position,new Vector2f(tr.Width,tr.Height)/pixelperunit);
-            }
+            // }
         }
 
 

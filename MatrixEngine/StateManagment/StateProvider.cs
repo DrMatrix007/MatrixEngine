@@ -6,16 +6,8 @@ using System.Threading.Tasks;
 
 namespace MatrixEngine.StateManagment {
     public class StateProvider<State> : Provider<State> {
-        internal State data
-        {
-            get {
-                return (this as Provider<State>).data;
-            }
-            set {
-                (this as Provider<State>).data = value;
-            }
-        }
-        State Provider<State>.data { get; set; }
+        private new State data;
+
 
         public StateProvider(State state) {
             data = state;
@@ -25,7 +17,8 @@ namespace MatrixEngine.StateManagment {
             data = func(data);
         }
 
-        public State Get() {
+
+        public override State Get() {
             return data;
         }
 

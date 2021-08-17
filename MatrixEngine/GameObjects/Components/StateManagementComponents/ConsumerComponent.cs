@@ -19,7 +19,7 @@ namespace MatrixEngine.GameObjects.Components.StateManagementComponents {
         public override void Update() {
         }
         public Output GetOutput() {
-            return provider.data;
+            return provider.Get();
         }
     }
 }

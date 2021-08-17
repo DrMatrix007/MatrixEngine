@@ -2,13 +2,13 @@
 
 namespace MatrixEngine.GameObjects.Components.StateManagementComponents {
     public class ComponentProviderSetterComponent<Comp> : Component where Comp : Component {
-        private readonly Provider<Comp> provider;
+        private readonly ComponentProvider<Comp> provider;
 
-        public ComponentProviderSetterComponent(Provider<Comp> provider) {
+        public ComponentProviderSetterComponent(ComponentProvider<Comp> provider) {
             this.provider = provider;
         }
         public override void Setup() {
-            provider.data = GetComponent<Comp>();
+            provider.SetState(GetComponent<Comp>());
 
         }
 
@@ -16,7 +16,7 @@ namespace MatrixEngine.GameObjects.Components.StateManagementComponents {
         }
 
         public override void Update() {
-            provider.data = GetComponent<Comp>();
+            provider.SetState(GetComponent<Comp>());
         }
     }
 }

@@ -5,15 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace MatrixEngine.StateManagment {
-    public interface Provider<Output> {
-
-        internal Output data { get; set; }
-
-
-        public Output Get();
-
-
-
+    public abstract class Provider<Output> {
+        protected Output data;
+        public abstract Output Get();
     }
-
 }

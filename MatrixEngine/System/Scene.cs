@@ -10,6 +10,9 @@ namespace MatrixEngine.System {
 
         private List<GameObject> gameObjects;
 
+        public void Destroy(GameObject g) {
+            gameObjects.Remove(g);
+        }
         private List<UIObject> uiObjects;
         public GameObject CreateGameObject() {
             var g = new GameObject();

@@ -11,9 +11,9 @@ namespace MatrixEngine.StateManagment {
 
         private Func<Input, Output> func;
         
-        Output Provider<Output>.data { get; set; }
+        private new Output data { get; set; }
 
-        public Output Get() {
+        public override Output Get() {
             return func(baseprovider.Get());
         }
     }
