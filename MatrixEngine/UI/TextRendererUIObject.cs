@@ -7,7 +7,7 @@ using SFML.System;
 using SFML.Window;
 
 namespace MatrixEngine.UI {
-    public class TextRendererUIObject : UIObject {
+    public abstract class TextRendererUIObject : UIObject {
         public new UITextStyle style;
 
         private string _text;
@@ -29,10 +29,10 @@ namespace MatrixEngine.UI {
             drawable = new Text(text, style.font, style.char_size);
         }
 
-        public TextRendererUIObject(Anchor anchor, string text, UITextStyle uiTextStyle,int layer,Action<UIObject,Vector2f,Mouse.Button> onClick,Action<UIObject,Vector2f> onHover) :
-            base(anchor, uiTextStyle,layer,onHover,onClick) {
-            this._text = text;
-            this.style = uiTextStyle;
+        public TextRendererUIObject(Anchor anchor, string text, UITextStyle uiTextStyle,int layer) :
+            base(anchor, uiTextStyle,layer) {
+            _text = text;
+            style = uiTextStyle;
         }
 
 

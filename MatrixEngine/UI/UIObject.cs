@@ -34,20 +34,18 @@ namespace MatrixEngine.UI {
         //     style = uiStyle;
         // }
 
-        public UIObject( Anchor anchor,UIStyle style, int layer, Action<UIObject, Vector2f> onHover, Action<UIObject, Vector2f,Mouse.Button> onClick) {
+        public UIObject( Anchor anchor,UIStyle style, int layer) {
             this.style = style;
             this.layer = layer;
             _anchor = anchor;
-            OnHover = onHover;
-            OnClick = onClick;
         }
 
         protected void OnAnchorChange() {
             
         }
 
-        public Action<UIObject,Vector2f> OnHover;
-        public Action<UIObject,Vector2f,Mouse.Button> OnClick;
+        public abstract void OnHover(Vector2f pos);
+        public abstract void OnClick(Vector2f pos,Mouse.Button button);
 
 
 

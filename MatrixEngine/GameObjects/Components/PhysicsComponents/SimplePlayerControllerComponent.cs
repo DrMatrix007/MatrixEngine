@@ -1,4 +1,5 @@
-﻿using SFML.System;
+﻿using MatrixEngine.System;
+using SFML.System;
 using SFML.Window;
 
 namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
@@ -41,9 +42,6 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
             //add = new Vector2f(add.X == 0 ? rigidBodyComponent.velocity.X : add.X, add.Y == 0 ? rigidBodyComponent.velocity.Y : add.Y);
             //rigidBodyComponent.velocity = new SFML.System.Vector2f(isx?x:rigidBodyComponent.velocity.X,isy?y:rigidBodyComponent.velocity.Y) * speed * 10;
             rigidBodyComponent.velocity = new Vector2f(x, y) * speed;
-
-
-
 
             //var sr = GetComponent<SpriteRendererComponent>();
         }

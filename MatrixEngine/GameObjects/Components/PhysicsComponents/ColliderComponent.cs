@@ -7,7 +7,10 @@ using MatrixEngine.Physics;
 
 namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
     public sealed class ColliderComponent : Component {
-
+        public bool isGrounded {
+            get;
+            internal set;
+        }
         public enum ColliderType {
             None,
 

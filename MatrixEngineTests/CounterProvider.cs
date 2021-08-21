@@ -1,8 +1,8 @@
 ﻿using MatrixEngine.StateManagment;
 
-namespace MatrixEngine {
+namespace MatrixEngineTests {
     public class CounterProvider : StateProvider<int> {
-        public int data { get; set; } = 0;
+        private new int data { get; set; } = 0;
 
         public CounterProvider() : base(0) {
         }

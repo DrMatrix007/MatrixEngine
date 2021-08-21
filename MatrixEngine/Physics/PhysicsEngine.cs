@@ -44,13 +44,13 @@ namespace MatrixEngine.Physics {
         public void Update() {
 
 
-            foreach (var nonstatic in dynamicRigidBodiesToCalc) {
-                if (!nonstatic.isStatic) {
-
-
-
-                }
-            }
+            // foreach (var nonstatic in dynamicRigidBodiesToCalc) {
+            //     if (!nonstatic.isStatic) {
+            //
+            //
+            //
+            //     }
+            // }
 
 
 
@@ -58,10 +58,11 @@ namespace MatrixEngine.Physics {
 
             var static_list = collidersToCalc.ToArray();
             var non_static_list = dynamicRigidBodiesToCalc.ToArray();
-
+            
+            
 
             foreach (var @static in static_list) {
-
+                @static.isGrounded = false;
                 if (@static.colliderType == ColliderComponent.ColliderType.None) {
                     continue;
                 }
@@ -142,14 +143,13 @@ namespace MatrixEngine.Physics {
 
                 nonstatic.position += nonstatic.velocity.OnlyWithY() * app.deltaTime;
                 nonstatic_rect = nonstatic.transform.fullRect;
-
+                nonstatic.colliderComponent.isGrounded = false;
                 foreach (var rect in rectsToCalc) {
                     if (nonstatic_rect.isColliding(rect)) {
-
-
                         if (nonstatic_rect.cY < rect.cY) {
                             nonstatic.position = new Vector2f(nonstatic.position.X, rect.Y - nonstatic_rect.height);
-
+                            nonstatic.colliderComponent.isGrounded = true;
+                            
                             if (nonstatic.velocity.Y > 0) {
                                 nonstatic.velocity = nonstatic.velocity.OnlyWithX();
                             }
@@ -159,6 +159,9 @@ namespace MatrixEngine.Physics {
                                 nonstatic.velocity = nonstatic.velocity.OnlyWithX();
                             }
                         }
+
+                    }
+                    else {
 
                     }
 

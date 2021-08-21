@@ -48,10 +48,10 @@ namespace MatrixEngine.Renderers {
                 var rect = new Rect(pos+size/2, size);
                 var po = Mouse.GetPosition()-app.window.Position;
                 if (!rect.IsInside((Vector2f)po)) continue;
-                component.OnHover(component, (Vector2f)po);
+                component.OnHover( (Vector2f)po);
                 foreach (var value in Enum.GetValues<Mouse.Button>()) {
                     if (Mouse.IsButtonPressed(value)) {
-                        component.OnClick(component,(Vector2f)po,value);
+                        component.OnClick((Vector2f)po,value);
                     }
                 }
 

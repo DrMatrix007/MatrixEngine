@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MatrixEngine.GameObjects;
 using MatrixEngine.UI;
+using NotImplementedException = System.NotImplementedException;
 
 namespace MatrixEngine.System {
     public class Scene : IEnumerable<GameObject> {
@@ -10,9 +11,7 @@ namespace MatrixEngine.System {
 
         private List<GameObject> gameObjects;
 
-        public void Destroy(GameObject g) {
-            gameObjects.Remove(g);
-        }
+
         private List<UIObject> uiObjects;
         public GameObject CreateGameObject() {
             var g = new GameObject();
@@ -85,6 +84,10 @@ namespace MatrixEngine.System {
 
         IEnumerator IEnumerable.GetEnumerator() {
             return GetEnumerator();
+        }
+
+        public void DestroyGameObject(GameObject gameObject) {
+            gameObjects.Remove(gameObject);
         }
     }
 }

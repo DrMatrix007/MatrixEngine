@@ -1,6 +1,6 @@
 ﻿using MatrixEngine.GameObjects.Components;
 
-namespace MatrixEngine {
+namespace MatrixEngineTests {
     public class CameraControllerComponent : Component {
         public CameraControllerComponent() : base() {
             

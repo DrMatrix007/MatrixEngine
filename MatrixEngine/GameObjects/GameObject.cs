@@ -194,5 +194,13 @@ namespace MatrixEngine.GameObjects {
         IEnumerator IEnumerable.GetEnumerator() {
             return GetEnumerator();
         }
+
+        public void DestroyComponent(Component component) {
+            components.Remove(component.GetType());
+        }
+
+        public void Destroy() {
+            scene.DestroyGameObject(this);
+        }
     }
 }

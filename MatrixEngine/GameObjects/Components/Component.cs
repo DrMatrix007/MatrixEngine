@@ -92,5 +92,9 @@ namespace MatrixEngine.GameObjects.Components {
 
         public virtual void Setup() {
         }
+
+        public void Destroy() {
+            gameObject.DestroyComponent(this);
+        }
     }
 }

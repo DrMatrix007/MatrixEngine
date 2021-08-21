@@ -5,10 +5,10 @@ using MatrixEngine.System;
 using SFML.System;
 using SFML.Window;
 
-namespace MatrixEngine {
-    class TestResizeTilemapComponent : Component {
+namespace MatrixEngineTests {
+    internal class TestResizeTilemapComponent : Component {
 
-        private Provider<TilemapComponent> provider;
+        private readonly Provider<TilemapComponent> provider;
 
         public TestResizeTilemapComponent(Provider<TilemapComponent> prov) {
             this.provider = prov;
