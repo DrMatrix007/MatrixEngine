@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Security;
 using MatrixEngine;
 using MatrixEngine.Content;
 using MatrixEngine.GameObjects;
@@ -30,14 +31,25 @@ namespace MatrixEngineTests {
     }
 
     internal static class Program {
-        private static void Main(string[] args) {
+        public static void Main(string[] args) {
+            var scene = new Scene(
+            );
+
+
+            var app = new App("Light test!", false, scene);
+
+            app.Run();
+        }
+
+
+        private static void Main1(string[] args) {
             var prov = new ComponentProvider<TilemapComponent>();
 
             var playerProv = new ComponentProvider<SimplePlayerControllerComponent>();
 
             var counterProv = new CounterProvider();
 
-            const bool isDebug = false;
+            const bool isDebug = true;
 
             var fpsProvider = new FPSProvider();
 
@@ -101,10 +113,6 @@ namespace MatrixEngineTests {
     }
 
     public class ProviderTesterComponent : Component {
-
-        public ProviderTesterComponent() {
-        }
-
         public override void Start() {
             // app.asyncOperationManager.AddAsyncOperation(new AsyncOperation(Enumerator()));
 

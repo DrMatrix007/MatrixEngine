@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml;
 using MatrixEngine.GameObjects;
 using MatrixEngine.UI;
 using NotImplementedException = System.NotImplementedException;
@@ -30,27 +31,36 @@ namespace MatrixEngine.System {
             get;
             internal set;
         }
+        
+        
 
-        public Scene() {
-            gameObjects = new List<GameObject>();
-            uiObjects = new List<UIObject>();
-        }
-        public Scene(IEnumerable<GameObject> gameObjects) {
+        public Scene(IEnumerable<GameObject> gameObjects = null, IEnumerable<UIObject> uiObjects = null)  {
+            
             this.gameObjects = new List<GameObject>();
-            uiObjects = new List<UIObject>();
+            this.uiObjects = new List<UIObject>();
+            gameObjects ??= new List<GameObject>();
+            uiObjects ??= new List<UIObject>();
+            
+            
+            
 
-            var l = gameObjects.ToList();
-            foreach (var item in l) {
+            // var l = gameObjects.ToList();
+            foreach (var item in gameObjects) {
                 AddGameObject(item);
             }
 
-
+            foreach (UIObject uiObject in uiObjects) {
+                AddUIObject(uiObject);
+            }
+            
+            // uiObjects.AddRange(objects);
         }
 
-        public Scene(IEnumerable<GameObject> gameobjects, IEnumerable<UIObject> objects) : this(gameobjects) {
-            uiObjects.AddRange(objects);
+        private void AddUIObject(UIObject uiObject) {
+            uiObject.SetupScene(this);
+            uiObjects.Add(uiObject);
         }
-        
+
         public virtual void Start() {
 
         }

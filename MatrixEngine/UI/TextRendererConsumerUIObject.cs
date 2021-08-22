@@ -13,11 +13,11 @@ namespace MatrixEngine.UI {
         }
 
         public override void OnHover(Vector2f pos) {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public override void OnClick(Vector2f pos, Mouse.Button button) {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         public override  (Vector2f pos, Vector2f size) Render(RenderTarget target) {

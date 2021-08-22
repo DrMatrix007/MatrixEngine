@@ -2,13 +2,14 @@
 using SFML.System;
 using SFML.Window;
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using MatrixEngine.Physics;
 using MatrixEngine.Renderers;
-using MatrixEngine.System.AsyncOperations;
 using MatrixEngine.Testing;
+using AsyncOperationManager = MatrixEngine.System.AsyncOperations.AsyncOperationManager;
 
 namespace MatrixEngine.System {
     public sealed class App {
@@ -24,8 +25,9 @@ namespace MatrixEngine.System {
 
         public Camera camera;
 
-        public Renderer renderer { get; private set; }
+        public SpriteRenderer spriteRenderer { get; private set; }
 
+        public LightRenderer lightRenderer { get; private set; }
         public RenderWindow window { get; private set; }
 
         private Clock timeClock = new Clock();
@@ -35,13 +37,9 @@ namespace MatrixEngine.System {
 
         private Time _deltaTime { get; set; }
 
-        public float deltaTime {
-            get => _deltaTime.AsSeconds();
-        }
+        public float deltaTime => _deltaTime.AsSeconds();
 
-        public float time {
-            get => timeClock.ElapsedTime.AsSeconds();
-        }
+        public float time => timeClock.ElapsedTime.AsSeconds();
 
         private TestingWindow testingWindow { get; set; }
 
@@ -77,17 +75,17 @@ namespace MatrixEngine.System {
 
             keyHandler = new KeyHandler();
             camera = new Camera(this);
-            renderer = new Renderer(this);
+            spriteRenderer = new SpriteRenderer(this);
             rigidBodyManager = new PhysicsEngine(this);
             canvasRenderer = new CanvasRenderer(this);
+            lightRenderer = new LightRenderer(this);
             asyncOperationManager = new AsyncOperationManager(this);
-            if (isDebug)
+            if (isDebug) {
                 testingWindow = new TestingWindow((4, 2));
+            }
         }
 
-        public Vector2f windowSize {
-            get => camera.size;
-        }
+        public Vector2f windowSize => camera.size;
 
         private void Window_KeyReleased(object sender, KeyEventArgs e) {
             keyHandler.ReleasedKey(e.Code);
@@ -108,8 +106,8 @@ namespace MatrixEngine.System {
             scene.app = this;
 
             window.SetFramerateLimit(14500);
-            
-            var background = new Color(20,93,160);
+
+            var background = new Color(20, 93, 160);
 
             while (window.IsOpen) {
                 window.Clear(background);
@@ -117,7 +115,10 @@ namespace MatrixEngine.System {
 
                 window.DispatchEvents();
 
-                renderer.Render();
+                spriteRenderer.Render();
+
+                lightRenderer.Render();
+                
                 canvasRenderer.Render();
 
                 scene.Update();

@@ -43,7 +43,7 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
 
         public override void Update() {
             sprite.Position = gameObject.position;
-            app.renderer.AddToDrawQueue(this);
+            app.spriteRenderer.AddToDrawQueue(this);
 
             sprite.Scale = new Vector2f(transform.scale.X, transform.scale.Y) / (float)pixelperunit;
             //Debug.Log(sprite.Scale);

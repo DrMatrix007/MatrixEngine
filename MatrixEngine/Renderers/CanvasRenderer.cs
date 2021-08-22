@@ -9,17 +9,15 @@ using MatrixEngine.System;
 using SFML.Window;
 
 namespace MatrixEngine.Renderers {
-    public class CanvasRenderer {
+    public class CanvasRenderer : Renderer {
 
         RenderTexture target;
 
 
-        App app;
 
         List<UIObject> list;
 
-        public CanvasRenderer(App app) {
-            this.app = app;
+        public CanvasRenderer(App app) : base(app) {
             list = new List<UIObject>();
 
             target = new RenderTexture((uint)app.windowSize.X, (uint)app.windowSize.Y);
@@ -31,7 +29,7 @@ namespace MatrixEngine.Renderers {
             list.Add(component);
         }
 
-        public void Render() {
+        public override void Render() {
             if (target.Size != app.window.Size) {
                 target.Dispose();
                 target = new RenderTexture(app.window.Size.X, app.window.Size.Y);
