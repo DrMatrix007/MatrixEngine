@@ -1,4 +1,9 @@
-﻿using SFML.System;
+﻿using System.Collections;
+using System.Collections.Generic;
+using MatrixEngine.System;
+using MatrixEngine.System.Math;
+using SFML.System;
+using NotImplementedException = System.NotImplementedException;
 
 namespace MatrixEngine.Physics {
     public sealed class Rect {
@@ -65,5 +70,11 @@ namespace MatrixEngine.Physics {
             return new Rect(position, size);
         }
 
+        public IEnumerable<Line> ToLines() {
+            yield return Line.FromPoints(position,position+size.OnlyWithX());
+            yield return Line.FromPoints(position,position+size.OnlyWithY());
+            yield return Line.FromPoints(position+size.OnlyWithY(),max);
+            yield return Line.FromPoints(position+size.OnlyWithX(),max);
+        }
     }
 }

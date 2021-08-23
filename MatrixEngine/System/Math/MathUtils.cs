@@ -1,9 +1,10 @@
-﻿using SFML.System;
-using System;
-using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using SFML.System;
 
-namespace MatrixEngine.System {
+namespace MatrixEngine.System.Math {
     public static class MathUtils {
+        public const float TOLERANCE = 0.05f;
+
         public static float Sqrt(this float x) {
             return (float) MathF.Sqrt(x);
         }
@@ -50,12 +51,13 @@ namespace MatrixEngine.System {
         }
 
         public static Vector2f Round(this Vector2f v, int r) {
-            return new Vector2f((float) Math.Round(v.X, r, MidpointRounding.ToZero),
-                (float) Math.Round(v.Y, r, MidpointRounding.ToZero));
+            return new Vector2f((float) global::System.Math.Round(v.X, r, MidpointRounding.ToZero),
+                MathF.Round(v.Y, r, MidpointRounding.ToZero));
         }
 
         public static Vector2f Round(this Vector2f v, MidpointRounding r) {
-            return new Vector2f((float) Math.Round(v.X, 0, r), (float) Math.Round(v.Y, 0, r));
+            return new Vector2f((float) global::System.Math.Round(v.X, 0, r),
+                MathF.Round(v.Y, 0, r));
         }
 
         public static Vector2f Multiply(this Vector2f v1, Vector2f v2) {
@@ -75,15 +77,11 @@ namespace MatrixEngine.System {
         }
 
         public static float AbsMin(this float f, float r) {
-            if (Math.Abs(MathF.Min(r.Abs(), f.Abs()) - r.Abs()) < 0.001f) {
-                return r;
-            }
-
-            return f;
+            return Abs(MathF.Min(r.Abs(), f.Abs()) - r.Abs()) < 0.001f ? r : f;
         }
 
         public static bool IsBetween(this float f, float small, float big) {
-            return small < f && f < big;
+            return small <= f && f <= big;
         }
 
         public static float Average(this Vector2f v) {
@@ -91,16 +89,55 @@ namespace MatrixEngine.System {
         }
 
         public static Vector2f Min(this Vector2f v) {
-            var a = Math.Min(v.X, v.Y);
-            return new Vector2f(a,a);
+            var a = global::System.Math.Min(v.X, v.Y);
+            return new Vector2f(a, a);
         }
 
         public static bool BiggerThan(this Vector2f v, Vector2f v1) {
             return v.X > v1.X || v.Y > v1.Y;
         }
+
         public static bool SmallerThan(this Vector2f v, Vector2f v1) {
             return !v.BiggerThan(v1);
         }
 
+
+        public static Vector2f GetCollidingPoint(this Line l1, Line l2) {
+            try {
+                var A = l1.a;
+                var B = l1.b;
+                var C = l1.c;
+                var a = l2.a;
+                var b = l2.b;
+                var d = l2.c;
+
+
+                var y = (d * A - C * a) / (B * a - b * A);
+
+                if (float.IsInfinity(y)) {
+                    return new Vector2f(float.PositiveInfinity, float.PositiveInfinity);
+                }
+
+                var pos = new Vector2f(-(B * y + C) / (A), y);
+
+
+                if (l1.IsOnLine(pos) && l2.IsOnLine(pos) && float.IsFinite(pos.X) && float.IsFinite(pos.Y)) {
+                    return pos;
+                }
+
+                return new Vector2f(float.PositiveInfinity, float.PositiveInfinity);
+            }
+            catch (DivideByZeroException e) {
+                return new Vector2f(float.PositiveInfinity, float.PositiveInfinity);
+            }
+        }
+
+        public static bool IsOnLine(this Line line, Vector2f pos) {
+            return Abs(line.a * pos.X + line.b * pos.Y + line.c) < TOLERANCE
+                   &&
+                   pos.X.IsBetween(MathF.Min(line.start.X, line.end.X), MathF.Max(line.start.X, line.end.X)) &&
+                   pos.Y.IsBetween(MathF.Min(line.start.Y, line.end.Y), MathF.Max(line.start.Y, line.end.Y));
+            ;
+        }
     }
 }

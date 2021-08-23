@@ -1,4 +1,5 @@
 ﻿using MatrixEngine.System;
+using MatrixEngine.System.Math;
 using SFML.System;
 
 namespace MatrixEngine.GameObjects.Components.PhysicsComponents {

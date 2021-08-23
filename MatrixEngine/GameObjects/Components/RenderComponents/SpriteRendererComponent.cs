@@ -37,15 +37,18 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
             // if (c != null && c.colliderType == ColliderComponent.ColliderType.Rect) {
                 var tr = sprite.TextureRect;
                 transform.rect = new Rect(position,new Vector2f(tr.Width,tr.Height)/pixelperunit);
+                if (false) {
+                    
+                }
             // }
         }
 
 
         public override void Update() {
             sprite.Position = gameObject.position;
-            app.spriteRenderer.AddToDrawQueue(this);
+            app.spriteRenderer.AddToQueue(this);
 
-            sprite.Scale = new Vector2f(transform.scale.X, transform.scale.Y) / (float)pixelperunit;
+            sprite.Scale = new Vector2f(transform.scale.X, transform.scale.Y) / pixelperunit;
             //Debug.Log(sprite.Scale);
 
 

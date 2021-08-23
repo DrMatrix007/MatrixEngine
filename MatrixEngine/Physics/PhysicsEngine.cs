@@ -4,6 +4,7 @@ using SFML.System;
 using System.Collections.Generic;
 using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using MatrixEngine.GameObjects.Components.TilemapComponents;
+using MatrixEngine.System.Math;
 
 namespace MatrixEngine.Physics {
     public class PhysicsEngine {

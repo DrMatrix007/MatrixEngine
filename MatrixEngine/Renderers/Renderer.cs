@@ -1,4 +1,5 @@
-﻿using MatrixEngine.System;
+﻿using System.ComponentModel;
+using MatrixEngine.System;
 
 namespace MatrixEngine.Renderers {
     public abstract class Renderer {
@@ -9,5 +10,6 @@ namespace MatrixEngine.Renderers {
         }
         
         public abstract void Render();
+
     }
 }

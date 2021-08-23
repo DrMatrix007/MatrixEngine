@@ -10,7 +10,7 @@ namespace MatrixEngineTests {
         }
 
         public override void Update() {
-            app.camera.position = position+transform.fullRect.size/2;
+            app.camera.position = transform.fullRect.center;
         }
     }
 }

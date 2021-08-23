@@ -5,6 +5,7 @@ using MatrixEngine.System;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
+using MathUtils = MatrixEngine.System.Math.MathUtils;
 
 namespace MatrixEngine.UI {
     public abstract class TextRendererUIObject : UIObject {
@@ -37,8 +38,8 @@ namespace MatrixEngine.UI {
 
 
         public override (Vector2f pos, Vector2f size) Render(RenderTarget target) {
-            var pos = anchor.positionInPercentage.Multiply((Vector2f)target.Size) / 100;
-            var size = anchor.maxSizeInPercentage.Multiply((Vector2f)target.Size) / 100;
+            var pos = MathUtils.Multiply(anchor.positionInPercentage, (Vector2f)target.Size) / 100;
+            var size = MathUtils.Multiply(anchor.maxSizeInPercentage, (Vector2f)target.Size) / 100;
 
             var list = text.Split("\n");
             var longest = list.Aggregate((max, cur) => max.Length > cur.Length ? max : cur);

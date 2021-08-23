@@ -4,12 +4,14 @@ using MatrixEngine;
 using MatrixEngine.Content;
 using MatrixEngine.GameObjects;
 using MatrixEngine.GameObjects.Components;
+using MatrixEngine.GameObjects.Components.LightComponents;
 using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using MatrixEngine.GameObjects.Components.RenderComponents;
 using MatrixEngine.GameObjects.Components.StateManagementComponents;
 using MatrixEngine.GameObjects.Components.TilemapComponents;
 using MatrixEngine.StateManagment;
 using MatrixEngine.System;
+using MatrixEngine.System.Math;
 using MatrixEngine.UI;
 using SFML.Graphics;
 using SFML.System;
@@ -31,13 +33,68 @@ namespace MatrixEngineTests {
     }
 
     internal static class Program {
+        public static void Main2(string[] args) {
+            Console.WriteLine(Line.FromPoints(new Vector2f(1, 500), new Vector2f(1, 10)).ToString());
+
+            var a = Line.FromPoints(new Vector2f(), new Vector2f(0, 10))
+                .GetCollidingPoint(Line.FromPoints(new Vector2f(1, 100), new Vector2f(1, 10)));
+
+            Console.WriteLine(a.ToString());
+        }
+
         public static void Main(string[] args) {
+            var FPSprov = new FPSProvider();
+
             var scene = new Scene(
+                new[]
+                {
+                    new GameObject(new Vector2f(), new Component[]
+                    {
+                        new SimplePlayerControllerComponent(),
+                        // new SpriteRendererComponent("Image1.png", 16, 55),
+                        new RigidBodyComponent(new Vector2f(), new Vector2f(0.5f, 0.5f), false),
+                        new LightBulbComponent(10),
+                        new CameraControllerComponent(),
+                        new SpriteRendererComponent("Image1.png", 16, 1000),
+                    }),
+                    new GameObject(
+                        new Vector2f(5, 0),
+                        new Component[]
+                        {
+                            new SpriteRendererComponent("Image2.png", 300, 100),
+                            new ColliderComponent(ColliderComponent.ColliderType.Rect),
+                            new LightBlockerComponent(),
+                            new RigidBodyComponent(true),
+                        }
+                    ),
+                    new GameObject(
+                        new Vector2f(0, 0),
+                        new Component[]
+                        {
+                            new SpriteRendererComponent("Image2.png", 300, 100),
+                            new ColliderComponent(ColliderComponent.ColliderType.Rect),
+                            // new LightBlockerComponent(),
+                            new RigidBodyComponent(true),
+                        }
+                    ),
+                    // new GameObject(
+                    //     new Vector2f(10,5),
+                    //     new Component[]
+                    //     {
+                    //         new LightBulbComponent(10),
+                    //     }), 
+                },
+                new UIObject[]
+                {
+                    new TextRendererConsumerUIObject(new Anchor(new Vector2f(0, 0), new Vector2f(10, 10)),
+                        new ProviderConverter<string, float>(FPSprov, (e) => e.ToString("00000.0")),
+                        new UITextStyle(10, Color.White, Color.Black, FontManager.CascadiaCode, 10, true), 10),
+                }
             );
 
 
             var app = new App("Light test!", false, scene);
-
+            FPSprov.SetApp(app);
             app.Run();
         }
 

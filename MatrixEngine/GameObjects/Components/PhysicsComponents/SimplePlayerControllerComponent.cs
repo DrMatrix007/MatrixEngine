@@ -11,6 +11,9 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
         public float speed = 2;
 
         public override void Start() {
+            
+            app.window.MouseWheelScrolled += (s, e) => { app.camera.zoom += (float) e.Delta / 10; };
+
 
             app.AddToDebug(rigidBodyComponent);
 

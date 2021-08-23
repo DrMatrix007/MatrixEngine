@@ -64,6 +64,7 @@ namespace MatrixEngine.System {
             else {
                 window = new RenderWindow(new VideoMode(800, 600), AppName);
             }
+            // window.SetIcon();
 
             window.SetKeyRepeatEnabled(true);
 
@@ -101,7 +102,6 @@ namespace MatrixEngine.System {
 
             deltaTimeClock.Restart();
 
-            window.MouseWheelScrolled += (s, e) => { camera.zoom += (float) e.Delta / 10; };
 
             scene.app = this;
 

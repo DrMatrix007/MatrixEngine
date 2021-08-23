@@ -38,7 +38,7 @@ namespace MatrixEngine.Renderers {
             spriteRendererComponents.Clear();
 
         }
-        public void AddToDrawQueue(RendererComponent spriteRendererComponent) {
+        public void AddToQueue(RendererComponent spriteRendererComponent) {
             spriteRendererComponents.Add(spriteRendererComponent);
         }
     }
