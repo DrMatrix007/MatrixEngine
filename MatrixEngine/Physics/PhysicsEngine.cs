@@ -95,7 +95,7 @@ namespace MatrixEngine.Physics {
 
             foreach (var nonstatic in dynamicRigidBodiesToCalc) {
                 var add_to_vel = (nonstatic.gravity * app.deltaTime);
-                var fric = (nonstatic.velocity.Length() < 1 ? nonstatic.velocity : nonstatic.velocity.Normalize()).Multiply(nonstatic.velocityDrag) * (-1) * app.deltaTime * 100;
+                var fric = (nonstatic.velocity.Length() < 1 ? nonstatic.velocity : nonstatic.velocity.Normalize()).Multiply(nonstatic.velocityDrag) * (-1) * app.deltaTime*10;
                 add_to_vel += fric;
 
 

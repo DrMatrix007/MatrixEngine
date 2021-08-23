@@ -23,9 +23,9 @@ namespace MatrixEngine.Renderers {
 
         private List<LightComponent> lightComponents = new List<LightComponent>();
         private List<LightBlockerComponent> lightBlockerComponents = new List<LightBlockerComponent>();
-
+        private List<Line> lines = new List<Line>();
         public override void Render() {
-            var lines = new List<Line>();
+            lines.Clear ();
 
             foreach (var lightBlockerComponent in lightBlockerComponents) {
                 if (lightBlockerComponent.colliderComponent.colliderType == ColliderComponent.ColliderType.Rect) {
@@ -75,13 +75,12 @@ namespace MatrixEngine.Renderers {
 
                             // Console.WriteLine();
 
-                            var intes = float.MaxValue;
+                            var intes = c.intensity;
                             if (postoCheck.Count != 0) {
                                 var f = postoCheck.Aggregate((a, b) => a.Distance(center) > b.Distance(center) ? b : a);
                                 intes = (f - center).Length();
                             }
 
-                            intes = MathF.Min(c.intensity, (intes));
 
 
                             vertexPos2 *= intes;

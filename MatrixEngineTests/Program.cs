@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Net.Security;
 using MatrixEngine;
 using MatrixEngine.Content;
@@ -34,12 +35,11 @@ namespace MatrixEngineTests {
 
     internal static class Program {
         public static void Main2(string[] args) {
-            Console.WriteLine(Line.FromPoints(new Vector2f(1, 500), new Vector2f(1, 10)).ToString());
+            var l1 = Line.FromPoints(new Vector2f(0,0), new Vector2f(10, 0));
+            var l2 = Line.FromPoints(new Vector2f(5, -10), new Vector2f(5, 1f));
 
-            var a = Line.FromPoints(new Vector2f(), new Vector2f(0, 10))
-                .GetCollidingPoint(Line.FromPoints(new Vector2f(1, 100), new Vector2f(1, 10)));
-
-            Console.WriteLine(a.ToString());
+            Console.WriteLine(l1.GetCollidingPoint(l2));
+            // Console.WriteLine(a.X);
         }
 
         public static void Main(string[] args) {
@@ -52,7 +52,7 @@ namespace MatrixEngineTests {
                     {
                         new SimplePlayerControllerComponent(),
                         // new SpriteRendererComponent("Image1.png", 16, 55),
-                        new RigidBodyComponent(new Vector2f(), new Vector2f(0.5f, 0.5f), false),
+                        new RigidBodyComponent(new Vector2f(), new Vector2f(1f, 1f), false),
                         new LightBulbComponent(10),
                         new CameraControllerComponent(),
                         new SpriteRendererComponent("Image1.png", 16, 1000),
@@ -77,16 +77,16 @@ namespace MatrixEngineTests {
                             new RigidBodyComponent(true),
                         }
                     ),
-                    // new GameObject(
-                    //     new Vector2f(10,5),
-                    //     new Component[]
-                    //     {
-                    //         new LightBulbComponent(10),
-                    //     }), 
+                    new GameObject(
+                        new Vector2f(10,5),
+                        new Component[]
+                        {
+                            new LightBulbComponent(10),
+                        }), 
                 },
                 new UIObject[]
                 {
-                    new TextRendererConsumerUIObject(new Anchor(new Vector2f(0, 0), new Vector2f(10, 10)),
+                    new TextRendererConsumerUIObject(new Anchor(new Vector2f(0, 0), new Vector2f(30, 10)),
                         new ProviderConverter<string, float>(FPSprov, (e) => e.ToString("00000.0")),
                         new UITextStyle(10, Color.White, Color.Black, FontManager.CascadiaCode, 10, true), 10),
                 }

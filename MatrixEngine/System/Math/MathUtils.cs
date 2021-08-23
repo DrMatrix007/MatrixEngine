@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Diagnostics;
 using SFML.System;
 
 namespace MatrixEngine.System.Math {
     public static class MathUtils {
-        public const float TOLERANCE = 0.05f;
+        public const float TOLERANCE = 0.01f;
 
         public static float Sqrt(this float x) {
             return (float) MathF.Sqrt(x);
@@ -114,14 +115,16 @@ namespace MatrixEngine.System.Math {
 
                 var y = (d * A - C * a) / (B * a - b * A);
 
-                if (float.IsInfinity(y)) {
+                var x = (B * d - C * b) / (A * b - B * a);
+                
+                if (float.IsInfinity(y)||float.IsInfinity(x)) {
                     return new Vector2f(float.PositiveInfinity, float.PositiveInfinity);
                 }
 
-                var pos = new Vector2f(-(B * y + C) / (A), y);
+                var pos = new Vector2f(x, y);
 
 
-                if (l1.IsOnLine(pos) && l2.IsOnLine(pos) && float.IsFinite(pos.X) && float.IsFinite(pos.Y)) {
+                if (l1.IsOnRange(pos) && l2.IsOnRange(pos) && float.IsFinite(pos.X) && float.IsFinite(pos.Y)) {
                     return pos;
                 }
 
@@ -133,9 +136,13 @@ namespace MatrixEngine.System.Math {
         }
 
         public static bool IsOnLine(this Line line, Vector2f pos) {
+            Console.WriteLine(Abs(line.a * pos.X + line.b * pos.Y + line.c) < TOLERANCE);
             return Abs(line.a * pos.X + line.b * pos.Y + line.c) < TOLERANCE
-                   &&
-                   pos.X.IsBetween(MathF.Min(line.start.X, line.end.X), MathF.Max(line.start.X, line.end.X)) &&
+                   && line.IsOnRange(pos);
+        }
+
+        public static bool IsOnRange(this Line line, Vector2f pos) {
+            return pos.X.IsBetween(MathF.Min(line.start.X, line.end.X), MathF.Max(line.start.X, line.end.X)) &&
                    pos.Y.IsBetween(MathF.Min(line.start.Y, line.end.Y), MathF.Max(line.start.Y, line.end.Y));
             ;
         }
