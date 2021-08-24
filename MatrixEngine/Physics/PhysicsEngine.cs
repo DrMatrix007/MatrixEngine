@@ -1,10 +1,9 @@
-﻿using MatrixEngine.System;
-using SFML.Graphics;
+﻿using MatrixEngine.GameObjects.Components.PhysicsComponents;
+using MatrixEngine.GameObjects.Components.TilemapComponents;
+using MatrixEngine.System;
+using MatrixEngine.System.MathM;
 using SFML.System;
 using System.Collections.Generic;
-using MatrixEngine.GameObjects.Components.PhysicsComponents;
-using MatrixEngine.GameObjects.Components.TilemapComponents;
-using MatrixEngine.System.MathM;
 
 namespace MatrixEngine.Physics {
     public class PhysicsEngine {
@@ -59,8 +58,8 @@ namespace MatrixEngine.Physics {
 
             var static_list = collidersToCalc.ToArray();
             var non_static_list = dynamicRigidBodiesToCalc.ToArray();
-            
-            
+
+
 
             foreach (var @static in static_list) {
                 @static.isGrounded = false;
@@ -94,6 +93,9 @@ namespace MatrixEngine.Physics {
             var rs = rectsToCalc.ToArray();
 
             foreach (var nonstatic in dynamicRigidBodiesToCalc) {
+
+
+
                 var add_to_vel = (nonstatic.gravity * app.deltaTime);
                 //add_to_vel += fric;
 
@@ -107,6 +109,16 @@ namespace MatrixEngine.Physics {
 
                 //nonstatic.position += (nonstatic.velocity * app.deltaTime);
 
+                var v = nonstatic.velocity;
+                v.X -= app.deltaTime * v.X.Sign() * nonstatic.velocityDrag.X;
+                if (v.X.Sign() != nonstatic.velocity.X.Sign()) {
+                    v.X = 0;
+                }
+                v.Y -= app.deltaTime * v.Y.Sign() * nonstatic.velocityDrag.Y;
+                if (v.Y.Sign() != nonstatic.velocity.Y.Sign()) {
+                    v.Y = 0;
+                }
+                nonstatic.velocity = v;
 
 
                 nonstatic.position += nonstatic.velocity.OnlyWithX() * app.deltaTime;
@@ -126,15 +138,16 @@ namespace MatrixEngine.Physics {
 
                         if (nonstatic_rect.cX < rect.cX) {
                             nonstatic.position = new Vector2f(rect.X - nonstatic_rect.width, nonstatic.position.Y);
-                            if (nonstatic.velocity.X > 0) {
-                                nonstatic.velocity = nonstatic.velocity.OnlyWithY();
-                            }
+                            //if (nonstatic.velocity.X > 0) {
+                            //nonstatic.velocity = nonstatic.velocity.OnlyWithY();
+                            //}
                         } else {
                             nonstatic.position = new Vector2f(rect.max.X, nonstatic.position.Y);
-                            if (nonstatic.velocity.X < 0) {
+                            //if (nonstatic.velocity.X < 0) {
                                 nonstatic.velocity = nonstatic.velocity.OnlyWithY();
-                            }
+                            //}
                         }
+                        nonstatic.velocity = nonstatic.velocity.OnlyWithY();
 
                     }
 
@@ -146,37 +159,27 @@ namespace MatrixEngine.Physics {
                 nonstatic.colliderComponent.isGrounded = false;
                 foreach (var rect in rectsToCalc) {
                     if (nonstatic_rect.isColliding(rect)) {
-                        if (nonstatic_rect.cY < rect.cY) {
+                        if (nonstatic_rect.cY < rect.cY || nonstatic.velocity.Y > 0) {
+
                             nonstatic.position = new Vector2f(nonstatic.position.X, rect.Y - nonstatic_rect.height);
                             nonstatic.colliderComponent.isGrounded = true;
-                            
-                            if (nonstatic.velocity.Y > 0) {
+
+                            //if (nonstatic.velocity.Y > 0) {
                                 nonstatic.velocity = nonstatic.velocity.OnlyWithX();
-                            }
-                        } else {
+                            //}
+                        } else if(nonstatic_rect.cY > rect.cY || nonstatic.velocity.Y < 0) {
                             nonstatic.position = new Vector2f(nonstatic.position.X, rect.max.Y);
-                            if (nonstatic.velocity.Y < 0) {
+                            //if (nonstatic.velocity.Y < 0) {
                                 nonstatic.velocity = nonstatic.velocity.OnlyWithX();
-                            }
+                            //}
                         }
 
-                    }
-                    else {
+                    } else {
 
                     }
 
                 }
-                var v = nonstatic.velocity;
-                v.X -= app.deltaTime*v.X.Sign()*nonstatic.velocityDrag.X;
-                v.Y -= app.deltaTime*v.Y.Sign()*nonstatic.velocityDrag.Y;
-                if(v.X.Sign()!=nonstatic.velocity.X.Sign()) {
-                    v.X = 0;
 
-                }
-                if(v.Y.Sign()!= nonstatic.velocity.Y.Sign()) {
-                    v.Y = 0;
-                }
-                nonstatic.velocity = v;
 
 
             }
@@ -185,7 +188,7 @@ namespace MatrixEngine.Physics {
             collidersToCalc.Clear();
             rectsToCalc.Clear();
         }
-         
+
         private void AddTilemapToCollision(RigidBodyComponent nonstatic, ColliderComponent @static) {
             var tilemap = @static.GetComponent<TilemapComponent>();
             if (tilemap == null) {

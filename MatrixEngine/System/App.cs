@@ -118,13 +118,15 @@ namespace MatrixEngine.System {
                 
                 canvasRenderer.Render();
 
+                rigidBodyManager.Update();
+
+
                 scene.Update();
 
                 asyncOperationManager.Update();
 
                 window.SetView(new View(camera.position, camera.size));
 
-                rigidBodyManager.Update();
 
                 if (isDebug) {
                     testingWindow.Update();
