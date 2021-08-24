@@ -1,4 +1,5 @@
-﻿using SFML.System;
+﻿using MatrixEngine.Physics;
+using SFML.System;
 using System;
 using System.Collections.Generic;
 
@@ -13,6 +14,11 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
 
         public TilemapComponent() : this(16) {
 
+        }
+
+        public Rect tileRect
+        {
+            get => new Rect(0, 0,transform.scale.X,transform.scale.Y);
         }
 
         public TilemapComponent(int pixelperunit) {

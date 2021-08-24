@@ -2,7 +2,7 @@
 using MatrixEngine.GameObjects.Components.TilemapComponents;
 using MatrixEngine.StateManagment;
 using MatrixEngine.System;
-using MatrixEngine.System.Math;
+using MatrixEngine.System.MathM;
 using SFML.System;
 using SFML.Window;
 

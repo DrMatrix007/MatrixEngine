@@ -6,8 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="GameObjects\Components\UIComponents\**" />
     <Compile Remove="Scenes\**" />
+    <EmbeddedResource Remove="GameObjects\Components\UIComponents\**" />
     <EmbeddedResource Remove="Scenes\**" />
+    <None Remove="GameObjects\Components\UIComponents\**" />
     <None Remove="Scenes\**" />
   </ItemGroup>
 
@@ -19,10 +22,6 @@
     <None Update="fonts\CascadiaCode.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="GameObjects\Components\UIComponents\" />
   </ItemGroup>
 
 </Project>

@@ -5,7 +5,7 @@ using MatrixEngine.System;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
-using MathUtils = MatrixEngine.System.Math.MathUtils;
+using MathUtils = MatrixEngine.System.MathM.MathUtils;
 
 namespace MatrixEngine.UI {
     public abstract class TextRendererUIObject : UIObject {

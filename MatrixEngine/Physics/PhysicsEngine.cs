@@ -4,7 +4,7 @@ using SFML.System;
 using System.Collections.Generic;
 using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using MatrixEngine.GameObjects.Components.TilemapComponents;
-using MatrixEngine.System.Math;
+using MatrixEngine.System.MathM;
 
 namespace MatrixEngine.Physics {
     public class PhysicsEngine {
@@ -95,8 +95,7 @@ namespace MatrixEngine.Physics {
 
             foreach (var nonstatic in dynamicRigidBodiesToCalc) {
                 var add_to_vel = (nonstatic.gravity * app.deltaTime);
-                var fric = (nonstatic.velocity.Length() < 1 ? nonstatic.velocity : nonstatic.velocity.Normalize()).Multiply(nonstatic.velocityDrag) * (-1) * app.deltaTime*10;
-                add_to_vel += fric;
+                //add_to_vel += fric;
 
 
                 add_to_vel += (nonstatic.gravity * app.deltaTime);
@@ -116,11 +115,11 @@ namespace MatrixEngine.Physics {
                 foreach (var rect in rectsToCalc) {
 
 
-                    var s = new RectangleShape(rect.size);
-                    s.Position = rect.position;
-                    s.FillColor = new Color(255, 255, 255, 100);
-                    app.window.Draw(s);
-                    s.Dispose();
+                    //var s = new RectangleShape(rect.size);
+                    //s.Position = rect.position;
+                    //s.FillColor = new Color(255, 255, 255, 100);
+                    //app.window.Draw(s);
+                    //s.Dispose();
 
 
                     if (nonstatic_rect.isColliding(rect)) {
@@ -167,6 +166,17 @@ namespace MatrixEngine.Physics {
                     }
 
                 }
+                var v = nonstatic.velocity;
+                v.X -= app.deltaTime*v.X.Sign()*nonstatic.velocityDrag.X;
+                v.Y -= app.deltaTime*v.Y.Sign()*nonstatic.velocityDrag.Y;
+                if(v.X.Sign()!=nonstatic.velocity.X.Sign()) {
+                    v.X = 0;
+
+                }
+                if(v.Y.Sign()!= nonstatic.velocity.Y.Sign()) {
+                    v.Y = 0;
+                }
+                nonstatic.velocity = v;
 
 
             }

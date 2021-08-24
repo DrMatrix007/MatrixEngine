@@ -1,22 +1,18 @@
-﻿using System;
-using System.Globalization;
-using System.Net.Security;
-using MatrixEngine;
-using MatrixEngine.Content;
+﻿using MatrixEngine.Content;
 using MatrixEngine.GameObjects;
 using MatrixEngine.GameObjects.Components;
-using MatrixEngine.GameObjects.Components.LightComponents;
 using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using MatrixEngine.GameObjects.Components.RenderComponents;
 using MatrixEngine.GameObjects.Components.StateManagementComponents;
 using MatrixEngine.GameObjects.Components.TilemapComponents;
 using MatrixEngine.StateManagment;
 using MatrixEngine.System;
-using MatrixEngine.System.Math;
+using MatrixEngine.System.MathM;
 using MatrixEngine.UI;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
+using System;
 
 namespace MatrixEngineTests {
     class FPSProvider : Provider<float> {
@@ -35,14 +31,14 @@ namespace MatrixEngineTests {
 
     internal static class Program {
         public static void Main2(string[] args) {
-            var l1 = Line.FromPoints(new Vector2f(0,0), new Vector2f(10, 0));
+            var l1 = Line.FromPoints(new Vector2f(0, 0), new Vector2f(10, 0));
             var l2 = Line.FromPoints(new Vector2f(5, -10), new Vector2f(5, 1f));
 
             Console.WriteLine(l1.GetCollidingPoint(l2));
             // Console.WriteLine(a.X);
         }
 
-        public static void Main(string[] args) {
+        public static void Main1(string[] args) {
             var FPSprov = new FPSProvider();
 
             var scene = new Scene(
@@ -52,8 +48,7 @@ namespace MatrixEngineTests {
                     {
                         new SimplePlayerControllerComponent(),
                         // new SpriteRendererComponent("Image1.png", 16, 55),
-                        new RigidBodyComponent(new Vector2f(), new Vector2f(10f, 10f), false),
-                        new LightBulbComponent(10,0.4f,2.5f),
+                        new RigidBodyComponent(new Vector2f(), new Vector2f(50f, 50f), false),
                         new CameraControllerComponent(),
                         new SpriteRendererComponent("Image1.png", 16, 1000),
                     }),
@@ -63,7 +58,6 @@ namespace MatrixEngineTests {
                         {
                             new SpriteRendererComponent("Image2.png", 300, 100),
                             new ColliderComponent(ColliderComponent.ColliderType.Rect),
-                            new LightBlockerComponent(),
                             new RigidBodyComponent(true),
                         }
                     ),
@@ -73,7 +67,6 @@ namespace MatrixEngineTests {
                         {
                             new SpriteRendererComponent("Image2.png", 300, 100),
                             new ColliderComponent(ColliderComponent.ColliderType.Rect),
-                            // new LightBlockerComponent(),
                             new RigidBodyComponent(true),
                         }
                     ),
@@ -94,7 +87,7 @@ namespace MatrixEngineTests {
         }
 
 
-        private static void Main1(string[] args) {
+        private static void Main(string[] args) {
             var prov = new ComponentProvider<TilemapComponent>();
 
             var playerProv = new ComponentProvider<SimplePlayerControllerComponent>();
@@ -120,10 +113,11 @@ namespace MatrixEngineTests {
                                 new ProviderTesterComponent(),
                                 new ConsumerComponent<int>(counterProv),
                                 new SimplePlayerControllerComponent(),
-                                new RigidBodyComponent(new Vector2f(0, 50f), new Vector2f(0.9f, 0.9f), false),
+                                new RigidBodyComponent(new Vector2f(0, 50f), new Vector2f(50, 50), false),
                                 new ColliderComponent(ColliderComponent.ColliderType.Rect),
                                 new CameraControllerComponent(),
-                                new TestResizeTilemapComponent(prov)
+                                new TestResizeTilemapComponent(prov),
+
                             }
                         ),
                         new GameObject(
@@ -156,7 +150,8 @@ namespace MatrixEngineTests {
                             new Texture("Image1.png"), new UIStyle(1, Color.White, Color.Blue), 1)
                     }
                 )
-            );
+            )
+            ;
 
             fpsProvider.SetApp(app);
 

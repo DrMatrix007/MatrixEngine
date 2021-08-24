@@ -1,7 +1,7 @@
 ﻿using System;
 using MatrixEngine.Physics;
 using MatrixEngine.System;
-using MatrixEngine.System.Math;
+using MatrixEngine.System.MathM;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;

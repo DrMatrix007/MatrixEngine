@@ -27,7 +27,6 @@ namespace MatrixEngine.System {
 
         public SpriteRenderer spriteRenderer { get; private set; }
 
-        public LightRenderer lightRenderer { get; private set; }
         public RenderWindow window { get; private set; }
 
         private Clock timeClock = new Clock();
@@ -79,7 +78,6 @@ namespace MatrixEngine.System {
             spriteRenderer = new SpriteRenderer(this);
             rigidBodyManager = new PhysicsEngine(this);
             canvasRenderer = new CanvasRenderer(this);
-            lightRenderer = new LightRenderer(this);
             asyncOperationManager = new AsyncOperationManager(this);
             if (isDebug) {
                 testingWindow = new TestingWindow((4, 2));
@@ -117,7 +115,6 @@ namespace MatrixEngine.System {
 
                 spriteRenderer.Render();
 
-                lightRenderer.Render();
                 
                 canvasRenderer.Render();
 

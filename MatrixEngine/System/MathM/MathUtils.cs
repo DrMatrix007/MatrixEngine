@@ -1,17 +1,16 @@
-﻿using System;
-using System.Diagnostics;
-using SFML.System;
+﻿using SFML.System;
+using System;
 
-namespace MatrixEngine.System.Math {
+namespace MatrixEngine.System.MathM {
     public static class MathUtils {
         public const float TOLERANCE = 0.01f;
 
         public static float Sqrt(this float x) {
-            return (float) MathF.Sqrt(x);
+            return (float)MathF.Sqrt(x);
         }
 
         public static float Pow(this float x, float pow) {
-            return (float) MathF.Pow(x, pow);
+            return (float)MathF.Pow(x, pow);
         }
 
         public static float Sqr(this float x) {
@@ -52,12 +51,12 @@ namespace MatrixEngine.System.Math {
         }
 
         public static Vector2f Round(this Vector2f v, int r) {
-            return new Vector2f((float) global::System.Math.Round(v.X, r, MidpointRounding.ToZero),
+            return new Vector2f((float)global::System.Math.Round(v.X, r, MidpointRounding.ToZero),
                 MathF.Round(v.Y, r, MidpointRounding.ToZero));
         }
 
         public static Vector2f Round(this Vector2f v, MidpointRounding r) {
-            return new Vector2f((float) global::System.Math.Round(v.X, 0, r),
+            return new Vector2f((float)global::System.Math.Round(v.X, 0, r),
                 MathF.Round(v.Y, 0, r));
         }
 
@@ -116,8 +115,8 @@ namespace MatrixEngine.System.Math {
                 var y = (d * A - C * a) / (B * a - b * A);
 
                 var x = (B * d - C * b) / (A * b - B * a);
-                
-                if (float.IsInfinity(y)||float.IsInfinity(x)) {
+
+                if (float.IsInfinity(y) || float.IsInfinity(x)) {
                     return new Vector2f(float.PositiveInfinity, float.PositiveInfinity);
                 }
 
@@ -129,8 +128,7 @@ namespace MatrixEngine.System.Math {
                 }
 
                 return new Vector2f(float.PositiveInfinity, float.PositiveInfinity);
-            }
-            catch (DivideByZeroException e) {
+            } catch (DivideByZeroException e) {
                 return new Vector2f(float.PositiveInfinity, float.PositiveInfinity);
             }
         }
@@ -145,6 +143,17 @@ namespace MatrixEngine.System.Math {
             return pos.X.IsBetween(MathF.Min(line.start.X, line.end.X), MathF.Max(line.start.X, line.end.X)) &&
                    pos.Y.IsBetween(MathF.Min(line.start.Y, line.end.Y), MathF.Max(line.start.Y, line.end.Y));
             ;
+        }
+
+        public static int Sign(this float f) {
+            if (f > 0) {
+                return 1;
+
+            }
+            if (f < 0) {
+                return -1;
+            }
+            return 0;
         }
     }
 }

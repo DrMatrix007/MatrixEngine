@@ -4,7 +4,7 @@ using SFML.System;
 using System;
 using System.Collections;
 using System.Linq;
-using MatrixEngine.System.Math;
+using MatrixEngine.System.MathM;
 
 namespace MatrixEngine.Physics {
     public static class Physics {
