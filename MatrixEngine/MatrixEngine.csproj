@@ -6,6 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Scenes\**" />
+    <EmbeddedResource Remove="Scenes\**" />
+    <None Remove="Scenes\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="SFML.Net" Version="2.5.0" />
   </ItemGroup>
 
@@ -17,7 +23,6 @@
 
   <ItemGroup>
     <Folder Include="GameObjects\Components\UIComponents\" />
-    <Folder Include="Scenes" />
   </ItemGroup>
 
 </Project>

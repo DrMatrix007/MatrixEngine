@@ -53,7 +53,7 @@ namespace MatrixEngineTests {
                         new SimplePlayerControllerComponent(),
                         // new SpriteRendererComponent("Image1.png", 16, 55),
                         new RigidBodyComponent(new Vector2f(), new Vector2f(1f, 1f), false),
-                        new LightBulbComponent(10),
+                        new LightBulbComponent(10,0.2f,0.5f),
                         new CameraControllerComponent(),
                         new SpriteRendererComponent("Image1.png", 16, 1000),
                     }),
@@ -77,12 +77,7 @@ namespace MatrixEngineTests {
                             new RigidBodyComponent(true),
                         }
                     ),
-                    new GameObject(
-                        new Vector2f(10,5),
-                        new Component[]
-                        {
-                            new LightBulbComponent(10),
-                        }), 
+
                 },
                 new UIObject[]
                 {
