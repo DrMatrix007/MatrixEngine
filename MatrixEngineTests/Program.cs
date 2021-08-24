@@ -52,8 +52,8 @@ namespace MatrixEngineTests {
                     {
                         new SimplePlayerControllerComponent(),
                         // new SpriteRendererComponent("Image1.png", 16, 55),
-                        new RigidBodyComponent(new Vector2f(), new Vector2f(1f, 1f), false),
-                        new LightBulbComponent(10,0.2f,0.5f),
+                        new RigidBodyComponent(new Vector2f(), new Vector2f(10f, 10f), false),
+                        new LightBulbComponent(10,0.4f,2.5f),
                         new CameraControllerComponent(),
                         new SpriteRendererComponent("Image1.png", 16, 1000),
                     }),
