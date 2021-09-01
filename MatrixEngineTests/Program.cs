@@ -1,200 +1,126 @@
 ﻿using MatrixEngine.Content;
+using MatrixEngine.Framework;
 using MatrixEngine.GameObjects;
 using MatrixEngine.GameObjects.Components;
 using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using MatrixEngine.GameObjects.Components.RenderComponents;
-using MatrixEngine.GameObjects.Components.StateManagementComponents;
 using MatrixEngine.GameObjects.Components.TilemapComponents;
+using MatrixEngine.Physics;
 using MatrixEngine.StateManagment;
-using MatrixEngine.System;
-using MatrixEngine.System.MathM;
 using MatrixEngine.UI;
+using MatrixEngine.Utilities;
 using SFML.Graphics;
 using SFML.System;
-using SFML.Window;
 using System;
 
 namespace MatrixEngineTests {
-    class FPSProvider : Provider<float> {
-        private App app;
-
-        public void SetApp(App app) {
-            this.app = app;
-        }
-
-        private new float data { get; set; }
-
-        public override float Get() {
-            return 1 / app.deltaTime;
-        }
-    }
 
     internal static class Program {
-        public static void Main2(string[] args) {
-            var l1 = Line.FromPoints(new Vector2f(0, 0), new Vector2f(10, 0));
-            var l2 = Line.FromPoints(new Vector2f(5, -10), new Vector2f(5, 1f));
+        private static void Main1(string[] args) {
+            var y = 10;
 
-            Console.WriteLine(l1.GetCollidingPoint(l2));
-            // Console.WriteLine(a.X);
-        }
-
-        public static void Main1(string[] args) {
-            var FPSprov = new FPSProvider();
-
-            var scene = new Scene(
-                new[]
-                {
-                    new GameObject(new Vector2f(), new Component[]
-                    {
-                        new SimplePlayerControllerComponent(),
-                        // new SpriteRendererComponent("Image1.png", 16, 55),
-                        new RigidBodyComponent(new Vector2f(), new Vector2f(50f, 50f), false),
-                        new CameraControllerComponent(),
-                        new SpriteRendererComponent("Image1.png", 16, 1000),
-                    }),
-                    new GameObject(
-                        new Vector2f(5, 0),
-                        new Component[]
-                        {
-                            new SpriteRendererComponent("Image2.png", 300, 100),
-                            new ColliderComponent(ColliderComponent.ColliderType.Rect),
-                            new RigidBodyComponent(true),
-                        }
-                    ),
-                    new GameObject(
-                        new Vector2f(0, 0),
-                        new Component[]
-                        {
-                            new SpriteRendererComponent("Image2.png", 300, 100),
-                            new ColliderComponent(ColliderComponent.ColliderType.Rect),
-                            new RigidBodyComponent(true),
-                        }
-                    ),
-
-                },
-                new UIObject[]
-                {
-                    new TextRendererConsumerUIObject(new Anchor(new Vector2f(0, 0), new Vector2f(30, 10)),
-                        new ProviderConverter<string, float>(FPSprov, (e) => e.ToString("00000.0")),
-                        new UITextStyle(10, Color.White, Color.Black, FontManager.CascadiaCode, 10, true), 10),
-                }
-            );
+            var r1 = new Rect(0, y, 1, 1);
 
 
-            var app = new App("Light test!", false, scene);
-            FPSprov.SetApp(app);
-            app.Run();
+            var r2 = new Rect(0, y + 1.0f, 1, 1);
+
+            Console.WriteLine(r1.isColliding(r2));
         }
 
 
         private static void Main(string[] args) {
-            var prov = new ComponentProvider<TilemapComponent>();
 
-            var playerProv = new ComponentProvider<SimplePlayerControllerComponent>();
-
-            var counterProv = new CounterProvider();
-
-            const bool isDebug = true;
-
-            var fpsProvider = new FPSProvider();
+            FunctionProvider<string> fpsProv = new FunctionProvider<string>();
 
 
-            App app = new App("Tests",
-                isDebug,
-                new Scene(
-                    new GameObject[]
-                    {
-                        new GameObject(
-                            new Vector2f(-10, -10),
-                            new Component[]
-                            {
-                                new SpriteRendererComponent("Image1.png", 18, 2),
-                                new ConsumerComponent<TilemapComponent>(prov),
-                                new ProviderTesterComponent(),
-                                new ConsumerComponent<int>(counterProv),
-                                new SimplePlayerControllerComponent(),
-                                new RigidBodyComponent(new Vector2f(0, 50f), new Vector2f(50, 50), false),
-                                new ColliderComponent(ColliderComponent.ColliderType.Rect),
-                                new CameraControllerComponent(),
-                                new TestResizeTilemapComponent(prov),
-
-                            }
-                        ),
-                        new GameObject(
-                            new Component[]
-                            {
-                                new TilemapComponent(),
-                                new TilemapRendererComponent(),
-                                new ComponentProviderSetterComponent<TilemapComponent>(prov),
-                                new RigidBodyComponent(true),
-                                new ColliderComponent(ColliderComponent.ColliderType.Tilemap),
-                            }
-                        ),
-                        new GameObject(
-                            new Component[]
-                            {
-                                new SpriteRendererComponent("Image2.png", 400, 55),
-                                new RigidBodyComponent(true),
-                                new ColliderComponent(ColliderComponent.ColliderType.Rect),
-                            }
-                        )
-                    },
-                    new UIObject[]
-                    {
-                        new TextRendererConsumerUIObject(new Anchor(new Vector2f(), new Vector2f(20, 10)),
-                            new ProviderConverter<string, float>(fpsProvider, e => e.ToString("00000.0")),
-                            new UITextStyle(10, Color.White, Color.Cyan, FontManager.CascadiaCode,
-                                isResize: true),
-                            10),
-                        new SpriteRendererUIObject(new Anchor(new Vector2f(0, 10), new Vector2f(10, 10)),
-                            new Texture("Image1.png"), new UIStyle(1, Color.White, Color.Blue), 1)
+            var scene = new Scene(new[]{
+                new GameObject(
+                    new Vector2f(0,-1),
+                    new Component[] {
+                    new ColliderComponent(ColliderComponent.ColliderType.Rect),
+                    new SpriteRendererComponent("Image2.png",200,0),
+                    new RigidBodyComponent(true)
                     }
-                )
-            )
-            ;
+                ),                new GameObject(
+                    new Vector2f(1,0),
+                    new Component[] {
+                    new ColliderComponent(ColliderComponent.ColliderType.Rect),
+                    new SpriteRendererComponent("Image2.png",200,0),
+                    new RigidBodyComponent(true)
+                    }
+                ),
 
-            fpsProvider.SetApp(app);
+                new GameObject(
+                    new Vector2f(0,-10),
+                    new Component[] {
+                        new CameraController(),
+                        new SimplePlayerControllerComponent(),
+                        new RigidBodyComponent(new Vector2f(0,60),new Vector2f(10,0),false),
+                        new SpriteRendererComponent("Image1.png",16,10),
+
+                    }),
+                new GameObject(
+
+                    new Component[] {
+                        new TilemapComponent(16),
+                        new TilemapRendererComponent(),
+                        new TilemapTesterComponent(),
+                        new ColliderComponent(ColliderComponent.ColliderType.Tilemap),
+                        new RigidBodyComponent(true),
+                    }
+           )
+                    },
+
+                    new UIObject[] {
+                        new TextRendererConsumerUIObject(new Anchor(new Vector2f(90,0),new Vector2f(20,10)),fpsProv,new UITextStyle(
+                            color: Color.White
+                            ),10)
+                    }
+                    );
+
+            var app = new App("Tests", false, scene);
+
+            fpsProv.SetFunc(() => {
+                return $"FPS: {1.0f/app.deltaTime}";
+            });
 
             app.Run();
+
         }
     }
-
-    public class ProviderTesterComponent : Component {
+    [RequireComponent(typeof(TilemapComponent))]
+    class TilemapTesterComponent : Component {
         public override void Start() {
-            // app.asyncOperationManager.AddAsyncOperation(new AsyncOperation(Enumerator()));
+            var c = GetComponent<TilemapComponent>();
+            var p = new PerlinNoise(new Seed(), 100);
+            p.Generate();
+            var max = 1.0f;
+            max /= p.step / 10;
+            max = (int)max;
+            float val;
 
-            var p1 = GetComponent<ConsumerComponent<int>>();
-            app.AddToDebug(p1.provider);
-
-            var p = GetComponent<ConsumerComponent<TilemapComponent>>().GetOutput();
-            if (p == null) {
-                // yield break;
-            }
-
-            var r = new Random();
-            // var t = new Texture("grass.png");
-            if (p != null) {
-                p.transform.scale = new Vector2f(1f, 1f);
-                for (var i = 0; i < 1000; i++) {
-                    for (var j = 0; j < 1000; j++) {
-                        if (r.NextDouble() < 0.2)
-                            p.SetTile(new Vector2i(i, j), new Tile(TextureManager.GetTexture("grass.png")));
+            for (int x = 0; x < max; x++) {
+                for (int y = 0; y < max; y++) {
+                    val = p[x / max, y / max];
+                    if (val > 0.6f) {
+                        c.SetTile(x - (int)max / 2, y - (int)max / 2, new Tile(TextureManager.GetTexture("grass.png")));
                     }
 
-                    if (i == 50) {
-                        transform.position = new Vector2f(i, -50);
-                    }
+
                 }
             }
+
         }
 
+        public override void Update() {
+        }
+    }
+    class CameraController : Component {
+        public override void Start() {
+        }
 
         public override void Update() {
-            var p = GetComponent<ConsumerComponent<int>>().provider as CounterProvider;
-
-            if (app.keyHandler.isPressed(Keyboard.Key.G)) {
-                p?.Add();
-            }
+            app.camera.position = transform.fullRect.center;
         }
     }
 }

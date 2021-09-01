@@ -5,7 +5,7 @@ using SFML.System;
 using System.Collections.Generic;
 using System.Linq;
 using MatrixEngine.Physics;
-using MatrixEngine.System;
+using MatrixEngine.Framework;
 using SFML.Window;
 
 namespace MatrixEngine.Renderers {
@@ -31,7 +31,9 @@ namespace MatrixEngine.Renderers {
 
         public override void Render() {
             if (target.Size != app.window.Size) {
+                target.Texture.Dispose();
                 target.Dispose();
+
                 target = new RenderTexture(app.window.Size.X, app.window.Size.Y);
             }
             target.Clear(Color.Transparent);
@@ -63,10 +65,13 @@ namespace MatrixEngine.Renderers {
             var sp = new Sprite(target.Texture);
 
 
-
             app.window.Draw(sp);
 
+            sp.Texture.Dispose();
+            sp.Dispose();
+
             app.window.SetView(tmp);
+            tmp.Dispose();
 
             list.Clear();
 

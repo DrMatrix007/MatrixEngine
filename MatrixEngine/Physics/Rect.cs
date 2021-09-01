@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using MatrixEngine.System;
-using MatrixEngine.System.MathM;
+using MatrixEngine.Framework;
+using MatrixEngine.Framework.MathM;
 using SFML.System;
 using NotImplementedException = System.NotImplementedException;
 

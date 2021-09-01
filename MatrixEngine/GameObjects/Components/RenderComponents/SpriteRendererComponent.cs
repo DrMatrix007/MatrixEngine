@@ -1,20 +1,21 @@
-﻿using MatrixEngine.Content;
-using MatrixEngine.System;
+﻿using MatrixEngine.Physics;
 using SFML.Graphics;
 using SFML.System;
-using System;
-using System.Diagnostics;
-using MatrixEngine.GameObjects.Components.PhysicsComponents;
-using MatrixEngine.Physics;
 
 namespace MatrixEngine.GameObjects.Components.RenderComponents {
     public sealed class SpriteRendererComponent : RendererComponent {
 
 
         private Sprite sprite;
-        public int pixelperunit;
+        public int pixelPerUnit;
 
-        public Rect spriteRect
+        public void SetTexture(Texture texture,int pixelperunit) {
+            sprite.Texture.Dispose();
+            sprite.Texture = texture;
+            this.pixelPerUnit = pixelperunit;
+        }
+
+        public Rect textureRect
         {
             get => new Rect(position, new Vector2f(sprite.TextureRect.Width, sprite.TextureRect.Height));
         }
@@ -22,10 +23,15 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
 
 
         public SpriteRendererComponent(string localpathtoimg, int pixelperunit, int layer) {
-
-            sprite = new Sprite(new Texture(localpathtoimg));
+            if (!string.IsNullOrEmpty(localpathtoimg)) {
+                sprite = new Sprite(new Texture(localpathtoimg));
+            }
             this.layer = layer;
-            this.pixelperunit = pixelperunit;
+            this.pixelPerUnit = pixelperunit;
+        }
+
+        public SpriteRendererComponent() : this("", 1, -1) {
+
         }
 
 
@@ -35,11 +41,8 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
         public override void Start() {
             // var c = this.GetComponent<ColliderComponent>();
             // if (c != null && c.colliderType == ColliderComponent.ColliderType.Rect) {
-                var tr = sprite.TextureRect;
-                transform.rect = new Rect(position,new Vector2f(tr.Width,tr.Height)/pixelperunit);
-                if (false) {
-                    
-                }
+            var tr = sprite.TextureRect;
+            transform.rect = new Rect(position, new Vector2f(tr.Width, tr.Height) / pixelPerUnit);
             // }
         }
 
@@ -48,11 +51,11 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
             sprite.Position = gameObject.position;
             app.spriteRenderer.AddToQueue(this);
 
-            sprite.Scale = new Vector2f(transform.scale.X, transform.scale.Y) / pixelperunit;
+            sprite.Scale = new Vector2f(transform.scale.X, transform.scale.Y) / pixelPerUnit;
             //Debug.Log(sprite.Scale);
 
 
-            
+
 
         }
     }

@@ -27,6 +27,7 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
 
 
         public Tile GetTileFromLocalPosition(Vector2i offset) {
+            
             return tiles[offset.X, offset.Y];
         }
         public void SetTileFromLocalPos(Vector2i offset,Tile t) {

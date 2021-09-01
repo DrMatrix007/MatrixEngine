@@ -1,7 +1,7 @@
 ﻿using System;
 using SFML.System;
 
-namespace MatrixEngine.System.MathM {
+namespace MatrixEngine.Framework.MathM {
     public struct Line {
         public readonly float a;
         public readonly float b;

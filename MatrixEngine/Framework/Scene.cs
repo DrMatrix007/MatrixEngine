@@ -6,7 +6,7 @@ using MatrixEngine.GameObjects;
 using MatrixEngine.UI;
 using NotImplementedException = System.NotImplementedException;
 
-namespace MatrixEngine.System {
+namespace MatrixEngine.Framework {
     public class Scene : IEnumerable<GameObject> {
 
 
@@ -26,7 +26,7 @@ namespace MatrixEngine.System {
             return gameObject;
 
         }
-        public System.App app
+        public Framework.App app
         {
             get;
             internal set;

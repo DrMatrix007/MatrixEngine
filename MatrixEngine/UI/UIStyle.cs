@@ -4,11 +4,13 @@ using SFML.Graphics;
 
 namespace MatrixEngine.UI {
     public class UIStyle {
-        public UIStyle(int layer, Color color, Color backgroundColor) {
-            this.layer = layer;
+        public UIStyle(int layer = 0, Color color = default, Color backgroundColor = default) {
+            this.layer = layer ;
             this.color = color;
             BackgroundColor = backgroundColor;
         }
+
+
 
         public int layer;
         public Color color;
@@ -21,12 +23,14 @@ namespace MatrixEngine.UI {
     }
 
     public class UITextStyle : UIStyle {
-        public UITextStyle(int layer, Color color, Color backgroundColor, Font font,uint charSize = 10, bool isResize = false) : base(layer, color, backgroundColor) {
-            this.font = font;
+        public UITextStyle(int layer = 0, Color color =default, Color backgroundColor = default, Font font = default,uint charSize = 10, bool isResize = false) : base(layer, color, backgroundColor) {
+            this.font = font ?? FontManager.CascadiaCode;
             char_size = charSize;
             
             is_resize = isResize;
         }
+
+
 
         public Font font;
         public uint char_size;

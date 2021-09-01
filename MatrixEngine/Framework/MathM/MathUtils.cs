@@ -1,7 +1,7 @@
 ﻿using SFML.System;
 using System;
 
-namespace MatrixEngine.System.MathM {
+namespace MatrixEngine.Framework.MathM {
     public static class MathUtils {
         public const float TOLERANCE = 0.01f;
 
@@ -154,6 +154,13 @@ namespace MatrixEngine.System.MathM {
                 return -1;
             }
             return 0;
+        }
+
+        public static Vector2f Abs(this Vector2f f) {
+            return new Vector2f(MathF.Abs(f.X), MathF.Abs(f.Y));
+        }
+        public static Vector2i Abs(this Vector2i f) {
+            return new Vector2i(Math.Abs(f.X), Math.Abs(f.Y));
         }
     }
 }

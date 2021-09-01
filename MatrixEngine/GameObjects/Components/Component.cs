@@ -1,5 +1,5 @@
 ﻿using MatrixEngine.GameObjects.Components.PhysicsComponents;
-using MatrixEngine.System;
+using MatrixEngine.Framework;
 using MatrixEngine.Physics;
 using SFML.System;
 
@@ -28,7 +28,7 @@ namespace MatrixEngine.GameObjects.Components {
                 return gameObject.scene;
             }
         }
-        public System.App app
+        public Framework.App app
         {
             get {
                 return scene.app;

@@ -2,22 +2,20 @@
 using SFML.System;
 using SFML.Window;
 using System;
-using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Runtime.Serialization.Formatters.Binary;
 using MatrixEngine.Physics;
 using MatrixEngine.Renderers;
 using MatrixEngine.Testing;
-using AsyncOperationManager = MatrixEngine.System.AsyncOperations.AsyncOperationManager;
+using MatrixEngine.Framework.Operations;
 
-namespace MatrixEngine.System {
+namespace MatrixEngine.Framework {
     public sealed class App {
-        public PhysicsEngine rigidBodyManager { get; private set; }
+        public PhysicsEngine physicsEngine { get; private set; }
 
         public KeyHandler keyHandler { get; private set; }
 
-        public AsyncOperationManager asyncOperationManager { get; private set; }
+        public OperationManager asyncOperationManager { get; private set; }
 
         public readonly string AppName;
         private readonly bool isDebug;
@@ -76,9 +74,9 @@ namespace MatrixEngine.System {
             keyHandler = new KeyHandler();
             camera = new Camera(this);
             spriteRenderer = new SpriteRenderer(this);
-            rigidBodyManager = new PhysicsEngine(this);
+            physicsEngine = new PhysicsEngine(this);
             canvasRenderer = new CanvasRenderer(this);
-            asyncOperationManager = new AsyncOperationManager(this);
+            asyncOperationManager = new OperationManager(this);
             if (isDebug) {
                 testingWindow = new TestingWindow((4, 2));
             }
@@ -103,29 +101,36 @@ namespace MatrixEngine.System {
 
             scene.app = this;
 
-            window.SetFramerateLimit(14500);
 
             var background = new Color(20, 93, 160);
 
+            window.SetFramerateLimit(144);
+
             while (window.IsOpen) {
                 window.Clear(background);
+                window.SetView(new View(camera.position, camera.size));
 
 
                 window.DispatchEvents();
 
                 spriteRenderer.Render();
 
-                
                 canvasRenderer.Render();
 
-                rigidBodyManager.Update();
+
 
 
                 scene.Update();
 
+                window.SetView(new View(camera.position, camera.size));
+
+
+                physicsEngine.Update();
+
+
+
                 asyncOperationManager.Update();
 
-                window.SetView(new View(camera.position, camera.size));
 
 
                 if (isDebug) {

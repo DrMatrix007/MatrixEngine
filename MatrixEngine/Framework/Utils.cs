@@ -1,8 +1,9 @@
 ﻿using SFML.System;
 using System;
 using System.Diagnostics;
+using System.Threading;
 
-namespace MatrixEngine.System {
+namespace MatrixEngine.Framework {
     public static class Utils {
 
         public enum MessageType {
@@ -28,15 +29,21 @@ namespace MatrixEngine.System {
         }
 
         public static void Log(object message, MessageType type) {
-            if (type == MessageType.Error) {
-                Console.WriteLine($"Error: " + message);
-                throw new Exception(message.ToString());
-            } else if (type == MessageType.Warning) {
-                Console.WriteLine($"Warning: " + message);
-            } else if (type == MessageType.Log) {
-                Console.WriteLine($"Log: " + message);
-            }
 
+            //var t = new Thread(new ThreadStart(() => {
+                if (type == MessageType.Error) {
+                    Console.WriteLine($"Error: " + message);
+                    throw new Exception(message.ToString());
+                } else if (type == MessageType.Warning) {
+                    Console.WriteLine($"Warning: " + message);
+                } else if (type == MessageType.Log) {
+                    Console.WriteLine($"Log: " + message);
+                }
+            //}));
+
+            //t.Start();
+
+           
         }
         public static T Log<T>(this T message) {
             Log(message, MessageType.Log);

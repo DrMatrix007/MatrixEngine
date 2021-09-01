@@ -1,9 +1,9 @@
 ﻿using MatrixEngine.Physics;
-using MatrixEngine.System.MathM;
+using MatrixEngine.Framework.MathM;
 using SFML.System;
 
 
-namespace MatrixEngine.System {
+namespace MatrixEngine.Framework {
     public class Camera {
 
         App app;

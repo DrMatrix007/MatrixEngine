@@ -1,10 +1,5 @@
-﻿using MatrixEngine.System;
-using SFML.Graphics.Glsl;
+﻿using MatrixEngine.Framework.MathM;
 using SFML.System;
-using System;
-using System.Collections;
-using System.Linq;
-using MatrixEngine.System.MathM;
 
 namespace MatrixEngine.Physics {
     public static class Physics {
@@ -33,10 +28,18 @@ namespace MatrixEngine.Physics {
             //}
             //return true;
 
-            return rect1.X < rect2.X + rect2.width &&
-                   rect1.X + rect1.width > rect2.X &&
-                   rect1.Y < rect2.Y + rect2.height &&
-                   rect1.Y + rect1.height > rect2.Y;
+            //var distanceX = (rect1.X-rect2.X).Abs();
+            //var distanceY = (rect1.Y-rect2.Y).Abs();
+
+            //var dx = (rect1.width/2+rect2.width/2).Abs);
+            //var dy = rect1.height/2+rect2.height/2;
+
+
+
+            return rect1.X < rect2.max.X &&
+                   rect1.max.X > rect2.X &&
+                   rect1.Y < rect2.max.Y &&
+                   rect1.max.Y > rect2.Y;
         }
 
         public static CollidingFix GetCollidingFixFromRect(this Rect a, Rect b) {
@@ -70,8 +73,7 @@ namespace MatrixEngine.Physics {
                 if (x_fix > 0) {
                     is_col = true;
                 }
-            }
-            else {
+            } else {
                 var cx = circle.X - circle.r;
                 var rx = rect.max.X;
                 x_fix = rx - cx;

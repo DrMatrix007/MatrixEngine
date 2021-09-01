@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MatrixEngine.System {
+namespace MatrixEngine.Framework {
     public sealed class KeyHandler {
 
         public enum KeyInput {

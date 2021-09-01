@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MatrixEngine.GameObjects.Components;
 using MatrixEngine.Physics;
-using MatrixEngine.System;
+using MatrixEngine.Framework;
 
 namespace MatrixEngine.GameObjects {
     public sealed class GameObject : IEnumerable<Component> {
@@ -51,7 +51,7 @@ namespace MatrixEngine.GameObjects {
         private Component PureSetComponent(Component component) {
 
             if (component.gameObject != null) {
-                System.Utils.LogError($"{component} is already stored by a gameobject!!!");
+                Framework.Utils.LogError($"{component} is already stored by a gameobject!!!");
             }
 
             component.SetupGameobject(this);
@@ -77,7 +77,7 @@ namespace MatrixEngine.GameObjects {
 
             foreach (var component in comps) {
                 if (component.gameObject != null) {
-                    System.Utils.LogError($"{component} is already stored by a gameobject!!!");
+                    Framework.Utils.LogError($"{component} is already stored by a gameobject!!!");
                 }
                 component.SetupGameobject(this);
                 var t = component.GetType();

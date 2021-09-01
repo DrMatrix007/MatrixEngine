@@ -1,5 +1,5 @@
-﻿using MatrixEngine.System;
-using MatrixEngine.System.MathM;
+﻿using MatrixEngine.Framework;
+using MatrixEngine.Framework.MathM;
 using SFML.System;
 
 namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
@@ -14,9 +14,9 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
             set => _vel = value;
         }
 
-        public Vector2f gravity = new Vector2f(0, 5);
+        public Vector2f gravity = new Vector2f(0, 0);
 
-        public Vector2f velocityDrag = new Vector2f(0.7f, 0f);
+        public Vector2f velocityDrag = new Vector2f(0,0);
 
         public RigidBodyComponent() {
             isStatic = false;
@@ -45,9 +45,9 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
             }
 
             if (isStatic) {
-                app.rigidBodyManager.AddColliderToFrame(this.colliderComponent);
+                app.physicsEngine.AddColliderToFrame(this.colliderComponent);
             } else {
-                app.rigidBodyManager.AddRigidbodyToFrame(this);
+                app.physicsEngine.AddRigidbodyToFrame(this);
             }
 
         }

@@ -5,18 +5,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixEngine.System.AsyncOperations {
-    public class AsyncOperation {
+namespace MatrixEngine.Framework.Operations {
+    public class Operation {
         private readonly IEnumerator fullOperation;
 
-        public AsyncOperation(IEnumerator fullOperation) {
+        public Operation(IEnumerator fullOperation) {
             if (fullOperation == null) {
                 throw new ArgumentNullException(nameof(fullOperation));
             }
             
             this.fullOperation = fullOperation;
         }
-        public AsyncOperation(Func<IEnumerator> action) : this(action()) {
+        public Operation(Func<IEnumerator> action) : this(action()) {
         }
 
         public bool MoveNext() {

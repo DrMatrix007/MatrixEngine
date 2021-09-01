@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using MatrixEngine.GameObjects.Components.RenderComponents;
-using MatrixEngine.System;
+using MatrixEngine.Framework;
 
 namespace MatrixEngine.Renderers {
     public sealed class SpriteRenderer : Renderer {

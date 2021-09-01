@@ -4,18 +4,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixEngine.System.AsyncOperations {
-    public class AsyncOperationManager {
+namespace MatrixEngine.Framework.Operations {
+    public class OperationManager {
 
         private App app;
 
-        private List<AsyncOperation> asyncOperations;
+        private List<Operation> asyncOperations;
 
-        public AsyncOperationManager(App app) {
+        public OperationManager(App app) {
             this.app = app;
-            asyncOperations = new List<AsyncOperation>();
+            asyncOperations = new List<Operation>();
         }
-        public void AddAsyncOperation(AsyncOperation asyncOperation) {
+        public void AddAsyncOperation(Operation asyncOperation) {
             
             asyncOperations.Add(asyncOperation);
 

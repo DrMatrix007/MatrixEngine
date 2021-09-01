@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Linq;
 using MatrixEngine.Content;
-using MatrixEngine.System;
+using MatrixEngine.Framework;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
-using MathUtils = MatrixEngine.System.MathM.MathUtils;
+using MathUtils = MatrixEngine.Framework.MathM.MathUtils;
 
 namespace MatrixEngine.UI {
     public abstract class TextRendererUIObject : UIObject {

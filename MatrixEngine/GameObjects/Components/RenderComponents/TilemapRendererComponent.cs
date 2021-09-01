@@ -1,10 +1,10 @@
-﻿using MatrixEngine.System;
+﻿using MatrixEngine.Framework;
 using SFML.Graphics;
 using SFML.System;
 using System.Collections.Generic;
 using MatrixEngine.GameObjects.Components.TilemapComponents;
 using MatrixEngine.Physics;
-using MatrixEngine.System.MathM;
+using MatrixEngine.Framework.MathM;
 
 namespace MatrixEngine.GameObjects.Components.RenderComponents {
     [RequireComponent(typeof(TilemapComponent))]
@@ -107,7 +107,7 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
                 }
                 var sprite = new Sprite(item.Value.Texture);
                 sprite.Position =  gameObject.position;
-                sprite.Position = new Vector2f(item.Key.X*transform.scale.X, item.Key.Y *transform.scale.Y);
+                sprite.Position += new Vector2f(item.Key.X*transform.scale.X, item.Key.Y *transform.scale.Y);
                 sprite.Scale /= tilemap.pixelsPerUnit;
                 sprite.Scale = new Vector2f(sprite.Scale.X*transform.scale.X,sprite.Scale.Y*transform.scale.Y); 
                 app.window.Draw(sprite);

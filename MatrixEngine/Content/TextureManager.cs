@@ -15,8 +15,14 @@ namespace MatrixEngine.Content {
             }
 
             _textures[path] = new Texture(path);
+            
+            _textures[path].Smooth = true;
 
             return _textures[path];
         }
+
+
+
+
     }
 }
