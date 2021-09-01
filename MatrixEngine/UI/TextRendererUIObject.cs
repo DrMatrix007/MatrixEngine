@@ -2,6 +2,7 @@
 using System.Linq;
 using MatrixEngine.Content;
 using MatrixEngine.Framework;
+using MatrixEngine.Framework.MathM;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
@@ -41,19 +42,30 @@ namespace MatrixEngine.UI {
             var pos = MathUtils.Multiply(anchor.positionInPercentage, (Vector2f)target.Size) / 100;
             var size = MathUtils.Multiply(anchor.maxSizeInPercentage, (Vector2f)target.Size) / 100;
 
-            var list = text.Split("\n");
-            var longest = list.Aggregate((max, cur) => max.Length > cur.Length ? max : cur);
+            CreateText();
+
+
+
 
             if (style.is_resize) {
-                style.char_size = (uint)Math.Min((size.X / longest.Length), (size.Y / list.Length));
+                var w = drawable.GetLocalBounds().Width;
+                var h = drawable.GetLocalBounds().Height;
+
+                var wratio = size.X / w;
+                var hratio = size.Y / h;
+
+                if (wratio > hratio) {
+                    drawable.CharacterSize = (uint)((hratio*drawable.CharacterSize).Floor()-1);
+                } else {
+                    drawable.CharacterSize = (uint)((wratio* drawable.CharacterSize).Floor()-1);
+                }
             }
 
             if (drawable.GetGlobalBounds().Height > size.Y) {
                 style.char_size = (uint)(drawable.GetGlobalBounds().Height / size.Y);
             }
-            
+
             drawable.Position = pos;
-            CreateText();
             target.Draw(new RectangleShape()
                 { Position = pos, Size = size, FillColor = style.BackgroundColor });
             target.Draw(drawable);

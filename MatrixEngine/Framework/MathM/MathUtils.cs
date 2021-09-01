@@ -162,5 +162,10 @@ namespace MatrixEngine.Framework.MathM {
         public static Vector2i Abs(this Vector2i f) {
             return new Vector2i(Math.Abs(f.X), Math.Abs(f.Y));
         }
+
+        public static float Floor(this float f) {
+            return MathF.Floor(f);
+        }
+
     }
 }

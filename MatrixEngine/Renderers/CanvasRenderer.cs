@@ -43,8 +43,8 @@ namespace MatrixEngine.Renderers {
                 return x.layer;
             });
             foreach (var component in new_list) {
-
                 var (pos, size) = component.Render(target);
+                Console.WriteLine(size);
                 var rect = new Rect(pos+size/2, size);
                 var po = Mouse.GetPosition()-app.window.Position;
                 if (!rect.IsInside((Vector2f)po)) continue;
@@ -67,11 +67,11 @@ namespace MatrixEngine.Renderers {
 
             app.window.Draw(sp);
 
-            sp.Texture.Dispose();
+            //sp.Texture.Dispose();
             sp.Dispose();
 
             app.window.SetView(tmp);
-            tmp.Dispose();
+            //tmp.Dispose();
 
             list.Clear();
 

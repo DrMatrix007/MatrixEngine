@@ -55,7 +55,7 @@ namespace MatrixEngineTests {
                     new Component[] {
                         new CameraController(),
                         new SimplePlayerControllerComponent(),
-                        new RigidBodyComponent(new Vector2f(0,60),new Vector2f(10,0),false),
+                        new RigidBodyComponent(new Vector2f(0,90),new Vector2f(50,50),false),
                         new SpriteRendererComponent("Image1.png",16,10),
 
                     }),
@@ -72,8 +72,15 @@ namespace MatrixEngineTests {
                     },
 
                     new UIObject[] {
-                        new TextRendererConsumerUIObject(new Anchor(new Vector2f(90,0),new Vector2f(20,10)),fpsProv,new UITextStyle(
-                            color: Color.White
+                        new SpriteRendererUIObject(new Anchor(new Vector2f(0,0),new Vector2f(10,10)),TextureManager.GetTexture("grass.png"),new UIStyle(0,Color.White,Color.Transparent),10)
+                        ,
+                        new TextRendererConsumerUIObject(new Anchor(new Vector2f(0,90),new Vector2f(20,10)),fpsProv,new UITextStyle(
+                            10,
+                            color: Color.White,
+                            backgroundColor: Color.Black,
+                            isResize:true,
+                            font: FontManager.CascadiaCode,
+                            charSize:10
                             ),10)
                     }
                     );
@@ -81,9 +88,8 @@ namespace MatrixEngineTests {
             var app = new App("Tests", false, scene);
 
             fpsProv.SetFunc(() => {
-                return $"FPS: {1.0f/app.deltaTime}";
+                return $"FPS: {(1.0f / app.deltaTime).ToString("0.00")},Nice!";
             });
-
             app.Run();
 
         }

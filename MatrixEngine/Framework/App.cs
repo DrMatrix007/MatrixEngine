@@ -114,13 +114,16 @@ namespace MatrixEngine.Framework {
                 window.DispatchEvents();
 
                 spriteRenderer.Render();
+                //window.Clear(background);
+
+                scene.Update();
+
 
                 canvasRenderer.Render();
 
 
 
 
-                scene.Update();
 
                 window.SetView(new View(camera.position, camera.size));
 
