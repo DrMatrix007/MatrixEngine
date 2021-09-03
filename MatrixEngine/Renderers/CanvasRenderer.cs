@@ -44,7 +44,7 @@ namespace MatrixEngine.Renderers {
             });
             foreach (var component in new_list) {
                 var (pos, size) = component.Render(target);
-                Console.WriteLine(size);
+
                 var rect = new Rect(pos+size/2, size);
                 var po = Mouse.GetPosition()-app.window.Position;
                 if (!rect.IsInside((Vector2f)po)) continue;

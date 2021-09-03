@@ -2,10 +2,14 @@
 using MatrixEngine.Framework;
 using MatrixEngine.Physics;
 using SFML.System;
+using MatrixEngine.Framework.Operations;
 
 namespace MatrixEngine.GameObjects.Components {
     public abstract class Component {
-
+        public OperationManager operationManager
+        {
+            get => app.operationManager;
+        }
         public GameObject gameObject
         {
             private set;
@@ -14,9 +18,8 @@ namespace MatrixEngine.GameObjects.Components {
 
         public Vector2f position
         {
-            get {
-                return gameObject.position;
-            }
+            get => gameObject.position;
+            
             set {
                 gameObject.position = value;
             }

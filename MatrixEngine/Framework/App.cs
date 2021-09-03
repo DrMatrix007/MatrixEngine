@@ -15,7 +15,7 @@ namespace MatrixEngine.Framework {
 
         public KeyHandler keyHandler { get; private set; }
 
-        public OperationManager asyncOperationManager { get; private set; }
+        public OperationManager operationManager { get; private set; }
 
         public readonly string AppName;
         private readonly bool isDebug;
@@ -63,8 +63,8 @@ namespace MatrixEngine.Framework {
             }
             // window.SetIcon();
 
-            window.SetKeyRepeatEnabled(true);
-
+            window.SetKeyRepeatEnabled(false);
+            
 
             window.Closed += (s, e) => { ((Window) s)?.Close(); };
 
@@ -76,7 +76,7 @@ namespace MatrixEngine.Framework {
             spriteRenderer = new SpriteRenderer(this);
             physicsEngine = new PhysicsEngine(this);
             canvasRenderer = new CanvasRenderer(this);
-            asyncOperationManager = new OperationManager(this);
+            operationManager = new OperationManager(this);
             if (isDebug) {
                 testingWindow = new TestingWindow((4, 2));
             }
@@ -90,6 +90,7 @@ namespace MatrixEngine.Framework {
 
         private void Window_KeyPressed(object sender, KeyEventArgs e) {
             keyHandler.PressedKey(e.Code);
+
         }
 
 
@@ -132,7 +133,7 @@ namespace MatrixEngine.Framework {
 
 
 
-                asyncOperationManager.Update();
+                operationManager.Update();
 
 
 
@@ -147,6 +148,8 @@ namespace MatrixEngine.Framework {
                 //        new Vertex(camera.rect.position+new Vector2f(5,-5+camera.size.Y))
                 //}, PrimitiveType.Lines);
 
+
+                keyHandler.Update();
 
                 window.Display();
 
