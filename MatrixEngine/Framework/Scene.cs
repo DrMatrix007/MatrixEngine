@@ -7,42 +7,38 @@ using MatrixEngine.UI;
 using NotImplementedException = System.NotImplementedException;
 
 namespace MatrixEngine.Framework {
-    public class Scene : IEnumerable<GameObject> {
 
+    public class Scene : IEnumerable<GameObject> {
+        private bool isStarted = false;
 
         private List<GameObject> gameObjects;
 
-
         private List<UIObject> uiObjects;
+
         public GameObject CreateGameObject() {
             var g = new GameObject();
 
             return g;
         }
+
         public GameObject AddGameObject(GameObject gameObject) {
             gameObject.SetupScene(this);
             gameObjects.Add(gameObject);
 
             return gameObject;
-
         }
+
         public Framework.App app
         {
             get;
             internal set;
         }
-        
-        
 
-        public Scene(IEnumerable<GameObject> gameObjects = null, IEnumerable<UIObject> uiObjects = null)  {
-            
+        public Scene(IEnumerable<GameObject> gameObjects = null, IEnumerable<UIObject> uiObjects = null) {
             this.gameObjects = new List<GameObject>();
             this.uiObjects = new List<UIObject>();
             gameObjects ??= new List<GameObject>();
             uiObjects ??= new List<UIObject>();
-            
-            
-            
 
             // var l = gameObjects.ToList();
             foreach (var item in gameObjects) {
@@ -52,7 +48,7 @@ namespace MatrixEngine.Framework {
             foreach (UIObject uiObject in uiObjects) {
                 AddUIObject(uiObject);
             }
-            
+
             // uiObjects.AddRange(objects);
         }
 
@@ -62,9 +58,14 @@ namespace MatrixEngine.Framework {
         }
 
         public virtual void Start() {
-
         }
+
         public void Update() {
+            if (!isStarted) {
+                Start();
+                isStarted = true;
+            }
+
             var l = this.ToArray();
 
             foreach (var item in l) {

@@ -1,4 +1,5 @@
-﻿using MatrixEngine.Content;
+﻿using MatrixEngine.Animations;
+using MatrixEngine.Content;
 using MatrixEngine.Framework;
 using MatrixEngine.Framework.MathM;
 using MatrixEngine.Framework.Operations;
@@ -15,6 +16,7 @@ using SFML.Graphics;
 using SFML.System;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace MatrixEngineTests {
 
@@ -69,7 +71,10 @@ namespace MatrixEngineTests {
                     new GameObject(new Component[]{
                     new ColliderComponent(ColliderComponent.ColliderType.Rect),
                     new RigidBodyComponent(new Vector2f(0,0),new Vector2f(100,100)),
-                    new SpriteRendererComponent("Image1.png",16,10),
+                    //new SpriteRendererComponent("Image1.png",16,10),
+                    new SpriteAnimationRendererComponent(new AnimationGroup(new Dictionary<string, Animation>(){
+                    },
+                    new Animation(new AnimationSequence(TextureManager.GetTexture("grass.png"),0.5f),new AnimationSequence(TextureManager.GetTexture("Image1.png"),0.5f))),16),
                     new SimplePlayerControllerComponent(20)
                 }),
                 new GameObject(
@@ -77,7 +82,7 @@ namespace MatrixEngineTests {
                     new TilemapTesterComponent(new Seed()),
                     new TilemapRendererComponent()
                     )
-                }, 
+                },
                 new UIObject[] {
                     new TextConsumerUIObject(new Anchor(new Vector2f(),new Vector2f(20,10)),fps_prov,new UITextStyle(10,Color.White,Color.Black,FontManager.CascadiaCode,isResize:true),10)
                 }
@@ -172,11 +177,9 @@ namespace MatrixEngineTests {
             //var p1 = new PerlinNoise1D(100,100,new MatrixEngine.Utilities.Range(20,50));
             //p1.Generate();
             //for (int i = 0; i < p1.fullSize; i++) {
-
             //    for (int y = 0; y < p1[i]; y++) {
             //        c.SetTile(i - p1.fullSize / 2, -y, new Tile(TextureManager.GetTexture("grass.png")));
             //    }
-
 
             //    count++;
             //    if (count >= maxcount) {
@@ -199,7 +202,6 @@ namespace MatrixEngineTests {
                         c.SetTile(x - p1.fullSize / 2, y - p1.fullSize / 2, new Tile(TextureManager.GetTexture("stone.png")));
                     } else {
                         c.SetTile(x - p1.fullSize / 2, y - p1.fullSize / 2, new Tile(TextureManager.GetTexture("snow.png")));
-
                     }
                     //c.SetTile(x - p1.fullSize / 2, y - p1.fullSize / 2, new Tile(r.Texture,new Color((byte)(v * 255), (byte)(v * 255), (byte)(v * 255), 255)));
                 }

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixEngine.Animation {
+namespace MatrixEngine.Animations {
     public sealed class AnimationSequence {
 
         public Texture texture;

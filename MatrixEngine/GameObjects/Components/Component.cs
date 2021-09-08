@@ -5,11 +5,14 @@ using SFML.System;
 using MatrixEngine.Framework.Operations;
 
 namespace MatrixEngine.GameObjects.Components {
+
     public abstract class Component {
+
         public OperationManager operationManager
         {
             get => app.operationManager;
         }
+
         public GameObject gameObject
         {
             private set;
@@ -19,7 +22,7 @@ namespace MatrixEngine.GameObjects.Components {
         public Vector2f position
         {
             get => gameObject.position;
-            
+
             set {
                 gameObject.position = value;
             }
@@ -31,12 +34,14 @@ namespace MatrixEngine.GameObjects.Components {
                 return gameObject.scene;
             }
         }
+
         public Framework.App app
         {
             get {
                 return scene.app;
             }
         }
+
         public KeyHandler keyHandler
         {
             get {
@@ -50,6 +55,7 @@ namespace MatrixEngine.GameObjects.Components {
                 return GetComponent<RigidBodyComponent>();
             }
         }
+
         public ColliderComponent colliderComponent
         {
             get {
@@ -62,35 +68,36 @@ namespace MatrixEngine.GameObjects.Components {
             get => gameObject.transform;
         }
 
-
-
-
         public T GetComponent<T>() where T : Component {
             return gameObject.GetComponent<T>();
+        }
+
+        public T SetComponent<T>() where T : Component, new() {
+            return gameObject.SetComponent<T>();
+        }
+
+        public T SetComponent<T>(T c) where T : Component {
+            return (T)gameObject.SetComponent(c);
         }
 
         internal bool didStart
         {
             get;
             set;
-
-
         } = false;
 
         public Component() {
         }
+
         internal void SetupGameobject(GameObject gameObject) {
             this.gameObject = gameObject;
         }
 
-
-
-
         abstract public void Start();
+
         abstract public void Update();
 
         public virtual void LateUpdate() {
-
         }
 
         public virtual void Setup() {
