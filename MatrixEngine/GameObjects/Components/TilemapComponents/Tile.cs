@@ -9,11 +9,15 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
     [Serializable]
     public class Tile {
         public Texture texture;
-
-        public Tile(Texture texture) {
-            this.texture = texture;
+        public Color color;
+        public Tile(Texture texture) : this(texture, Color.White) {
 
         }
+        public Tile(Texture texture,Color color) {
+            this.texture = texture;
+            this.color = color;
+        }
+
 
     }
 }

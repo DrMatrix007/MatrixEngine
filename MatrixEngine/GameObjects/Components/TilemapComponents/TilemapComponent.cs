@@ -8,7 +8,7 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
         public readonly int pixelsPerUnit;
         internal Dictionary<Vector2i, Chunk> chunks;
 
-        public const int chunkSize = 100;
+        public const int chunkSize = 50;
 
         public Vector2f chunkRectSize { get => new Vector2f(chunkSize * transform.scale.X, chunkSize * transform.scale.Y); }
 
@@ -71,6 +71,11 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
         }
         public Vector2i GetPosOfTileFromWorldPos(Vector2f pos) {
             return (Vector2i)(new Vector2f(pos.X / transform.scale.X, pos.Y / transform.scale.Y) - gameObject.transform.position);
+        }
+
+
+        public void Clear() {
+            chunks.Clear();
         }
 
 

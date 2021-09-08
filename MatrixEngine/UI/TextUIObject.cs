@@ -9,7 +9,7 @@ using SFML.Window;
 using MathUtils = MatrixEngine.Framework.MathM.MathUtils;
 
 namespace MatrixEngine.UI {
-    public abstract class TextRendererUIObject : UIObject {
+    public abstract class TextUIObject : UIObject {
         public new UITextStyle style;
 
         private string _text;
@@ -31,7 +31,7 @@ namespace MatrixEngine.UI {
             drawable = new Text(text, style.font, style.char_size);
         }
 
-        public TextRendererUIObject(Anchor anchor, string text, UITextStyle uiTextStyle,int layer) :
+        public TextUIObject(Anchor anchor, string text, UITextStyle uiTextStyle,int layer) :
             base(anchor, uiTextStyle,layer) {
             _text = text;
             style = uiTextStyle;

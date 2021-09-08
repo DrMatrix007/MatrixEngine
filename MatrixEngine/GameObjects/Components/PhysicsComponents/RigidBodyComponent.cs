@@ -19,13 +19,13 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
         public Vector2f velocityDrag = new Vector2f(0,0);
 
         public RigidBodyComponent() {
-            isStatic = false;
+            isStatic = true;
         }
 
-        public RigidBodyComponent(Vector2f gravity, Vector2f velocityDrag, bool isStatic) {
+        public RigidBodyComponent(Vector2f gravity, Vector2f velocityDrag) {
             this.gravity = gravity;
             this.velocityDrag = velocityDrag;
-            this.isStatic = isStatic;
+            this.isStatic = false;
         }
 
 

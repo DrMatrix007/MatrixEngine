@@ -105,7 +105,7 @@ namespace MatrixEngine.Framework {
 
             var background = new Color(20, 93, 160);
 
-            window.SetFramerateLimit(144);
+            window.SetFramerateLimit(14400);
 
             while (window.IsOpen) {
                 window.Clear(background);
@@ -114,16 +114,12 @@ namespace MatrixEngine.Framework {
 
                 window.DispatchEvents();
 
+
                 spriteRenderer.Render();
-                //window.Clear(background);
 
                 scene.Update();
 
-
                 canvasRenderer.Render();
-
-
-
 
 
                 window.SetView(new View(camera.position, camera.size));
@@ -159,6 +155,7 @@ namespace MatrixEngine.Framework {
 
 
                 _deltaTime = deltaTimeClock.Restart();
+
             }
         }
     }

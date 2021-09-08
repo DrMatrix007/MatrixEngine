@@ -1,4 +1,5 @@
-﻿using SFML.Window;
+﻿using MatrixEngine.Utilities;
+using SFML.Window;
 using System;
 using System.Collections.Generic;
 using System.Linq;

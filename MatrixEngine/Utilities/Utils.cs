@@ -2,8 +2,9 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 
-namespace MatrixEngine.Framework {
+namespace MatrixEngine.Utilities {
     public static class Utils {
 
         public enum MessageType {
@@ -23,27 +24,27 @@ namespace MatrixEngine.Framework {
             return (float)watch.Elapsed.TotalSeconds;
 
         }
-        public static void LogTimeInSeconds(this Action action) { 
+        public static void LogTimeInSeconds(this Action action) {
             var s = GetTimeInSeconds(action);
-            Utils.Log($"Time to execute: {s}");        
+            $"Time to execute: {s}".Log();
         }
 
         public static void Log(object message, MessageType type) {
-
+            
             //var t = new Thread(new ThreadStart(() => {
-                if (type == MessageType.Error) {
-                    Console.WriteLine($"Error: " + message);
-                    throw new Exception(message.ToString());
-                } else if (type == MessageType.Warning) {
-                    Console.WriteLine($"Warning: " + message);
-                } else if (type == MessageType.Log) {
-                    Console.WriteLine($"Log: " + message);
-                }
+            if (type == MessageType.Error) {
+                Console.WriteLine($"Error: " + message);
+                throw new Exception(message.ToString());
+            } else if (type == MessageType.Warning) {
+                Console.WriteLine($"Warning: " + message);
+            } else if (type == MessageType.Log) {
+                Console.WriteLine($"Log: " + message);
+            }
             //}));
 
             //t.Start();
 
-           
+
         }
         public static T Log<T>(this T message) {
             Log(message, MessageType.Log);
@@ -58,6 +59,11 @@ namespace MatrixEngine.Framework {
         public static Vector2f OnlyWithY(this Vector2f v) {
             return new Vector2f(0, v.Y);
         }
+
+        public static Random ToRandom(this Seed s) {
+            return new Random(s.seed);
+        } 
+
 
     }
 

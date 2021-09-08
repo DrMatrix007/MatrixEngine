@@ -44,16 +44,16 @@ namespace MatrixEngine.UI {
         }
 
         public override (Vector2f pos, Vector2f size) Render(RenderTarget target) {
-            var t = texture;
+            var size = texture.Size;
             Vector2f set_pos = (anchor.positionInPercentage / 100).Multiply((Vector2f) target.Size);
             Vector2f max_size = (anchor.maxSizeInPercentage / 100).Multiply((Vector2f) target.Size);
 
-            if (Math.Abs(t.Size.X * drawable.Scale.X - max_size.X) > 0.001 ||
-                Math.Abs(t.Size.Y * drawable.Scale.Y - max_size.Y) > 0.001) {
+            if (Math.Abs(size.X * drawable.Scale.X - max_size.X) > 0.001 ||
+                Math.Abs(size.Y * drawable.Scale.Y - max_size.Y) > 0.001) {
                 var s = max_size.X / drawable.TextureRect.Width;
                 drawable.Scale = new Vector2f(s, s);
 
-                if (t.Size.Y * drawable.Scale.Y > max_size.Y) {
+                if (size.Y * drawable.Scale.Y > max_size.Y) {
                     s = max_size.Y / drawable.TextureRect.Height;
                     drawable.Scale = new Vector2f(s, s);
                 }

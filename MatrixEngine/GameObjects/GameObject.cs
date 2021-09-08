@@ -1,11 +1,12 @@
-﻿using SFML.System;
+﻿using MatrixEngine.Framework;
+using MatrixEngine.GameObjects.Components;
+using MatrixEngine.Physics;
+using MatrixEngine.Utilities;
+using SFML.System;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using MatrixEngine.GameObjects.Components;
-using MatrixEngine.Physics;
-using MatrixEngine.Framework;
 
 namespace MatrixEngine.GameObjects {
     public sealed class GameObject : IEnumerable<Component> {
@@ -51,7 +52,7 @@ namespace MatrixEngine.GameObjects {
         private Component PureSetComponent(Component component) {
 
             if (component.gameObject != null) {
-                Framework.Utils.LogError($"{component} is already stored by a gameobject!!!");
+                Utils.LogError($"{component} is already stored by a gameobject!!!");
             }
 
             component.SetupGameobject(this);
@@ -77,7 +78,7 @@ namespace MatrixEngine.GameObjects {
 
             foreach (var component in comps) {
                 if (component.gameObject != null) {
-                    Framework.Utils.LogError($"{component} is already stored by a gameobject!!!");
+                    Utils.LogError($"{component} is already stored by a gameobject!!!");
                 }
                 component.SetupGameobject(this);
                 var t = component.GetType();
@@ -141,6 +142,14 @@ namespace MatrixEngine.GameObjects {
         public GameObject(IEnumerable<Component> components) : this() {
             SetComponents(components);
         }
+
+        public GameObject(params Component[] components) : this(components as IEnumerable<Component>) {
+
+        }
+        public GameObject(Vector2f pos, params Component[] components) : this(components) {
+            position = pos;
+        }
+
         public GameObject(Vector2f pos) : this() {
             position = pos;
         }
@@ -151,7 +160,7 @@ namespace MatrixEngine.GameObjects {
         public GameObject(Component component) : this() {
             SetComponent(component);
         }
-        
+
         public void Setup() {
             foreach (var component in this.ToArray()) {
                 if (!component.didStart) {
@@ -171,7 +180,7 @@ namespace MatrixEngine.GameObjects {
         }
 
         public void Update() {
-           
+
             foreach (var component in this.ToArray()) {
                 component.Update();
             }

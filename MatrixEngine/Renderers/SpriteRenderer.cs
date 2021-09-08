@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MatrixEngine.GameObjects.Components.RenderComponents;
 using MatrixEngine.Framework;
+using MatrixEngine.Utilities;
 
 namespace MatrixEngine.Renderers {
     public sealed class SpriteRenderer : Renderer {

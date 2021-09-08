@@ -1,7 +1,7 @@
-﻿using MatrixEngine.Framework;
-using MatrixEngine.Framework.MathM;
+﻿using MatrixEngine.Framework.MathM;
 using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using MatrixEngine.GameObjects.Components.TilemapComponents;
+using MatrixEngine.Utilities;
 using SFML.Graphics;
 using SFML.System;
 using System.Collections.Generic;
@@ -10,7 +10,7 @@ using System.Linq;
 namespace MatrixEngine.Physics {
     public class PhysicsEngine {
 
-        private const float ContinuousStep = 0.01f;
+        private const float ContinuousStep = 0.1f;
 
         public const float Threshold = 0.010f;
 
@@ -22,7 +22,8 @@ namespace MatrixEngine.Physics {
         private List<ColliderComponent> collidersToCalc;
 
         private List<Rect> rectsToCalc;
-
+        private ColliderComponent[] static_list;
+        private RigidBodyComponent[] non_static_list;
 
         public Framework.App app
         {
@@ -62,8 +63,8 @@ namespace MatrixEngine.Physics {
 
 
 
-            var static_list = collidersToCalc.ToArray();
-            var non_static_list = dynamicRigidBodiesToCalc.ToArray();
+            static_list    = collidersToCalc.ToArray();
+            non_static_list = dynamicRigidBodiesToCalc.ToArray();
 
 
 
@@ -125,16 +126,6 @@ namespace MatrixEngine.Physics {
                 nonstatic.velocity = v;
 
 
-
-
-
-
-
-
-
-
-
-
             }
 
             foreach (var collider in rectsToCalc) {
@@ -172,22 +163,24 @@ namespace MatrixEngine.Physics {
             nonstatic_rect = nonstatic.transform.fullRect;
 
 
+            if (nonstatic.colliderComponent.colliderType != ColliderComponent.ColliderType.None) {
 
-            foreach (var rect in l) {
+                foreach (var rect in l) {
 
 
 
-                if (nonstatic_rect.isColliding(rect)) {
-                    //if (rect.Y == -1) {
-                    //    System.Console.WriteLine("?????????????");
-                    //}
+                    if (nonstatic_rect.isColliding(rect)) {
+                        //if (rect.Y == -1) {
+                        //    System.Console.WriteLine("?????????????");
+                        //}
 
-                    if (nonstatic_rect.cX < rect.cX) {
-                        nonstatic.position = new Vector2f(rect.X - nonstatic_rect.width, nonstatic.position.Y);
-                    } else {
-                        nonstatic.position = new Vector2f(rect.max.X, nonstatic.position.Y);
+                        if (nonstatic_rect.cX < rect.cX) {
+                            nonstatic.position = new Vector2f(rect.X - nonstatic_rect.width, nonstatic.position.Y);
+                        } else {
+                            nonstatic.position = new Vector2f(rect.max.X, nonstatic.position.Y);
+                        }
+                        return true;
                     }
-                    return true;
                 }
             }
             return false;
@@ -208,32 +201,35 @@ namespace MatrixEngine.Physics {
 
             nonstatic.position += new Vector2f(0, y) * app.deltaTime;
             nonstatic_rect = nonstatic.transform.fullRect;
-            
-            
+
+
             nonstatic.colliderComponent.isGrounded = false;
 
 
+            if (nonstatic.colliderComponent.colliderType != ColliderComponent.ColliderType.None) {
 
-            foreach (var rect in l) {
-
-
-
-                if (nonstatic_rect.isColliding(rect)) {
+                foreach (var rect in l) {
 
 
 
+                    if (nonstatic_rect.isColliding(rect)) {
 
-                    if (nonstatic_rect.cY < rect.cY) {
-                        nonstatic.position = new Vector2f(nonstatic.position.X, rect.Y - nonstatic_rect.height);
-                        nonstatic.colliderComponent.isGrounded = true;
-                        nonstatic.velocity = nonstatic.velocity.OnlyWithX();
-                    } else {
-                        nonstatic.position = new Vector2f(nonstatic.position.X, rect.max.Y);
-                        nonstatic.velocity = nonstatic.velocity.OnlyWithX();
+
+
+
+                        if (nonstatic_rect.cY < rect.cY) {
+                            nonstatic.position = new Vector2f(nonstatic.position.X, rect.Y - nonstatic_rect.height);
+                            nonstatic.colliderComponent.isGrounded = true;
+                            nonstatic.velocity = nonstatic.velocity.OnlyWithX();
+                        } else {
+                            nonstatic.position = new Vector2f(nonstatic.position.X, rect.max.Y);
+                            nonstatic.velocity = nonstatic.velocity.OnlyWithX();
+                        }
+                        return true;
                     }
-                    return true;
                 }
             }
+
             return false;
         }
 
@@ -285,8 +281,8 @@ namespace MatrixEngine.Physics {
             for (float x = -tile_scale.X * 2; x < nonstatic_rect.width + tile_scale.X * 2; x += tile_scale.X) {
                 for (float y = -tile_scale.Y * 2; y < nonstatic_rect.height + tile_scale.Y * 2; y += tile_scale.Y) {
                     pos = new Vector2f(x, y) + nonstatic.position;
-                    if (tilemap.GetTileFromWorldPos(pos ) != null) {
-                        var r = new Rect(((Vector2f)tilemap.GetPosOfTileFromWorldPos(pos)).Multiply(tile_scale)+tilemap.position, tile_scale);
+                    if (tilemap.GetTileFromWorldPos(pos) != null) {
+                        var r = new Rect(((Vector2f)tilemap.GetPosOfTileFromWorldPos(pos)).Multiply(tile_scale) + tilemap.position, tile_scale);
                         list_rects.Add(r);
 
                     }

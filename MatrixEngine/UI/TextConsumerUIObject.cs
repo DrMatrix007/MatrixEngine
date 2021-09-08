@@ -5,10 +5,10 @@ using SFML.System;
 using SFML.Window;
 
 namespace MatrixEngine.UI {
-    public  class TextRendererConsumerUIObject : TextRendererUIObject {
+    public  class TextConsumerUIObject : TextUIObject {
         private Provider<string> provider;
 
-        public TextRendererConsumerUIObject(Anchor anchor, Provider<string> prov, UITextStyle uiTextStyle,int layer) : base(anchor, "" , uiTextStyle,layer) {
+        public TextConsumerUIObject(Anchor anchor, Provider<string> prov, UITextStyle uiTextStyle,int layer) : base(anchor, "" , uiTextStyle,layer) {
             provider = prov;
         }
 
