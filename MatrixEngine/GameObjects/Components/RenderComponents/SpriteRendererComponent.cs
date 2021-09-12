@@ -15,9 +15,9 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
             this.pixelPerUnit = pixelperunit;
         }
 
-        public Rect textureRect
+        public Rect TextureRect
         {
-            get => new Rect(position, new Vector2f(sprite.TextureRect.Width, sprite.TextureRect.Height));
+            get => new(Position, new Vector2f(sprite.TextureRect.Width, sprite.TextureRect.Height));
         }
 
         public SpriteRendererComponent(string localpathtoimg, int pixelperunit, int layer) {
@@ -54,15 +54,15 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
             // var c = this.GetComponent<ColliderComponent>();
             // if (c != null && c.colliderType == ColliderComponent.ColliderType.Rect) {
             var tr = sprite.TextureRect;
-            transform.rect = new Rect(position, new Vector2f(tr.Width, tr.Height) / pixelPerUnit);
+            Transform.rect = new Rect(Position, new Vector2f(tr.Width, tr.Height) / pixelPerUnit);
             // }
         }
 
         public override void Update() {
-            sprite.Position = gameObject.position;
-            app.spriteRenderer.AddToQueue(this);
+            sprite.Position = GameObject.Position;
+            App.SpriteRenderer.AddToQueue(this);
 
-            sprite.Scale = transform.scale / pixelPerUnit;
+            sprite.Scale = Transform.scale / pixelPerUnit;
             //Debug.Log(sprite.Scale);
         }
     }

@@ -19,7 +19,7 @@ namespace MatrixEngine.GameObjects.Components {
         public override void Update() {
             counter++;
             if (counter > 200) {
-                gameObject.SetComponent<DebugComponent>();
+                GameObject.SetComponent<DebugComponent>();
             }
         }
     }

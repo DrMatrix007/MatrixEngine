@@ -6,29 +6,23 @@ using MatrixEngine.Framework;
 using MatrixEngine.Utilities;
 
 namespace MatrixEngine.Renderers {
+
     public sealed class SpriteRenderer : Renderer {
 
-        App app;
-
-        public SpriteRenderer(App app) : base(app){
-            this.app = app;
+        public SpriteRenderer(App app) : base(app) {
             spriteRendererComponents = new List<RendererComponent>();
         }
 
-
         public List<RendererComponent> spriteRendererComponents;
-        public override void Render() {
 
+        public override void Render() {
             var list = spriteRendererComponents.OrderBy(e => e.layer);
             var rend_list = new List<RendererComponent>();
-            var cam_rect = app.camera.rect;
+            var cam_rect = app.camera.Rect;
 
             Utils.GetTimeInSeconds(() => {
-
                 foreach (var item in list) {
-                    item.Render(app.window);
-
-                    
+                    item.Render(app.Window);
                 }
             });
 
@@ -37,8 +31,8 @@ namespace MatrixEngine.Renderers {
             //}
 
             spriteRendererComponents.Clear();
-
         }
+
         public void AddToQueue(RendererComponent spriteRendererComponent) {
             spriteRendererComponents.Add(spriteRendererComponent);
         }

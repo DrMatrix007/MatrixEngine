@@ -23,15 +23,15 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
             this.animationGroup = animationGroup;
             sprite = new Sprite();
             this.pixelperunit = pixelperunit;
-            currentAnim = animationGroup.defaultAnimation;
+            currentAnim = animationGroup.DefaultAnimation;
         }
 
         public override void Update() {
             base.Update();
-            sprite.Position = position;
-            sprite.Scale = transform.scale / pixelperunit;
+            sprite.Position = Position;
+            sprite.Scale = Transform.scale / pixelperunit;
 
-            sprite.Texture = currentAnim.GetCurrent(app.time).texture;
+            sprite.Texture = currentAnim.GetCurrent(App.TimeAsSeconds).texture;
         }
 
         public override void Render(RenderTarget target) {

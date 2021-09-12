@@ -1,22 +1,54 @@
-﻿using MatrixEngine.Framework;
-using MatrixEngine.Framework.MathM;
+﻿using MatrixEngine.Framework.MathM;
 using SFML.System;
+using System;
 
 namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
+
     [RequireComponent(typeof(ColliderComponent))]
     public class RigidBodyComponent : Component {
 
-        private Vector2f _vel = new Vector2f(0, 0);
+        public bool TouchRight
+        {
+            get;
+            internal set;
+        }
 
-        public Vector2f velocity
+        public bool TouchLeft
+        {
+            get;
+            internal set;
+        }
+
+        public bool TouchUp
+        {
+            get;
+            internal set;
+        }
+
+        public bool TouchDown
+        {
+            get;
+            set;
+        }
+
+        internal void ClearTouches() {
+            TouchDown = false;
+            TouchUp = false;
+            TouchRight = false;
+            TouchLeft = false;
+        }
+
+        private Vector2f _vel = new(0, 0);
+
+        public Vector2f Velocity
         {
             get => _vel;
             set => _vel = value;
         }
 
-        public Vector2f gravity = new Vector2f(0, 0);
+        public Vector2f gravity = new(0, 0);
 
-        public Vector2f velocityDrag = new Vector2f(0,0);
+        public Vector2f velocityDrag = new(0, 0);
 
         public RigidBodyComponent() {
             isStatic = true;
@@ -28,11 +60,9 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
             this.isStatic = false;
         }
 
-
         public RigidBodyComponent(bool isStatic) {
             this.isStatic = isStatic;
         }
-
 
         public bool isStatic = false;
 
@@ -40,19 +70,19 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
         }
 
         public override void Update() {
-            if (colliderComponent.colliderType == ColliderComponent.ColliderType.Tilemap) {
+            if (ColliderComponent.colliderType == ColliderComponent.ColliderType.Tilemap) {
                 isStatic = true;
             }
 
             if (isStatic) {
-                app.physicsEngine.AddColliderToFrame(this.colliderComponent);
+                App.PhysicsEngine.AddColliderToFrame(this.ColliderComponent);
             } else {
-                app.physicsEngine.AddRigidbodyToFrame(this);
+                App.PhysicsEngine.AddRigidbodyToFrame(this);
             }
-
         }
+
         public override string ToString() {
-            return $"rigidbody: \nVelocity: {velocity.Round(2)}, \nPosition: {position.Round(2)}";
+            return $"rigidbody: \nVelocity: {Velocity.Round(2)}, \nPosition: {Position.Round(2)}";
         }
     }
 }

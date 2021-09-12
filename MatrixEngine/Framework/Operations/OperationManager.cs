@@ -5,29 +5,24 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace MatrixEngine.Framework.Operations {
+
     public class OperationManager {
+        private readonly List<Operation> operations;
 
-        private App app;
-
-        private List<Operation> asyncOperations;
-
-        public OperationManager(App app) {
-            this.app = app;
-            asyncOperations = new List<Operation>();
+        public OperationManager() {
+            operations = new List<Operation>();
         }
-        public void AddAsyncOperation(Operation asyncOperation) {
-            
-            asyncOperations.Add(asyncOperation);
 
+        public void AddOperation(Operation asyncOperation) {
+            operations.Add(asyncOperation);
         }
 
         public void Update() {
-
-            var list = asyncOperations.ToList();
+            var list = operations.ToList();
 
             foreach (var item in list) {
                 if (!item.MoveNext()) {
-                    asyncOperations.Remove(item);
+                    operations.Remove(item);
                 }
             }
         }

@@ -15,7 +15,7 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
         }
 
         public override void Update() {
-            app.spriteRenderer.AddToQueue(this);
+            App.SpriteRenderer.AddToQueue(this);
         }
         public abstract void Render(RenderTarget target);
     }

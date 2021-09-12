@@ -8,79 +8,79 @@ namespace MatrixEngine.GameObjects.Components {
 
     public abstract class Component {
 
-        public OperationManager operationManager
+        public OperationManager OperationManager
         {
-            get => app.operationManager;
+            get => App.OperationManager;
         }
 
-        public GameObject gameObject
+        public GameObject GameObject
         {
             private set;
             get;
         }
 
-        public Vector2f position
+        public Vector2f Position
         {
-            get => gameObject.position;
+            get => GameObject.Position;
 
             set {
-                gameObject.position = value;
+                GameObject.Position = value;
             }
         }
 
-        public Scene scene
+        public Scene Scene
         {
             get {
-                return gameObject.scene;
+                return GameObject.Scene;
             }
         }
 
-        public Framework.App app
+        public Framework.App App
         {
             get {
-                return scene.app;
+                return Scene.app;
             }
         }
 
-        public KeyHandler keyHandler
+        public KeyHandler KeyHandler
         {
             get {
-                return app.keyHandler;
+                return App.KeyHandler;
             }
         }
 
-        public RigidBodyComponent rigidBodyComponent
+        public RigidBodyComponent RigidBodyComponent
         {
             get {
                 return GetComponent<RigidBodyComponent>();
             }
         }
 
-        public ColliderComponent colliderComponent
+        public ColliderComponent ColliderComponent
         {
             get {
                 return GetComponent<ColliderComponent>();
             }
         }
 
-        public TransformComponent transform
+        public TransformComponent Transform
         {
-            get => gameObject.transform;
+            get => GameObject.Transform;
         }
 
         public T GetComponent<T>() where T : Component {
-            return gameObject.GetComponent<T>();
+            return GameObject.GetComponent<T>();
         }
 
         public T SetComponent<T>() where T : Component, new() {
-            return gameObject.SetComponent<T>();
+            return GameObject.SetComponent<T>();
         }
 
         public T SetComponent<T>(T c) where T : Component {
-            return (T)gameObject.SetComponent(c);
+            return (T)GameObject.SetComponent(c);
         }
 
-        internal bool didStart
+        internal bool DidStart
         {
             get;
             set;
@@ -90,7 +90,7 @@ namespace MatrixEngine.GameObjects.Components {
         }
 
         internal void SetupGameobject(GameObject gameObject) {
-            this.gameObject = gameObject;
+            this.GameObject = gameObject;
         }
 
         abstract public void Start();
@@ -104,7 +104,7 @@ namespace MatrixEngine.GameObjects.Components {
         }
 
         public void Destroy() {
-            gameObject.DestroyComponent(this);
+            GameObject.DestroyComponent(this);
         }
     }
 }

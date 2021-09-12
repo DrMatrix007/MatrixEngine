@@ -6,18 +6,15 @@ using System.Threading.Tasks;
 using MatrixEngine.Physics;
 
 namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
+
     public sealed class ColliderComponent : Component {
-        public bool isGrounded {
-            get;
-            internal set;
-        }
+
         public enum ColliderType {
             None,
 
             Rect,
 
             Tilemap,
-
         }
 
         public ColliderType colliderType;
@@ -27,11 +24,11 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
         }
 
         public ColliderComponent() : this(ColliderType.Rect) {
-
         }
-        public Rect rect
+
+        public Rect Rect
         {
-            get => transform.fullRect;
+            get => Transform.fullRect;
         }
 
         public override void Start() {

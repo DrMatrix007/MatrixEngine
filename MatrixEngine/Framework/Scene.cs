@@ -85,7 +85,7 @@ namespace MatrixEngine.Framework {
             }
 
             foreach (var uiObject in uiObjects) {
-                app.canvasRenderer.Add(uiObject);
+                app.CanvasRenderer.Add(uiObject);
             }
         }
 

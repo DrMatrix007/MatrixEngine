@@ -10,12 +10,13 @@ using MatrixEngine.Testing;
 using MatrixEngine.Framework.Operations;
 
 namespace MatrixEngine.Framework {
+
     public sealed class App {
-        public PhysicsEngine physicsEngine { get; private set; }
+        public PhysicsEngine PhysicsEngine { get; private set; }
 
-        public KeyHandler keyHandler { get; private set; }
+        public KeyHandler KeyHandler { get; private set; }
 
-        public OperationManager operationManager { get; private set; }
+        public OperationManager OperationManager { get; private set; }
 
         public readonly string AppName;
         private readonly bool isDebug;
@@ -23,29 +24,28 @@ namespace MatrixEngine.Framework {
 
         public Camera camera;
 
-        public SpriteRenderer spriteRenderer { get; private set; }
+        public SpriteRenderer SpriteRenderer { get; private set; }
 
-        public RenderWindow window { get; private set; }
+        public RenderWindow Window { get; private set; }
 
-        private Clock timeClock = new Clock();
+        private readonly Clock timeClock = new();
 
-        private Clock deltaTimeClock = new Clock();
-        public CanvasRenderer canvasRenderer { get; private set; }
+        private readonly Clock deltaTimeClock = new();
+        public CanvasRenderer CanvasRenderer { get; private set; }
 
-        private Time _deltaTime { get; set; }
+        private Time DeltaTime { get; set; }
 
-        public float deltaTime => _deltaTime.AsSeconds();
+        public float DeltaTimeAsSeconds => DeltaTime.AsSeconds();
 
-        public float time => timeClock.ElapsedTime.AsSeconds();
+        public float TimeAsSeconds => timeClock.ElapsedTime.AsSeconds();
 
-        private TestingWindow testingWindow { get; set; }
+        private TestingWindow TestingWindow { get; set; }
 
         public void AddToDebug<T>(T obj) where T : class {
             if (isDebug) {
-                testingWindow.Add(obj);
+                TestingWindow.Add(obj);
             }
         }
-
 
         public App(string appName, bool isDebug, Scene scene) {
             var screen_size = VideoMode.DesktopMode;
@@ -53,90 +53,76 @@ namespace MatrixEngine.Framework {
             this.isDebug = isDebug;
             this.scene = scene;
             if (isDebug) {
-                window = new RenderWindow(
-                    new VideoMode(screen_size.Width - 10, (uint) (screen_size.Height * ((float) 4 / 5) - 100 - 40)),
-                    AppName);
-                window.Position = new Vector2i();
-            }
-            else {
-                window = new RenderWindow(new VideoMode(800, 600), AppName);
+                Window = new RenderWindow(
+                    new VideoMode(screen_size.Width - 10, (uint)(screen_size.Height * ((float)4 / 5) - 100 - 40)),
+                    AppName) {
+                    Position = new Vector2i()
+                };
+            } else {
+                Window = new RenderWindow(new VideoMode(800, 600), AppName);
             }
             // window.SetIcon();
 
-            window.SetKeyRepeatEnabled(false);
-            
+            Window.SetKeyRepeatEnabled(false);
 
-            window.Closed += (s, e) => { ((Window) s)?.Close(); };
+            Window.Closed += (s, e) => { ((Window)s)?.Close(); };
 
-            window.KeyPressed += Window_KeyPressed;
-            window.KeyReleased += Window_KeyReleased;
+            Window.KeyPressed += Window_KeyPressed;
+            Window.KeyReleased += Window_KeyReleased;
 
-            keyHandler = new KeyHandler();
+            KeyHandler = new KeyHandler();
             camera = new Camera(this);
-            spriteRenderer = new SpriteRenderer(this);
-            physicsEngine = new PhysicsEngine(this);
-            canvasRenderer = new CanvasRenderer(this);
-            operationManager = new OperationManager(this);
+            SpriteRenderer = new SpriteRenderer(this);
+            PhysicsEngine = new PhysicsEngine(this);
+            CanvasRenderer = new CanvasRenderer(this);
+            OperationManager = new OperationManager();
             if (isDebug) {
-                testingWindow = new TestingWindow((4, 2));
+                TestingWindow = new TestingWindow((4, 2));
             }
         }
 
-        public Vector2f windowSize => camera.size;
+        public Vector2f WindowSize => camera.Size;
 
         private void Window_KeyReleased(object sender, KeyEventArgs e) {
-            keyHandler.ReleasedKey(e.Code);
+            KeyHandler.ReleasedKey(e.Code);
         }
 
         private void Window_KeyPressed(object sender, KeyEventArgs e) {
-            keyHandler.PressedKey(e.Code);
-
+            KeyHandler.PressedKey(e.Code);
         }
-
 
         public void Run() {
             timeClock.Restart();
 
             deltaTimeClock.Restart();
 
-
             scene.app = this;
-
 
             var background = new Color(20, 93, 160);
 
-            window.SetFramerateLimit(14400);
+            Window.SetFramerateLimit(14400);
 
-            while (window.IsOpen) {
-                window.Clear(background);
-                window.SetView(new View(camera.position, camera.size));
+            while (Window.IsOpen) {
+                Window.Clear(background);
+                Window.SetView(new View(camera.position, camera.Size));
 
+                Window.DispatchEvents();
 
-                window.DispatchEvents();
-
-
-                spriteRenderer.Render();
+                SpriteRenderer.Render();
 
                 scene.Update();
 
-                canvasRenderer.Render();
+                CanvasRenderer.Render();
 
+                Window.SetView(new View(camera.position, camera.Size));
 
-                window.SetView(new View(camera.position, camera.size));
+                OperationManager.Update();
 
-
-                physicsEngine.Update();
-
-
-
-                operationManager.Update();
-
-
+                PhysicsEngine.Update();
 
                 if (isDebug) {
-                    testingWindow.Update();
+                    TestingWindow.Update();
                 }
-
 
                 //window.Draw(
                 //        new Vertex[] {
@@ -144,18 +130,15 @@ namespace MatrixEngine.Framework {
                 //        new Vertex(camera.rect.position+new Vector2f(5,-5+camera.size.Y))
                 //}, PrimitiveType.Lines);
 
+                KeyHandler.Update();
 
-                keyHandler.Update();
+                Window.Display();
 
-                window.Display();
-
-                if (!window.IsOpen) {
+                if (!Window.IsOpen) {
                     break;
                 }
 
-
-                _deltaTime = deltaTimeClock.Restart();
-
+                DeltaTime = deltaTimeClock.Restart();
             }
         }
     }

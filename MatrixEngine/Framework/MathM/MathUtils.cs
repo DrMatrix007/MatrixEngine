@@ -2,6 +2,7 @@
 using System;
 
 namespace MatrixEngine.Framework.MathM {
+
     public static class MathUtils {
         public const float TOLERANCE = 0.01f;
 
@@ -101,7 +102,6 @@ namespace MatrixEngine.Framework.MathM {
             return !v.BiggerThan(v1);
         }
 
-
         public static Vector2f GetCollidingPoint(this Line l1, Line l2) {
             try {
                 var A = l1.a;
@@ -110,7 +110,6 @@ namespace MatrixEngine.Framework.MathM {
                 var a = l2.a;
                 var b = l2.b;
                 var d = l2.c;
-
 
                 var y = (d * A - C * a) / (B * a - b * A);
 
@@ -122,13 +121,12 @@ namespace MatrixEngine.Framework.MathM {
 
                 var pos = new Vector2f(x, y);
 
-
                 if (l1.IsOnRange(pos) && l2.IsOnRange(pos) && float.IsFinite(pos.X) && float.IsFinite(pos.Y)) {
                     return pos;
                 }
 
                 return new Vector2f(float.PositiveInfinity, float.PositiveInfinity);
-            } catch (DivideByZeroException e) {
+            } catch (DivideByZeroException) {
                 return new Vector2f(float.PositiveInfinity, float.PositiveInfinity);
             }
         }
@@ -148,7 +146,6 @@ namespace MatrixEngine.Framework.MathM {
         public static int Sign(this float f) {
             if (f > 0) {
                 return 1;
-
             }
             if (f < 0) {
                 return -1;
@@ -159,6 +156,7 @@ namespace MatrixEngine.Framework.MathM {
         public static Vector2f Abs(this Vector2f f) {
             return new Vector2f(MathF.Abs(f.X), MathF.Abs(f.Y));
         }
+
         public static Vector2i Abs(this Vector2i f) {
             return new Vector2i(Math.Abs(f.X), Math.Abs(f.Y));
         }
@@ -166,6 +164,5 @@ namespace MatrixEngine.Framework.MathM {
         public static float Floor(this float f) {
             return MathF.Floor(f);
         }
-
     }
 }

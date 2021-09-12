@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace MatrixEngine.Framework {
+
     public sealed class KeyHandler {
 
         public enum KeyInput {
@@ -12,18 +13,16 @@ namespace MatrixEngine.Framework {
             Press
         }
 
-        private Dictionary<Keyboard.Key, bool> values;
+        private readonly Dictionary<Keyboard.Key, bool> values;
 
-        private List<Keyboard.Key> pressedDownKeys;
+        private readonly List<Keyboard.Key> pressedDownKeys;
+
         public KeyHandler() {
-
             values = new Dictionary<Keyboard.Key, bool>();
             pressedDownKeys = new List<Keyboard.Key>();
             foreach (Keyboard.Key key in Enum.GetValues<Keyboard.Key>()) {
                 try {
-
                     values[key] = false;
-
                 } catch (Exception e) {
                     Utils.LogError(e.ToString());
                 }
@@ -34,35 +33,40 @@ namespace MatrixEngine.Framework {
             pressedDownKeys.Clear();
         }
 
-        public bool isPressedDown(Keyboard.Key k) {
+        public bool IsPressedDown(Keyboard.Key k) {
             return pressedDownKeys.Contains(k);
         }
 
         private void SetKey(Keyboard.Key key, bool b) {
             try {
                 values[key] = b;
-
-
             } catch (Exception) { }
-            pressedKeys = getCurrentPressedKeys();
-
-
+            PressedKeys = GetCurrentPressedKeys();
         }
+
         internal void PressedKey(Keyboard.Key key) {
             SetKey(key, true);
             pressedDownKeys.Add(key);
         }
+
         internal void ReleasedKey(Keyboard.Key key) {
             SetKey(key, false);
         }
 
-        public bool isPressed(Keyboard.Key key) {
-
+        public bool IsPressed(Keyboard.Key key) {
             return values[key];
-
         }
 
-        public Keyboard.Key[] getCurrentPressedKeys() {
+        public bool IsPressed(params Keyboard.Key[] keys) {
+            foreach (var item in keys) {
+                if (IsPressed(item)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public Keyboard.Key[] GetCurrentPressedKeys() {
             return values.Where(
                     (e) => {
                         return e.Value;
@@ -75,14 +79,10 @@ namespace MatrixEngine.Framework {
                     ).ToArray();
         }
 
-        public Keyboard.Key[] pressedKeys
+        public Keyboard.Key[] PressedKeys
         {
             private set;
             get;
-
-        } = new Keyboard.Key[] { };
-
-
-
+        } = Array.Empty<Keyboard.Key>();
     }
 }
