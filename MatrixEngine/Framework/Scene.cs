@@ -52,7 +52,7 @@ namespace MatrixEngine.Framework {
             // uiObjects.AddRange(objects);
         }
 
-        private void AddUIObject(UIObject uiObject) {
+        public void AddUIObject(UIObject uiObject) {
             uiObject.SetupScene(this);
             uiObjects.Add(uiObject);
         }

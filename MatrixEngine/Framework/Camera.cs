@@ -1,5 +1,4 @@
 ﻿using MatrixEngine.Physics;
-using MatrixEngine.Framework.MathM;
 using SFML.System;
 
 namespace MatrixEngine.Framework {
@@ -15,7 +14,7 @@ namespace MatrixEngine.Framework {
 
         public Vector2f Size
         {
-            get => new(2.0f.Pow(zoom) /* here is the freaking multuply*/ * ((float)app.Window.Size.X / app.Window.Size.Y).Sqrt() * 100, 2.0f.Pow(zoom) * 100 / ((float)app.Window.Size.X / app.Window.Size.Y).Sqrt());
+            get => new(2.0f.Pow(zoom) /* here is the freaking multuply*/ * ((float)app.Window.Size.X / app.Window.Size.Y) * 100, 2.0f.Pow(zoom) * 100);
         }
 
         public Rect Rect

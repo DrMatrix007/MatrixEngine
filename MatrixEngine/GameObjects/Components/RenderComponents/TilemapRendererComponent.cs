@@ -1,4 +1,4 @@
-﻿using MatrixEngine.Framework.MathM;
+﻿using MatrixEngine.Framework;
 using MatrixEngine.GameObjects.Components.TilemapComponents;
 using MatrixEngine.Physics;
 using SFML.Graphics;
@@ -12,7 +12,7 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
     public class TilemapRendererComponent : RendererComponent {
         private TilemapComponent tilemap;
 
-        private readonly Dictionary<Vector2i, RenderTexture> chunkTextures;
+        internal readonly Dictionary<Vector2i, RenderTexture> chunkTextures;
 
         public TilemapRendererComponent() {
             layer = -50;
@@ -92,14 +92,19 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
                 if (sprite != null) {
                     sprite.Dispose();
                 }
-                sprite = new Sprite(item.Value.Texture) {
-                    Texture = (item.Value.Texture),
-                    Position = GameObject.Position
-                };
-                sprite.Position += new Vector2f(item.Key.X * Transform.scale.X, item.Key.Y * Transform.scale.Y);
-                sprite.Scale /= tilemap.pixelsPerUnit;
-                sprite.Scale = new Vector2f(sprite.Scale.X * Transform.scale.X, sprite.Scale.Y * Transform.scale.Y);
-                App.Window.Draw(sprite);
+                if (tilemap.chunks.ContainsKey(item.Key)) {
+                    sprite = new Sprite(item.Value.Texture) {
+                        Texture = (item.Value.Texture),
+                        Position = GameObject.Position
+                    };
+                    sprite.Position += new Vector2f(item.Key.X * Transform.scale.X, item.Key.Y * Transform.scale.Y);
+                    sprite.Scale /= tilemap.pixelsPerUnit;
+                    sprite.Scale = new Vector2f(sprite.Scale.X * Transform.scale.X, sprite.Scale.Y * Transform.scale.Y);
+                    App.Window.Draw(sprite);
+                } else {
+                    item.Value.Dispose();
+                    chunkTextures.Remove(item.Key);
+                }
             }
 
             //foreach (var item in tilemap.chunks) {

@@ -1,7 +1,7 @@
 ﻿using SFML.System;
 using System;
 
-namespace MatrixEngine.Framework.MathM {
+namespace MatrixEngine.Framework {
 
     public static class MathUtils {
         public const float TOLERANCE = 0.01f;
@@ -52,12 +52,12 @@ namespace MatrixEngine.Framework.MathM {
         }
 
         public static Vector2f Round(this Vector2f v, int r) {
-            return new Vector2f((float)global::System.Math.Round(v.X, r, MidpointRounding.ToZero),
+            return new Vector2f((float)Math.Round(v.X, r, MidpointRounding.ToZero),
                 MathF.Round(v.Y, r, MidpointRounding.ToZero));
         }
 
         public static Vector2f Round(this Vector2f v, MidpointRounding r) {
-            return new Vector2f((float)global::System.Math.Round(v.X, 0, r),
+            return new Vector2f((float)Math.Round(v.X, 0, r),
                 MathF.Round(v.Y, 0, r));
         }
 
@@ -69,6 +69,14 @@ namespace MatrixEngine.Framework.MathM {
             return new Vector2f(v1.X / v2.X, v1.Y / v2.Y);
         }
 
+        public static Vector2i Multiply(this Vector2i v1, Vector2i v2) {
+            return new Vector2i(v1.X * v2.X, v1.Y * v2.Y);
+        }
+
+        public static Vector2i Devide(this Vector2i v1, Vector2i v2) {
+            return new Vector2i(v1.X / v2.X, v1.Y / v2.Y);
+        }
+
         public static float Abs(this float f) {
             return MathF.Abs(f);
         }
@@ -78,7 +86,7 @@ namespace MatrixEngine.Framework.MathM {
         }
 
         public static float AbsMin(this float f, float r) {
-            return Abs(MathF.Min(r.Abs(), f.Abs()) - r.Abs()) < 0.001f ? r : f;
+            return (MathF.Min(r.Abs(), f.Abs()) - r.Abs()).Abs() < 0.001f ? r : f;
         }
 
         public static bool IsBetween(this float f, float small, float big) {
@@ -90,7 +98,7 @@ namespace MatrixEngine.Framework.MathM {
         }
 
         public static Vector2f Min(this Vector2f v) {
-            var a = global::System.Math.Min(v.X, v.Y);
+            var a = Math.Min(v.X, v.Y);
             return new Vector2f(a, a);
         }
 
@@ -132,8 +140,8 @@ namespace MatrixEngine.Framework.MathM {
         }
 
         public static bool IsOnLine(this Line line, Vector2f pos) {
-            Console.WriteLine(Abs(line.a * pos.X + line.b * pos.Y + line.c) < TOLERANCE);
-            return Abs(line.a * pos.X + line.b * pos.Y + line.c) < TOLERANCE
+            Console.WriteLine((line.a * pos.X + line.b * pos.Y + line.c).Abs() < TOLERANCE);
+            return (line.a * pos.X + line.b * pos.Y + line.c).Abs() < TOLERANCE
                    && line.IsOnRange(pos);
         }
 

@@ -5,10 +5,11 @@ using SFML.System;
 using SFML.Window;
 
 namespace MatrixEngine.UI {
-    public  class TextConsumerUIObject : TextUIObject {
+
+    public class TextConsumerUIObject : TextUIObject {
         private Provider<string> provider;
 
-        public TextConsumerUIObject(Anchor anchor, Provider<string> prov, UITextStyle uiTextStyle,int layer) : base(anchor, "" , uiTextStyle,layer) {
+        public TextConsumerUIObject(Anchor anchor, Provider<string> prov, UITextStyle uiTextStyle) : base(anchor, "", uiTextStyle) {
             provider = prov;
         }
 
@@ -20,7 +21,7 @@ namespace MatrixEngine.UI {
             // throw new NotImplementedException();
         }
 
-        public override  (Vector2f pos, Vector2f size) Render(RenderTarget target) {
+        public override (Vector2f pos, Vector2f size) Render(RenderTarget target) {
             text = provider.Get();
             return base.Render(target);
         }

@@ -17,7 +17,7 @@ namespace MatrixEngine.Renderers {
         public CanvasRenderer(App app) : base(app) {
             list = new List<UIObject>();
 
-            target = new RenderTexture((uint)app.WindowSize.X, (uint)app.WindowSize.Y);
+            target = new RenderTexture((uint)app.CameraSize.X, (uint)app.CameraSize.Y);
         }
 
         public void Add(UIObject component) {
@@ -32,16 +32,15 @@ namespace MatrixEngine.Renderers {
                 target = new RenderTexture(app.Window.Size.X, app.Window.Size.Y);
             }
             target.Clear(Color.Transparent);
-            ;
 
             var new_list = list.OrderBy(x => {
-                return x.layer;
+                return x.style.layer;
             });
             foreach (var component in new_list) {
                 var (pos, size) = component.Render(target);
 
                 var rect = new Rect(pos + size / 2, size);
-                var po = Mouse.GetPosition() - app.Window.Position;
+                var po = app.InputHandler.GetMouseScreenPos();
                 if (!rect.IsInside((Vector2f)po))
                     continue;
                 component.OnHover((Vector2f)po);

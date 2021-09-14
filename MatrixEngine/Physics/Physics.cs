@@ -1,4 +1,4 @@
-﻿using MatrixEngine.Framework.MathM;
+﻿using MatrixEngine.Framework;
 using SFML.System;
 
 namespace MatrixEngine.Physics {

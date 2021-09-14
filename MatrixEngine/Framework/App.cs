@@ -14,7 +14,7 @@ namespace MatrixEngine.Framework {
     public sealed class App {
         public PhysicsEngine PhysicsEngine { get; private set; }
 
-        public KeyHandler KeyHandler { get; private set; }
+        public InputHandler InputHandler { get; private set; }
 
         public OperationManager OperationManager { get; private set; }
 
@@ -22,7 +22,7 @@ namespace MatrixEngine.Framework {
         private readonly bool isDebug;
         public Scene scene;
 
-        public Camera camera;
+        public readonly Camera camera;
 
         public SpriteRenderer SpriteRenderer { get; private set; }
 
@@ -61,7 +61,6 @@ namespace MatrixEngine.Framework {
             } else {
                 Window = new RenderWindow(new VideoMode(800, 600), AppName);
             }
-            // window.SetIcon();
 
             Window.SetKeyRepeatEnabled(false);
 
@@ -70,7 +69,7 @@ namespace MatrixEngine.Framework {
             Window.KeyPressed += Window_KeyPressed;
             Window.KeyReleased += Window_KeyReleased;
 
-            KeyHandler = new KeyHandler();
+            InputHandler = new InputHandler(this);
             camera = new Camera(this);
             SpriteRenderer = new SpriteRenderer(this);
             PhysicsEngine = new PhysicsEngine(this);
@@ -81,14 +80,16 @@ namespace MatrixEngine.Framework {
             }
         }
 
-        public Vector2f WindowSize => camera.Size;
+        public Vector2f CameraSize => camera.Size;
+
+        public Vector2i WindowSize => (Vector2i)Window.Size;
 
         private void Window_KeyReleased(object sender, KeyEventArgs e) {
-            KeyHandler.ReleasedKey(e.Code);
+            InputHandler.ReleasedKey(e.Code);
         }
 
         private void Window_KeyPressed(object sender, KeyEventArgs e) {
-            KeyHandler.PressedKey(e.Code);
+            InputHandler.PressedKey(e.Code);
         }
 
         public void Run() {
@@ -100,7 +101,7 @@ namespace MatrixEngine.Framework {
 
             var background = new Color(20, 93, 160);
 
-            Window.SetFramerateLimit(14400);
+            //Window.SetFramerateLimit(144);
 
             while (Window.IsOpen) {
                 Window.Clear(background);
@@ -114,7 +115,7 @@ namespace MatrixEngine.Framework {
 
                 CanvasRenderer.Render();
 
-                Window.SetView(new View(camera.position, camera.Size));
+                //Window.SetView(new View(camera.position, camera.Size));
 
                 OperationManager.Update();
 
@@ -130,7 +131,7 @@ namespace MatrixEngine.Framework {
                 //        new Vertex(camera.rect.position+new Vector2f(5,-5+camera.size.Y))
                 //}, PrimitiveType.Lines);
 
-                KeyHandler.Update();
+                InputHandler.Update();
 
                 Window.Display();
 

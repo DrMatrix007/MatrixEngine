@@ -42,10 +42,10 @@ namespace MatrixEngine.GameObjects.Components {
             }
         }
 
-        public KeyHandler KeyHandler
+        public InputHandler InputHandler
         {
             get {
-                return App.KeyHandler;
+                return App.InputHandler;
             }
         }
 

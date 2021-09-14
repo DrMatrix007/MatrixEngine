@@ -29,19 +29,19 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
         public override void Update() {
             x = (float)RigidBodyComponent.Velocity.X;
             y = (float)RigidBodyComponent.Velocity.Y;
-            if (KeyHandler.IsPressed(Keyboard.Key.A)) {
+            if (InputHandler.IsPressed(Keyboard.Key.A)) {
                 x = -speed;
             }
-            if (KeyHandler.IsPressed(Keyboard.Key.D)) {
+            if (InputHandler.IsPressed(Keyboard.Key.D)) {
                 x = speed;
             }
-            if (KeyHandler.IsPressedDown(Keyboard.Key.W)) {
+            if (InputHandler.IsPressedDown(Keyboard.Key.W)) {
                 sound.Play();
             }
-            if (KeyHandler.IsPressed(Keyboard.Key.W)) {
+            if (InputHandler.IsPressed(Keyboard.Key.W)) {
                 y = -speed;
             }
-            if (KeyHandler.IsPressed(Keyboard.Key.S)) {
+            if (InputHandler.IsPressed(Keyboard.Key.S)) {
                 y = speed;
             }
 

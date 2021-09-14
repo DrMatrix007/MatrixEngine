@@ -1,7 +1,8 @@
 ﻿using System;
 using SFML.System;
 
-namespace MatrixEngine.Framework.MathM {
+namespace MatrixEngine.Framework {
+
     public struct Line {
         public readonly float a;
         public readonly float b;
@@ -9,7 +10,8 @@ namespace MatrixEngine.Framework.MathM {
 
         public readonly Vector2f start;
         public readonly Vector2f end;
-        private Line(float a, float b, float c,Vector2f start,Vector2f end) {
+
+        private Line(float a, float b, float c, Vector2f start, Vector2f end) {
             this.a = a;
             this.b = b;
             this.c = c;
@@ -23,12 +25,8 @@ namespace MatrixEngine.Framework.MathM {
             var c = pos1.X;
             var d = pos1.Y;
 
-
-            return new Line(d - b, a - c, a*(b-d)  - b* (a - c),pos,pos1);
+            return new Line(d - b, a - c, a * (b - d) - b * (a - c), pos, pos1);
         }
-        
-
-
 
         public override string ToString() {
             return $"{a}x+{b}y+{c}=0";
