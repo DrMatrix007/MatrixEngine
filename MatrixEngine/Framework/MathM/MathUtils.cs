@@ -152,9 +152,7 @@ namespace MatrixEngine.Framework {
         }
 
         public static bool IsOnRange(this Line line, Vector2f pos) {
-            return pos.X.IsBetween(line.start.X, line.end.X) &&
-                   pos.Y.IsBetween(line.start.Y, line.end.Y);
-            ;
+            return (line.start.X - line.end.X).Abs() > (line.start.Y - line.end.Y).Abs() ? pos.X.IsBetween(line.start.X, line.end.X) : pos.Y.IsBetween(line.start.Y, line.end.Y);
         }
 
         public static int Sign(this float f) {

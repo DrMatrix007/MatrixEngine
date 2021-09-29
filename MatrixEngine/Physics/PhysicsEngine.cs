@@ -269,7 +269,7 @@ namespace MatrixEngine.Physics {
                             //Console.WriteLine(isx);
 
                             if (isx) {
-                                for (float i = line.start.X; i.IsBetween(line.start.X, line.end.X); i += step / 2 * -(line.start.X - line.end.X).Sign()) {
+                                for (float i = line.start.X; i.IsBetween(line.start.X, line.end.X); i += step * -(line.start.X - line.end.X).Sign()) {
                                     Vector2i pos;
                                     Tile tile;
                                     Vector2f rpos;
@@ -300,7 +300,7 @@ namespace MatrixEngine.Physics {
                                     }
                                 }
                             } else {
-                                for (float i = line.start.Y; i.IsBetween(line.start.Y, line.end.Y); i += step / 2 * -(line.start.Y - line.end.Y).Sign()) {
+                                for (float i = line.start.Y; i.IsBetween(line.start.Y, line.end.Y); i += step * -(line.start.Y - line.end.Y).Sign()) {
                                     Vector2i pos;
                                     Tile tile;
                                     Vector2f rpos;

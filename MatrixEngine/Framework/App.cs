@@ -104,14 +104,14 @@ namespace MatrixEngine.Framework {
             //Window.SetFramerateLimit(144);
 
             while (Window.IsOpen) {
+                DeltaTime = deltaTimeClock.Restart();
+
                 Window.Clear(background);
                 Window.SetView(new View(camera.position, camera.Size));
 
                 Window.DispatchEvents();
 
                 SpriteRenderer.Render();
-                
-
 
                 scene.Update();
 
@@ -140,8 +140,6 @@ namespace MatrixEngine.Framework {
                 if (!Window.IsOpen) {
                     break;
                 }
-
-                DeltaTime = deltaTimeClock.Restart();
             }
         }
     }
