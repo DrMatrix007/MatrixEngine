@@ -29,7 +29,7 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
         public override void Update() {
             base.Update();
             sprite.Position = Position;
-            sprite.Scale = Transform.scale / pixelperunit;
+            sprite.Scale = Transform.Scale / pixelperunit;
 
             sprite.Texture = currentAnim.GetCurrent(App.TimeAsSeconds).texture;
         }

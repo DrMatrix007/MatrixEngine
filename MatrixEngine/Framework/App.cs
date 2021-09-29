@@ -110,6 +110,8 @@ namespace MatrixEngine.Framework {
                 Window.DispatchEvents();
 
                 SpriteRenderer.Render();
+                
+
 
                 scene.Update();
 

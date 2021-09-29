@@ -13,6 +13,8 @@ namespace MatrixEngine.GameObjects.Components {
             get => App.OperationManager;
         }
 
+        public PhysicsEngine PhysicsEngine => App.PhysicsEngine;
+
         public GameObject GameObject
         {
             private set;

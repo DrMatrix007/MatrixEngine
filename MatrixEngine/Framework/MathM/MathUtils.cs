@@ -44,6 +44,9 @@ namespace MatrixEngine.Framework {
         }
 
         public static float Length(this Vector2f v) {
+            if (!v.IsFinite()) {
+                return float.PositiveInfinity;
+            }
             return (v.X.Sqr() + v.Y.Sqr()).Sqrt();
         }
 
@@ -90,6 +93,9 @@ namespace MatrixEngine.Framework {
         }
 
         public static bool IsBetween(this float f, float small, float big) {
+            if (small > big) {
+                return f.IsBetween(big, small);
+            }
             return small <= f && f <= big;
         }
 
@@ -112,12 +118,12 @@ namespace MatrixEngine.Framework {
 
         public static Vector2f GetCollidingPoint(this Line l1, Line l2) {
             try {
-                var A = l1.a;
-                var B = l1.b;
-                var C = l1.c;
-                var a = l2.a;
-                var b = l2.b;
-                var d = l2.c;
+                var A = l1.a; // 0
+                var B = l1.b; // 1
+                var C = l1.c; // 0
+                var a = l2.a; // 1
+                var b = l2.b; // 0
+                var d = l2.c; // 0
 
                 var y = (d * A - C * a) / (B * a - b * A);
 
@@ -129,7 +135,7 @@ namespace MatrixEngine.Framework {
 
                 var pos = new Vector2f(x, y);
 
-                if (l1.IsOnRange(pos) && l2.IsOnRange(pos) && float.IsFinite(pos.X) && float.IsFinite(pos.Y)) {
+                if (l1.IsOnRange(pos) && l2.IsOnRange(pos)) {
                     return pos;
                 }
 
@@ -146,8 +152,8 @@ namespace MatrixEngine.Framework {
         }
 
         public static bool IsOnRange(this Line line, Vector2f pos) {
-            return pos.X.IsBetween(MathF.Min(line.start.X, line.end.X), MathF.Max(line.start.X, line.end.X)) &&
-                   pos.Y.IsBetween(MathF.Min(line.start.Y, line.end.Y), MathF.Max(line.start.Y, line.end.Y));
+            return pos.X.IsBetween(line.start.X, line.end.X) &&
+                   pos.Y.IsBetween(line.start.Y, line.end.Y);
             ;
         }
 
@@ -169,8 +175,24 @@ namespace MatrixEngine.Framework {
             return new Vector2i(Math.Abs(f.X), Math.Abs(f.Y));
         }
 
-        public static float Floor(this float f) {
-            return MathF.Floor(f);
+        public static int Floor(this float f) {
+            return (int)MathF.Floor(f);
+        }
+
+        public static bool IsInfinite(this float f) {
+            return float.IsInfinity(f);
+        }
+
+        public static bool IsFinite(this float f) {
+            return float.IsFinite(f);
+        }
+
+        public static bool IsFinite(this Vector2f f) {
+            return f.X.IsFinite() && f.Y.IsFinite();
+        }
+
+        public static Vector2f Floor(this Vector2f f) {
+            return new Vector2f(f.X.Floor(), f.Y.Floor());
         }
     }
 }

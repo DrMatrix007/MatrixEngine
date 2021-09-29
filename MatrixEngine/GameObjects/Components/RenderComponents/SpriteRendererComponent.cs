@@ -62,7 +62,7 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
             sprite.Position = GameObject.Position;
             App.SpriteRenderer.AddToQueue(this);
 
-            sprite.Scale = Transform.scale / pixelPerUnit;
+            sprite.Scale = Transform.Scale / pixelPerUnit;
             //Debug.Log(sprite.Scale);
         }
     }

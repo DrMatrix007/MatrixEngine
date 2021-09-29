@@ -1,13 +1,16 @@
 ﻿using MatrixEngine.Framework;
 using SFML.System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace MatrixEngine.Physics {
+
     public static class Physics {
+
         public struct CollidingFix {
             public bool isCollide;
 
             public Vector2f fixValue;
-
 
             public CollidingFix(bool isCollide, Vector2f fixValue) {
                 this.fixValue = fixValue;
@@ -15,27 +18,7 @@ namespace MatrixEngine.Physics {
             }
         }
 
-        public static bool isColliding(this Rect rect1, Rect rect2) {
-            //float d1x = b.X - a.X - a.width;
-            //float d1y = b.Y - a.Y - a.height;
-            //float d2x = a.X - b.X - b.width;
-            //float d2y = a.Y - b.Y - b.height;
-
-            //var threshhold = 0.0f;
-
-            //if ((d1x > threshhold || d1y > threshhold) || (d2x > threshhold || d2y > threshhold)) {
-            //    return false;
-            //}
-            //return true;
-
-            //var distanceX = (rect1.X-rect2.X).Abs();
-            //var distanceY = (rect1.Y-rect2.Y).Abs();
-
-            //var dx = (rect1.width/2+rect2.width/2).Abs);
-            //var dy = rect1.height/2+rect2.height/2;
-
-
-
+        public static bool IsColliding(this Rect rect1, Rect rect2) {
             return rect1.X < rect2.max.X &&
                    rect1.max.X > rect2.X &&
                    rect1.Y < rect2.max.Y &&
@@ -53,37 +36,18 @@ namespace MatrixEngine.Physics {
             //up = (float)Math.Round(up, 3, MidpointRounding.ToZero);
             //down = (float)Math.Round(down, 3, MidpointRounding.ToZero);
 
-            return new CollidingFix(a.isColliding(b), new Vector2f(left.AbsMin(right), up.AbsMin(down)));
+            return new CollidingFix(a.IsColliding(b), new Vector2f(left.AbsMin(right), up.AbsMin(down)));
         }
 
+        public static List<Vector2f> GetCollidingPosFromLineToRect(this Line line, Rect a) {
+            var poss = new List<Vector2f>();
 
-        public static CollidingFix GetCollidingFixFromCircleToRect(this Circle circle, Rect rect) {
-            var is_col = false;
-
-            var is_left = circle.X > rect.cX;
-            var is_up = circle.Y > rect.cY;
-
-            var x_fix = 0.0f;
-            var y_fix = 0.0f;
-
-            if (is_left) {
-                var cx = circle.X + circle.r;
-                var rx = rect.X;
-                x_fix = cx - rx;
-                if (x_fix > 0) {
-                    is_col = true;
-                }
-            } else {
-                var cx = circle.X - circle.r;
-                var rx = rect.max.X;
-                x_fix = rx - cx;
-                if (x_fix > 0) {
-                    is_col = true;
-                }
+            foreach (var rline in a.ToLines()) {
+                var ans = rline.GetCollidingPoint(line);
+                poss.Add(ans);
             }
 
-
-            return new CollidingFix(is_col, new Vector2f(x_fix, y_fix));
+            return poss.OrderBy<Vector2f, float>((a) => line.start.Distance(a)).ToList();
         }
     }
 }

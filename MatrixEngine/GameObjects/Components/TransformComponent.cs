@@ -24,7 +24,7 @@ namespace MatrixEngine.GameObjects.Components {
 
         public Rect fullRect
         {
-            get => new Rect(_rect.X,_rect.Y,_rect.width*scale.X,_rect.height*scale.Y);
+            get => new Rect(_rect.X,_rect.Y,_rect.width*Scale.X,_rect.height*Scale.Y);
         }
         public Rect rect
         {
@@ -32,7 +32,7 @@ namespace MatrixEngine.GameObjects.Components {
             set => _rect = value;
         }
 
-        public Vector2f scale = new Vector2f(1,1);
+        public Vector2f Scale = new Vector2f(1,1);
 
 
 

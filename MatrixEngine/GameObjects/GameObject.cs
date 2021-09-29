@@ -20,8 +20,8 @@ namespace MatrixEngine.GameObjects {
 
         public Vector2f Scale
         {
-            get => Transform.scale;
-            set => Transform.scale = value;
+            get => Transform.Scale;
+            set => Transform.Scale = value;
         }
 
         public Rect Rect
@@ -128,6 +128,8 @@ namespace MatrixEngine.GameObjects {
             components = new Dictionary<Type, Component>();
             Transform = new TransformComponent();
         }
+
+        
 
         public GameObject(IEnumerable<Component> components) : this() {
             SetComponents(components);

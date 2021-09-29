@@ -23,7 +23,7 @@ namespace MatrixEngine.UI {
             }
         }
 
-        private Text drawable;
+        private new Text drawable;
 
         private void CreateText() {
             drawable?.Dispose();

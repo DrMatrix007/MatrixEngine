@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace MatrixEngine.StateManagment {
 
     public class ValueProvider<T> : Provider<T> where T : class {
-        private readonly T value;
+        protected T value;
 
         public ValueProvider(T value) {
             this.value = value;

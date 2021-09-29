@@ -1,4 +1,6 @@
-﻿using MatrixEngine.Framework.Operations;
+﻿using MatrixEngine.Framework;
+using MatrixEngine.Framework.Operations;
+using SFML.Graphics;
 using SFML.System;
 using System;
 using System.Collections;
@@ -72,5 +74,23 @@ namespace MatrixEngine.Utilities {
         public static Operation ToOperation(this IEnumerator enumerator) {
             return new Operation(enumerator);
         }
+
+        public static VertexArray ToVertexArray(this Line line) {
+
+            return line.ToVertexArray(Color.Black);
+
+
+        }
+
+        public static VertexArray ToVertexArray(this Line line,Color color) {
+
+            var v = new VertexArray();
+            v.Append(new Vertex() { Position = line.start, Color = color });
+            v.Append(new Vertex() { Position = line.end, Color = color });
+
+            return v;
+        }
+
+
     }
 }

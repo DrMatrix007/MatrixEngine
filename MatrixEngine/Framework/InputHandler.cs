@@ -73,6 +73,21 @@ namespace MatrixEngine.Framework {
             return values[key];
         }
 
+        public bool IsPressed(Mouse.Button button) {
+            return Mouse.IsButtonPressed(button);
+        }
+
+        public bool IsPressed(params Mouse.Button[] keys) {
+            foreach (var item in keys) {
+                if (IsPressed(item)) {
+                    return true;
+                }
+            }
+            return false;
+
+        }
+
+
         public bool IsPressed(params Keyboard.Key[] keys) {
             foreach (var item in keys) {
                 if (IsPressed(item)) {

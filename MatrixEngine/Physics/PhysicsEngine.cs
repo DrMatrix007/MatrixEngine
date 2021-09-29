@@ -2,7 +2,9 @@
 using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using MatrixEngine.GameObjects.Components.TilemapComponents;
 using MatrixEngine.Utilities;
+using SFML.Graphics;
 using SFML.System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -128,7 +130,7 @@ namespace MatrixEngine.Physics {
 
             if (nonstatic.ColliderComponent.colliderType != ColliderComponent.ColliderType.None) {
                 foreach (var rect in l) {
-                    if (nonstatic_rect.isColliding(rect)) {
+                    if (nonstatic_rect.IsColliding(rect)) {
                         //if (rect.Y == -1) {
                         //    System.Console.WriteLine("?????????????");
                         //}
@@ -161,7 +163,7 @@ namespace MatrixEngine.Physics {
 
             if (nonstatic.ColliderComponent.colliderType != ColliderComponent.ColliderType.None) {
                 foreach (var rect in l) {
-                    if (nonstatic_rect.isColliding(rect)) {
+                    if (nonstatic_rect.IsColliding(rect)) {
                         if (nonstatic_rect.cY < rect.cY) {
                             nonstatic.Position = new Vector2f(nonstatic.Position.X, rect.Y - nonstatic_rect.height);
                             nonstatic.TouchDown = true;
@@ -200,6 +202,7 @@ namespace MatrixEngine.Physics {
                     break;
                 }
             }
+            (vel.Y.Abs() / ContinuousStep).Log();
             v = vel.Y % ContinuousStep;
 
             if (v != 0) {
@@ -214,14 +217,20 @@ namespace MatrixEngine.Physics {
             }
 
             var nonstatic_rect = nonstatic.ColliderComponent.Rect;
-            var tile_scale = tilemap.Transform.scale;
+            var tile_scale = tilemap.Transform.Scale;
 
             var list_rects = new List<Rect>();
 
             Vector2f pos;
 
-            for (float x = -tile_scale.X * 2; x < nonstatic_rect.width + tile_scale.X * 2; x += tile_scale.X) {
-                for (float y = -tile_scale.Y * 2; y < nonstatic_rect.height + tile_scale.Y * 2; y += tile_scale.Y) {
+            var vx = nonstatic.Velocity.X * App.DeltaTimeAsSeconds;
+            var vy = nonstatic.Velocity.Y * App.DeltaTimeAsSeconds;
+
+            vx = vx.Abs() > 1 ? vx.Abs() : 1;
+            vy = vy.Abs() > 1 ? vy.Abs() : 1;
+
+            for (float x = -tile_scale.X * 2 * vx; x < (nonstatic_rect.width + tile_scale.X * 2) * vx; x += tile_scale.X) {
+                for (float y = -tile_scale.Y * 2 * vy; y < (nonstatic_rect.height + tile_scale.Y * 2) * vy; y += tile_scale.Y) {
                     pos = new Vector2f(x, y) + nonstatic.Position;
                     if (tilemap.GetTileFromWorldPos(pos) != null) {
                         var r = new Rect(((Vector2f)tilemap.GetPosOfTileFromWorldPos(pos)).Multiply(tile_scale) + tilemap.Position, tile_scale);
@@ -236,6 +245,131 @@ namespace MatrixEngine.Physics {
 
         private void AddRectToCollision(Rect @static) {
             rectsToCalc.Add(@static);
+        }
+
+        public Vector2f LineCast(Line line, Func<ColliderComponent, bool> check = null) {
+            var points = new List<Vector2f>();
+            foreach (var item in check != null ? collidersToCalc.Where(check).ToList() : collidersToCalc) {
+                switch (item.colliderType) {
+                    case ColliderComponent.ColliderType.None:
+                        break;
+
+                    case ColliderComponent.ColliderType.Rect:
+
+                        points.AddRange(line.GetCollidingPosFromLineToRect(item.Transform.fullRect));
+
+                        break;
+
+                    case ColliderComponent.ColliderType.Tilemap:
+                        var t = item.GetComponent<TilemapComponent>();
+                        if (t != null) {
+                            var step = t.Transform.Scale.X > t.Transform.Scale.Y ? t.Transform.Scale.X : t.Transform.Scale.Y;
+                            //step /= 10f;
+                            var isx = (line.start.X - line.end.X).Abs() > (line.start.Y - line.end.Y).Abs();
+                            //Console.WriteLine(isx);
+
+                            if (isx) {
+                                for (float i = line.start.X; i.IsBetween(line.start.X, line.end.X); i += step / 2 * -(line.start.X - line.end.X).Sign()) {
+                                    Vector2i pos;
+                                    Tile tile;
+                                    Vector2f rpos;
+                                    for (int add = -5; add <= 3; add++) {
+                                        pos = t.GetPosOfTileFromWorldPos(line.WhereX(i)) + new Vector2i(0, add);
+                                        tile = t.GetTileFromTilemapPos(pos);
+                                        if (tile == null) {
+                                            continue;
+                                        }
+
+                                        rpos = t.GetWorldPosFromTilePos(pos);
+
+                                        var s = new RectangleShape() { Position = rpos, Size = t.TileRect.size, FillColor = new Color(255, 255, 255, 100) };
+                                        App.Window.Draw(s);
+                                        s.Dispose();
+
+                                        //var anspos = line.GetCollidingPosFromLineToRect(t.TileRect.SetPos(rpos));
+                                        //points.AddRange(anspos);
+                                        //if (anspos.IsFinite()) {
+                                        //    points.Add(anspos);
+                                        //    exit = true;
+                                        //    //break;
+
+                                        //}
+                                        foreach (var lrect in t.TileRect.SetPos(rpos).ToLines()) {
+                                            points.Add(line.GetCollidingPoint(lrect));
+                                        }
+                                    }
+                                }
+                            } else {
+                                for (float i = line.start.Y; i.IsBetween(line.start.Y, line.end.Y); i += step / 2 * -(line.start.Y - line.end.Y).Sign()) {
+                                    Vector2i pos;
+                                    Tile tile;
+                                    Vector2f rpos;
+                                    bool exit = false;
+
+                                    for (int add = -4; add <= 4; add++) {
+                                        pos = t.GetPosOfTileFromWorldPos(line.WhereY(i)) + new Vector2i(add, 0);
+                                        tile = t.GetTileFromTilemapPos(pos);
+                                        if (tile == null) {
+                                            continue;
+                                        }
+                                        rpos = t.GetWorldPosFromTilePos(pos);
+
+                                        var s = new RectangleShape() { Position = rpos, Size = t.TileRect.size, FillColor = new Color(255, 255, 255, 100) };
+
+                                        App.Window.Draw(s);
+                                        s.Dispose();
+
+                                        var r = t.TileRect.SetPos(rpos);
+
+                                        foreach (var l in r.ToLines()) {
+                                            var v = l.ToVertexArray();
+                                            App.Window.Draw(v);
+                                            v.Dispose();
+                                        }
+
+                                        var anspos = line.GetCollidingPosFromLineToRect(r);
+
+                                        //points.AddRange(anspos);
+
+                                        foreach (var lrect in t.TileRect.SetPos(rpos).ToLines()) {
+                                            points.Add(line.GetCollidingPoint(lrect));
+                                        }
+
+                                        //if (anspos.IsFinite()) {
+                                        //    points.Add(anspos);
+                                        //    exit = true;
+                                        //    //break;
+
+                                        //}
+                                    }
+                                }
+                            }
+
+                            break;
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+            if (points.Count == 0) {
+                return line.end;
+            }
+
+            points.ForEach(e => {
+                var r = new RectangleShape() { Position = e - new Vector2f(0.1f, 0.1f), Size = new Vector2f(0.2f, 0.2f), FillColor = Color.Red };
+
+                App.Window.Draw(r);
+
+                r.Dispose();
+            });
+            var ans = points.Aggregate((e, a) => line.start.Distance(a) < line.start.Distance(e) ? a : e);
+            points.Clear();
+            if (ans.X.IsInfinite() || ans.Y.IsInfinite()) {
+                return line.end;
+            }
+            return ans;
         }
     }
 }

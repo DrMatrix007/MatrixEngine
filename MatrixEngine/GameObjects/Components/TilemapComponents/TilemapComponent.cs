@@ -1,4 +1,5 @@
-﻿using MatrixEngine.Physics;
+﻿using MatrixEngine.Framework;
+using MatrixEngine.Physics;
 using SFML.System;
 using System;
 using System.Collections.Generic;
@@ -9,16 +10,17 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
         public int pixelsPerUnit;
         internal Dictionary<Vector2i, Chunk> chunks;
 
-        public const int chunkSize = 50;
+        public const int chunkSize = 25;
 
-        public Vector2f ChunkRectSize { get => new(chunkSize * Transform.scale.X, chunkSize * Transform.scale.Y); }
+        public Vector2f ChunkRectSize { get => new(chunkSize * Transform.Scale.X, chunkSize * Transform.Scale.Y); }
 
         public TilemapComponent() : this(16) {
+
         }
 
         public Rect TileRect
         {
-            get => new(0, 0, Transform.scale.X, Transform.scale.Y);
+            get => new(0, 0, Transform.Scale.X, Transform.Scale.Y);
         }
 
         public TilemapComponent(int pixelperunit) {
@@ -48,6 +50,12 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
             return default;
         }
 
+
+        public T GetTileFromTilemapPos<T>(Vector2i pos) where T: Tile {
+            return GetTileFromTilemapPos(pos) as T;
+        }
+
+
         private static Vector2i GetLocalChunkPos(Vector2i i, Vector2i chunk_pos) {
             var pos = i - chunk_pos;
             if (pos.X < 0) {
@@ -73,11 +81,15 @@ namespace MatrixEngine.GameObjects.Components.TilemapComponents {
         }
 
         public Vector2i GetPosOfTileFromWorldPos(Vector2f pos) {
-            return (Vector2i)(new Vector2f(pos.X / Transform.scale.X, pos.Y / Transform.scale.Y) - GameObject.Transform.position);
+            return (Vector2i)(new Vector2f(pos.X / Transform.Scale.X, pos.Y / Transform.Scale.Y).Floor() - GameObject.Transform.position);
         }
 
         public void Clear() {
             chunks.Clear();
+        }
+
+        public Vector2f GetWorldPosFromTilePos(Vector2i pos) {
+            return Position + ((Vector2f)pos).Multiply(Transform.Scale);
         }
     }
 }
