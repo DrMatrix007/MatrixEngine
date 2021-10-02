@@ -250,8 +250,8 @@ namespace MatrixEngine.Physics {
             vx = vx.Abs() > 1 ? vx.Abs() : 1;
             vy = vy.Abs() > 1 ? vy.Abs() : 1;
 
-            for (float x = -tile_scale.X * vx; x < (nonstatic_rect.width + tile_scale.X) * vx; x += tile_scale.X) {
-                for (float y = -tile_scale.Y * vy; y < (nonstatic_rect.height + tile_scale.Y) * vy; y += tile_scale.Y) {
+            for (float x = -tile_scale.X * (vx+1); x < (nonstatic_rect.width + tile_scale.X) *( vx+1); x += tile_scale.X) {
+                for (float y = -tile_scale.Y * (vy+1); y < (nonstatic_rect.height + tile_scale.Y) *( vy+1); y += tile_scale.Y) {
                     pos = new Vector2f(x, y) + nonstatic.Position;
                     if (tilemap.GetTileFromWorldPos(pos) != null) {
                         var r = new Rect(((Vector2f)tilemap.GetPosOfTileFromWorldPos(pos)).Multiply(tile_scale) + tilemap.Position, tile_scale);

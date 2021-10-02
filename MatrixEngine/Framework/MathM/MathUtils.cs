@@ -149,7 +149,7 @@ namespace MatrixEngine.Framework {
         }
 
         public static bool IsOnLine(this Line line, Vector2f pos) {
-            Console.WriteLine((line.a * pos.X + line.b * pos.Y + line.c).Abs() < TOLERANCE);
+            //Console.WriteLine((line.a * pos.X + line.b * pos.Y + line.c).Abs() < TOLERANCE);
             return (line.a * pos.X + line.b * pos.Y + line.c).Abs() < TOLERANCE
                    && line.IsOnRange(pos);
         }
