@@ -7,6 +7,7 @@ using SFML.System;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace MatrixEngine.Physics {
 
@@ -85,18 +86,38 @@ namespace MatrixEngine.Physics {
                 //add_to_vel += (nonstatic.gravity * app.deltaTime);
 
                 nonstatic.Velocity += add_to_vel;
-
                 var v = nonstatic.Velocity;
-                v.X -= App.DeltaTimeAsSeconds * v.X.Sign() * nonstatic.velocityDrag.X;
+                v.X -= App.DeltaTimeAsSeconds * v.X.Sign() * nonstatic.VelocityDrag.X;
                 if (v.X.Sign() != nonstatic.Velocity.X.Sign()) {
                     v.X = 0;
                 }
-                v.Y -= App.DeltaTimeAsSeconds * v.Y.Sign() * nonstatic.velocityDrag.Y;
+                v.Y -= App.DeltaTimeAsSeconds * v.Y.Sign() * nonstatic.VelocityDrag.Y;
                 if (v.Y.Sign() != nonstatic.Velocity.Y.Sign()) {
                     v.Y = 0;
                 }
                 nonstatic.Velocity = v;
             }
+
+            //foreach (var nonstatic in dynamicRigidBodiesToCalc) {
+            //    UpdateRigidBody(nonstatic, nonstatic.Velocity);
+
+            //    var add_to_vel = (nonstatic.gravity * App.DeltaTimeAsSeconds);
+
+            //    //add_to_vel += (nonstatic.gravity * app.deltaTime);
+
+            //    nonstatic.Velocity += add_to_vel;
+
+            //    var v = nonstatic.Velocity;
+            //    v.X -= App.DeltaTimeAsSeconds * v.X.Sign() * nonstatic.VelocityDrag.X;
+            //    if (v.X.Sign() != nonstatic.Velocity.X.Sign()) {
+            //        v.X = 0;
+            //    }
+            //    v.Y -= App.DeltaTimeAsSeconds * v.Y.Sign() * nonstatic.VelocityDrag.Y;
+            //    if (v.Y.Sign() != nonstatic.Velocity.Y.Sign()) {
+            //        v.Y = 0;
+            //    }
+            //    nonstatic.Velocity = v;
+            //}
 
             //foreach (var collider in rectsToCalc) {
             //    var rect = collider;
@@ -229,8 +250,8 @@ namespace MatrixEngine.Physics {
             vx = vx.Abs() > 1 ? vx.Abs() : 1;
             vy = vy.Abs() > 1 ? vy.Abs() : 1;
 
-            for (float x = -tile_scale.X * 2 * vx; x < (nonstatic_rect.width + tile_scale.X * 2) * vx; x += tile_scale.X) {
-                for (float y = -tile_scale.Y * 2 * vy; y < (nonstatic_rect.height + tile_scale.Y * 2) * vy; y += tile_scale.Y) {
+            for (float x = -tile_scale.X * vx; x < (nonstatic_rect.width + tile_scale.X) * vx; x += tile_scale.X) {
+                for (float y = -tile_scale.Y * vy; y < (nonstatic_rect.height + tile_scale.Y) * vy; y += tile_scale.Y) {
                     pos = new Vector2f(x, y) + nonstatic.Position;
                     if (tilemap.GetTileFromWorldPos(pos) != null) {
                         var r = new Rect(((Vector2f)tilemap.GetPosOfTileFromWorldPos(pos)).Multiply(tile_scale) + tilemap.Position, tile_scale);

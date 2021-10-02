@@ -48,7 +48,7 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
 
         public Vector2f gravity = new(0, 0);
 
-        public Vector2f velocityDrag = new(0, 0);
+        public Vector2f VelocityDrag = new(0, 0);
 
         public RigidBodyComponent() {
             isStatic = true;
@@ -56,7 +56,7 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
 
         public RigidBodyComponent(Vector2f gravity, Vector2f velocityDrag) {
             this.gravity = gravity;
-            this.velocityDrag = velocityDrag;
+            this.VelocityDrag = velocityDrag;
             this.isStatic = false;
         }
 

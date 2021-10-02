@@ -7,11 +7,8 @@
 
   <ItemGroup>
     <Compile Remove="GameObjects\Components\UIComponents\**" />
-    <Compile Remove="Scenes\**" />
     <EmbeddedResource Remove="GameObjects\Components\UIComponents\**" />
-    <EmbeddedResource Remove="Scenes\**" />
     <None Remove="GameObjects\Components\UIComponents\**" />
-    <None Remove="Scenes\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,5 +26,4 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
 </Project>

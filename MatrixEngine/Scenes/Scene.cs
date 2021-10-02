@@ -1,12 +1,13 @@
-﻿using System.Collections;
+﻿using MatrixEngine.Framework;
+using MatrixEngine.GameObjects;
+using MatrixEngine.Scenes.Plugins;
+using MatrixEngine.UI;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Xml;
-using MatrixEngine.GameObjects;
-using MatrixEngine.UI;
-using NotImplementedException = System.NotImplementedException;
 
-namespace MatrixEngine.Framework {
+namespace MatrixEngine.Scenes {
 
     public class Scene : IEnumerable<GameObject> {
         private bool isStarted = false;
@@ -14,6 +15,8 @@ namespace MatrixEngine.Framework {
         private List<GameObject> gameObjects;
 
         private List<UIObject> uiObjects;
+
+        private List<Plugin> plugins;
 
         public GameObject CreateGameObject() {
             var g = new GameObject();
@@ -28,18 +31,19 @@ namespace MatrixEngine.Framework {
             return gameObject;
         }
 
-        public Framework.App app
+        public App app
         {
             get;
             internal set;
         }
 
-        public Scene(IEnumerable<GameObject> gameObjects = null, IEnumerable<UIObject> uiObjects = null) {
+        public Scene(IEnumerable<GameObject> gameObjects = null, IEnumerable<UIObject> uiObjects = null, List<Plugin> plugins = null) {
             this.gameObjects = new List<GameObject>();
             this.uiObjects = new List<UIObject>();
+            this.plugins = new List<Plugin>();
             gameObjects ??= new List<GameObject>();
             uiObjects ??= new List<UIObject>();
-
+            plugins ??= new List<Plugin>();
             // var l = gameObjects.ToList();
             foreach (var item in gameObjects) {
                 AddGameObject(item);
@@ -49,7 +53,19 @@ namespace MatrixEngine.Framework {
                 AddUIObject(uiObject);
             }
 
+            foreach (var item in plugins) {
+                AddPlugin(item);
+            }
+
             // uiObjects.AddRange(objects);
+        }
+
+        public void AddPlugin(Plugin plugin) {
+            if (plugin == null) {
+                throw new ArgumentNullException(nameof(plugin));
+            }
+            plugin.SetupScene(this);
+            plugins.Add(plugin);
         }
 
         public void AddUIObject(UIObject uiObject) {
@@ -66,7 +82,9 @@ namespace MatrixEngine.Framework {
                 isStarted = true;
             }
 
-            var l = this.ToArray();
+            var l = this.Where((e) => e.IsActive).ToArray();
+
+            var p = plugins.ToList();
 
             foreach (var item in l) {
                 item.Setup();
@@ -76,11 +94,26 @@ namespace MatrixEngine.Framework {
                 item.Start();
             }
 
+            foreach (var item in p) {
+                if (!item.HasStarted) {
+                    item.Start();
+                }
+                item.HasStarted = true;
+            }
+
             foreach (var item in l) {
                 item.Update();
             }
 
+            foreach (var item in p) {
+                item.Update();
+            }
+
             foreach (var item in l) {
+                item.LateUpdate();
+            }
+
+            foreach (var item in p) {
                 item.LateUpdate();
             }
 

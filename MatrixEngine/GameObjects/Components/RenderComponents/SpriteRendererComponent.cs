@@ -15,6 +15,11 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
             this.pixelPerUnit = pixelperunit;
         }
 
+        public void SetTexture(Texture texture) {
+            SetTexture(texture, -1);
+            this.pixelPerUnit = (int)texture.Size.X;
+        }
+
         public Rect TextureRect
         {
             get => new(Position, new Vector2f(sprite.TextureRect.Width, sprite.TextureRect.Height));

@@ -1,16 +1,14 @@
-﻿using System;
-using System.Linq;
-using MatrixEngine.Content;
-using MatrixEngine.Framework;
+﻿using MatrixEngine.Framework;
 using SFML.Graphics;
 using SFML.System;
-using SFML.Window;
 using MathUtils = MatrixEngine.Framework.MathUtils;
 
 namespace MatrixEngine.UI {
 
     public abstract class TextUIObject : UIObject {
         public new UITextStyle style;
+
+        private RectangleShape backrground = new RectangleShape();
 
         private string _text;
 
@@ -28,7 +26,7 @@ namespace MatrixEngine.UI {
         private void CreateText() {
             drawable?.Dispose();
 
-            drawable = new Text(text, style.font, style.char_size);
+            drawable = new Text(text, style.font, style.char_size) { FillColor = style.color };
         }
 
         public TextUIObject(Anchor anchor, string text, UITextStyle uiTextStyle) :
@@ -61,8 +59,12 @@ namespace MatrixEngine.UI {
                 style.char_size = (uint)(drawable.GetGlobalBounds().Height / size.Y);
             }
 
+            backrground.Position = pos;
+            backrground.Size = size;
+            backrground.FillColor = style.BackgroundColor;
+
             drawable.Position = pos;
-            target.Draw(new RectangleShape() { Position = pos, Size = size, FillColor = style.BackgroundColor });
+            target.Draw(backrground);
             target.Draw(drawable);
 
             return (pos, size);

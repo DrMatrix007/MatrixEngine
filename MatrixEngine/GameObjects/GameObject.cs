@@ -1,6 +1,6 @@
-﻿using MatrixEngine.Framework;
-using MatrixEngine.GameObjects.Components;
+﻿using MatrixEngine.GameObjects.Components;
 using MatrixEngine.Physics;
+using MatrixEngine.Scenes;
 using MatrixEngine.Utilities;
 using SFML.System;
 using System;
@@ -11,6 +11,9 @@ using System.Linq;
 namespace MatrixEngine.GameObjects {
 
     public sealed class GameObject : IEnumerable<Component> {
+
+
+        public bool IsActive = true;
 
         public Vector2f Position
         {

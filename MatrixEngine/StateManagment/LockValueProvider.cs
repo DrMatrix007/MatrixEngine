@@ -26,7 +26,7 @@ namespace MatrixEngine.StateManagment {
 
         public void SetValue(T value) {
             if (IsLocked) {
-                throw new InvalidOperationException($"This provider<{typeof(T).Name}> is Locked!");
+                throw new InvalidOperationException($"The provider<{typeof(T).Name}> is Locked!");
             }
             this.value = value;
 

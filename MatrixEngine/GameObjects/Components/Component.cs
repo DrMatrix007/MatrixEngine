@@ -3,6 +3,7 @@ using MatrixEngine.Framework;
 using MatrixEngine.Physics;
 using SFML.System;
 using MatrixEngine.Framework.Operations;
+using MatrixEngine.Scenes;
 
 namespace MatrixEngine.GameObjects.Components {
 

@@ -7,11 +7,14 @@ namespace MatrixEngine.Framework {
         public const float TOLERANCE = 0.01f;
 
         public static float Sqrt(this float x) {
-            return (float)MathF.Sqrt(x);
+            return MathF.Sqrt(x);
+        }
+        public static float Sqrt(this int x) {
+            return MathF.Sqrt(x);
         }
 
         public static float Pow(this float x, float pow) {
-            return (float)MathF.Pow(x, pow);
+            return MathF.Pow(x, pow);
         }
 
         public static float Sqr(this float x) {

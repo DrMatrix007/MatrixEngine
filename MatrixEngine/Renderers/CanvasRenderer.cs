@@ -36,7 +36,7 @@ namespace MatrixEngine.Renderers {
             var new_list = list.OrderBy(x => {
                 return x.style.layer;
             });
-            foreach (var component in new_list) {
+            foreach (var component in new_list.Where((e) =>e.IsActive)) {
                 var (pos, size) = component.Render(target);
 
                 var rect = new Rect(pos + size / 2, size);

@@ -8,6 +8,7 @@ using MatrixEngine.Physics;
 using MatrixEngine.Renderers;
 using MatrixEngine.Testing;
 using MatrixEngine.Framework.Operations;
+using MatrixEngine.Scenes;
 
 namespace MatrixEngine.Framework {
 

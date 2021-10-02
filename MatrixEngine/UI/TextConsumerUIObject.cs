@@ -22,7 +22,9 @@ namespace MatrixEngine.UI {
         }
 
         public override (Vector2f pos, Vector2f size) Render(RenderTarget target) {
-            text = provider.Get();
+            if (provider.Get() != text) {
+                text = provider.Get();
+            }
             return base.Render(target);
         }
     }

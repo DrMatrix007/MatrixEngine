@@ -4,14 +4,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using MatrixEngine.Framework;
 using SFML.System;
 using SFML.Window;
+using MatrixEngine.Scenes;
 
 namespace MatrixEngine.UI {
 
     public abstract class UIObject {
 
+        public bool IsActive = true;
         public Scene scene
         {
             get;
