@@ -7,7 +7,6 @@ using SFML.System;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace MatrixEngine.Physics {
 
@@ -145,18 +144,18 @@ namespace MatrixEngine.Physics {
             var l = rectsToCalc
     //.Where(e => !e.isColliding(nonstatic_rect))
     .ToList();
-
+            var old_nonstatic_rect = nonstatic.Transform.fullRect;
             nonstatic.Position += new Vector2f(x, 0) * App.DeltaTimeAsSeconds;
             var nonstatic_rect = nonstatic.Transform.fullRect;
 
             if (nonstatic.ColliderComponent.colliderType != ColliderComponent.ColliderType.None) {
                 foreach (var rect in l) {
-                    if (nonstatic_rect.IsColliding(rect)) {
+                    if (nonstatic_rect.IsColliding(rect) || (nonstatic_rect.IsColliding(rect) && (old_nonstatic_rect.center.X < rect.center.X != nonstatic_rect.center.X < rect.center.X))) {
                         //if (rect.Y == -1) {
                         //    System.Console.WriteLine("?????????????");
                         //}
 
-                        if (nonstatic_rect.cX < rect.cX) {
+                        if (old_nonstatic_rect.cX < rect.cX) {
                             nonstatic.Position = new Vector2f(rect.X - nonstatic_rect.width, nonstatic.Position.Y);
                             nonstatic.TouchRight = true;
                         } else {
@@ -178,14 +177,14 @@ namespace MatrixEngine.Physics {
             var l = rectsToCalc
                 //.Where(e => !e.isColliding(nonstatic_rect))
                 .ToList();
-
+            var old_nonstatic_rect = nonstatic.Transform.fullRect;
             nonstatic.Position += new Vector2f(0, y) * App.DeltaTimeAsSeconds;
             var nonstatic_rect = nonstatic.Transform.fullRect;
 
             if (nonstatic.ColliderComponent.colliderType != ColliderComponent.ColliderType.None) {
                 foreach (var rect in l) {
-                    if (nonstatic_rect.IsColliding(rect)) {
-                        if (nonstatic_rect.cY < rect.cY) {
+                    if (nonstatic_rect.IsColliding(rect) || (nonstatic_rect.IsColliding(rect) && (old_nonstatic_rect.center.X < rect.center.X != nonstatic_rect.center.X < rect.center.X))) {
+                        if (old_nonstatic_rect.cY < rect.cY) {
                             nonstatic.Position = new Vector2f(nonstatic.Position.X, rect.Y - nonstatic_rect.height);
                             nonstatic.TouchDown = true;
                             nonstatic.Velocity = nonstatic.Velocity.OnlyWithX();
@@ -206,29 +205,32 @@ namespace MatrixEngine.Physics {
         private void UpdateRigidBody(RigidBodyComponent nonstatic, Vector2f vel) {
             nonstatic.ClearTouches();
 
-            for (float i = 0; i < vel.X.Abs(); i += ContinuousStep) {
-                if (UpdateRigidBodyHorizontaly(nonstatic, ContinuousStep * vel.X.Sign())) {
-                    break;
-                }
-            }
-            var v = vel.X % ContinuousStep;
-            if (v != 0) {
-                UpdateRigidBodyHorizontaly(nonstatic, v);
-            }
+            //for (float i = 0; i < vel.X.Abs(); i += ContinuousStep) {
+            //    if (UpdateRigidBodyHorizontaly(nonstatic, ContinuousStep * vel.X.Sign())) {
+            //        break;
+            //    }
+            //}
+            //var v = vel.X % ContinuousStep;
+            //if (v != 0) {
+            //    UpdateRigidBodyHorizontaly(nonstatic, v);
+            //}
 
-            UpdateRigidBodyHorizontaly(nonstatic, vel.X % ContinuousStep);
+            UpdateRigidBodyHorizontaly(nonstatic, vel.X);
+            UpdateRigidBodyVerticly(nonstatic, vel.Y);
 
-            for (float i = 0; i < vel.Y.Abs(); i += ContinuousStep) {
-                if (UpdateRigidBodyVerticly(nonstatic, ContinuousStep * vel.Y.Sign())) {
-                    break;
-                }
-            }
-            (vel.Y.Abs() / ContinuousStep).Log();
-            v = vel.Y % ContinuousStep;
+            //UpdateRigidBodyHorizontaly(nonstatic, vel.X % ContinuousStep);
 
-            if (v != 0) {
-                UpdateRigidBodyVerticly(nonstatic, v);
-            }
+            //for (float i = 0; i < vel.Y.Abs(); i += ContinuousStep) {
+            //    if (UpdateRigidBodyVerticly(nonstatic, ContinuousStep * vel.Y.Sign())) {
+            //        break;
+            //    }
+            //}
+            //(vel.Y.Abs() / ContinuousStep).Log();
+            //v = vel.Y % ContinuousStep;
+
+            //if (v != 0) {
+            //    UpdateRigidBodyVerticly(nonstatic, v);
+            //}
         }
 
         private void AddTilemapToCollision(RigidBodyComponent nonstatic, ColliderComponent @static) {
