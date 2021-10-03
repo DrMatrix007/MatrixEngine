@@ -11,7 +11,7 @@ using System.Linq;
 namespace MatrixEngine.GameObjects {
 
     public sealed class GameObject : IEnumerable<Component> {
-
+        public readonly Guid guid = Guid.NewGuid();
 
         public bool IsActive = true;
 
@@ -40,20 +40,24 @@ namespace MatrixEngine.GameObjects {
             private set;
         }
 
-        public T SetComponent<T>() where T : Component, new() {
+        public T SetComponent<T>() where T : Component, new()
+        {
             return (T)SetComponent(new T());
         }
 
-        public T SetComponent<T>(T c) where T : Component {
+        public T SetComponent<T>(T c) where T : Component
+        {
             return (T)SetComponent((Component)c);
         }
 
-        public Component SetComponent(Type type) {
+        public Component SetComponent(Type type)
+        {
             Component c = (Component)Activator.CreateInstance(type);
             return SetComponent(c);
         }
 
-        private Component PureSetComponent(Component component) {
+        private Component PureSetComponent(Component component)
+        {
             if (component.GameObject != null) {
                 Utils.LogError($"{component} is already stored by a gameobject!!!");
             }
@@ -65,7 +69,8 @@ namespace MatrixEngine.GameObjects {
             return component;
         }
 
-        public Component SetComponent(Component component) {
+        public Component SetComponent(Component component)
+        {
             //Debug.Log($"Added {component.GetType()}");
             var requireds = component.GetType().GetCustomAttributes(typeof(RequireComponent), true);
             foreach (RequireComponent item in requireds) {
@@ -76,7 +81,8 @@ namespace MatrixEngine.GameObjects {
             return PureSetComponent(component);
         }
 
-        public void SetComponents(IEnumerable<Component> comps) {
+        public void SetComponents(IEnumerable<Component> comps)
+        {
             foreach (var component in comps) {
                 if (component.GameObject != null) {
                     Utils.LogError($"{component} is already stored by a gameobject!!!");
@@ -107,57 +113,68 @@ namespace MatrixEngine.GameObjects {
             private set;
         }
 
-        internal void SetupScene(Scene scene) {
+        internal void SetupScene(Scene scene)
+        {
             this.Scene = scene;
         }
 
-        public T GetComponent<T>() where T : Component {
+        public T GetComponent<T>() where T : Component
+        {
             try {
                 return (T)components[typeof(T)];
-            } catch (Exception) { }
+            }
+            catch (Exception) { }
 
             return default;
         }
 
-        public Component GetComponent(Type t) {
+        public Component GetComponent(Type t)
+        {
             if (components.ContainsKey(t)) {
                 return components[t];
-            } else {
+            }
+            else {
                 return default;
             }
         }
 
-        public GameObject() {
+        public GameObject()
+        {
             components = new Dictionary<Type, Component>();
             Transform = new TransformComponent();
         }
 
-        
-
-        public GameObject(IEnumerable<Component> components) : this() {
+        public GameObject(IEnumerable<Component> components) : this()
+        {
             SetComponents(components);
         }
 
-        public GameObject(params Component[] components) : this(components as IEnumerable<Component>) {
+        public GameObject(params Component[] components) : this(components as IEnumerable<Component>)
+        {
         }
 
-        public GameObject(Vector2f pos, params Component[] components) : this(components) {
+        public GameObject(Vector2f pos, params Component[] components) : this(components)
+        {
             Position = pos;
         }
 
-        public GameObject(Vector2f pos) : this() {
+        public GameObject(Vector2f pos) : this()
+        {
             Position = pos;
         }
 
-        public GameObject(Vector2f pos, IEnumerable<Component> components) : this(components) {
+        public GameObject(Vector2f pos, IEnumerable<Component> components) : this(components)
+        {
             Position = pos;
         }
 
-        public GameObject(Component component) : this() {
+        public GameObject(Component component) : this()
+        {
             SetComponent(component);
         }
 
-        public void Setup() {
+        public void Setup()
+        {
             foreach (var component in this.ToArray()) {
                 if (!component.DidStart) {
                     component.Setup();
@@ -165,7 +182,8 @@ namespace MatrixEngine.GameObjects {
             }
         }
 
-        public void Start() {
+        public void Start()
+        {
             foreach (var component in this.ToArray()) {
                 if (!component.DidStart) {
                     component.DidStart = true;
@@ -174,34 +192,40 @@ namespace MatrixEngine.GameObjects {
             }
         }
 
-        public void Update() {
+        public void Update()
+        {
             foreach (var component in this.ToArray()) {
                 component.Update();
             }
         }
 
-        public void LateUpdate() {
+        public void LateUpdate()
+        {
             foreach (var item in this.ToArray()) {
                 item.LateUpdate();
             }
         }
 
-        public IEnumerator<Component> GetEnumerator() {
+        public IEnumerator<Component> GetEnumerator()
+        {
             var l = components.Values.ToList();
             foreach (var item in l) {
                 yield return item;
             }
         }
 
-        IEnumerator IEnumerable.GetEnumerator() {
+        IEnumerator IEnumerable.GetEnumerator()
+        {
             return GetEnumerator();
         }
 
-        public void DestroyComponent(Component component) {
+        public void DestroyComponent(Component component)
+        {
             components.Remove(component.GetType());
         }
 
-        public void Destroy() {
+        public void Destroy()
+        {
             Scene.DestroyGameObject(this);
         }
     }

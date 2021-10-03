@@ -19,6 +19,7 @@ namespace MatrixEngine.Physics {
         private readonly List<ColliderComponent> collidersToCalc;
 
         private readonly List<Rect> rectsToCalc;
+        private Dictionary<Guid, List<Vector2i>> dictsoftilemaps;
         private ColliderComponent[] static_list;
         private RigidBodyComponent[] non_static_list;
 
@@ -28,22 +29,26 @@ namespace MatrixEngine.Physics {
             private set;
         }
 
-        public PhysicsEngine(Framework.App app) {
+        public PhysicsEngine(Framework.App app)
+        {
             this.App = app;
             dynamicRigidBodiesToCalc = new List<RigidBodyComponent>();
             collidersToCalc = new List<ColliderComponent>();
             rectsToCalc = new List<Rect>();
         }
 
-        public void AddRigidbodyToFrame(RigidBodyComponent rigidBodyComponent) {
+        public void AddRigidbodyToFrame(RigidBodyComponent rigidBodyComponent)
+        {
             dynamicRigidBodiesToCalc.Add(rigidBodyComponent);
         }
 
-        public void AddColliderToFrame(ColliderComponent rect) {
+        public void AddColliderToFrame(ColliderComponent rect)
+        {
             collidersToCalc.Add(rect);
         }
 
-        public void Update() {
+        public void Update()
+        {
             // foreach (var nonstatic in dynamicRigidBodiesToCalc) {
             //     if (!nonstatic.isStatic) {
             //
@@ -51,6 +56,8 @@ namespace MatrixEngine.Physics {
             //
             //     }
             // }
+
+            dictsoftilemaps = new Dictionary<Guid, List<Vector2i>>();
 
             static_list = collidersToCalc.ToArray();
             non_static_list = dynamicRigidBodiesToCalc.ToArray();
@@ -134,16 +141,17 @@ namespace MatrixEngine.Physics {
             dynamicRigidBodiesToCalc.Clear();
             collidersToCalc.Clear();
             rectsToCalc.Clear();
+            dictsoftilemaps.Clear();
         }
 
-        private bool UpdateRigidBodyHorizontaly(RigidBodyComponent nonstatic, float x) {
+        private bool UpdateRigidBodyHorizontaly(RigidBodyComponent nonstatic, float x)
+        {
             if (x == 0) {
                 return false;
             }
 
-            var l = rectsToCalc
-    //.Where(e => !e.isColliding(nonstatic_rect))
-    .ToList();
+            var l = rectsToCalc.ToList();
+            //.Where(e => !e.isColliding(nonstatic_rect))
             var old_nonstatic_rect = nonstatic.Transform.fullRect;
             nonstatic.Position += new Vector2f(x, 0) * App.DeltaTimeAsSeconds;
             var nonstatic_rect = nonstatic.Transform.fullRect;
@@ -158,7 +166,8 @@ namespace MatrixEngine.Physics {
                         if (old_nonstatic_rect.cX < rect.cX) {
                             nonstatic.Position = new Vector2f(rect.X - nonstatic_rect.width, nonstatic.Position.Y);
                             nonstatic.TouchRight = true;
-                        } else {
+                        }
+                        else {
                             nonstatic.Position = new Vector2f(rect.max.X, nonstatic.Position.Y);
                             nonstatic.TouchLeft = true;
                         }
@@ -169,7 +178,8 @@ namespace MatrixEngine.Physics {
             return false;
         }
 
-        private bool UpdateRigidBodyVerticly(RigidBodyComponent nonstatic, float y) {
+        private bool UpdateRigidBodyVerticly(RigidBodyComponent nonstatic, float y)
+        {
             if (y == 0) {
                 return false;
             }
@@ -188,7 +198,8 @@ namespace MatrixEngine.Physics {
                             nonstatic.Position = new Vector2f(nonstatic.Position.X, rect.Y - nonstatic_rect.height);
                             nonstatic.TouchDown = true;
                             nonstatic.Velocity = nonstatic.Velocity.OnlyWithX();
-                        } else {
+                        }
+                        else {
                             nonstatic.Position = new Vector2f(nonstatic.Position.X, rect.max.Y);
                             nonstatic.TouchUp = true;
 
@@ -202,7 +213,8 @@ namespace MatrixEngine.Physics {
             return false;
         }
 
-        private void UpdateRigidBody(RigidBodyComponent nonstatic, Vector2f vel) {
+        private void UpdateRigidBody(RigidBodyComponent nonstatic, Vector2f vel)
+        {
             nonstatic.ClearTouches();
 
             //for (float i = 0; i < vel.X.Abs(); i += ContinuousStep) {
@@ -233,7 +245,12 @@ namespace MatrixEngine.Physics {
             //}
         }
 
-        private void AddTilemapToCollision(RigidBodyComponent nonstatic, ColliderComponent @static) {
+        private void AddTilemapToCollision(RigidBodyComponent nonstatic, ColliderComponent @static)
+        {
+            var guid = @static.guid;
+            if (!dictsoftilemaps.ContainsKey(guid)) {
+                dictsoftilemaps[guid] = new List<Vector2i>();
+            }
             var tilemap = @static.GetComponent<TilemapComponent>();
             if (tilemap == null) {
                 return;
@@ -249,15 +266,21 @@ namespace MatrixEngine.Physics {
             var vx = nonstatic.Velocity.X * App.DeltaTimeAsSeconds;
             var vy = nonstatic.Velocity.Y * App.DeltaTimeAsSeconds;
 
+            Vector2i rpos;
+
             vx = vx.Abs() > 1 ? vx.Abs() : 1;
             vy = vy.Abs() > 1 ? vy.Abs() : 1;
 
-            for (float x = -tile_scale.X * (vx+1); x < (nonstatic_rect.width + tile_scale.X) *( vx+1); x += tile_scale.X) {
-                for (float y = -tile_scale.Y * (vy+1); y < (nonstatic_rect.height + tile_scale.Y) *( vy+1); y += tile_scale.Y) {
+            for (float x = -tile_scale.X * (vx + 1); x < (nonstatic_rect.width + tile_scale.X) * (vx + 1); x += tile_scale.X) {
+                for (float y = -tile_scale.Y * (vy + 1); y < (nonstatic_rect.height + tile_scale.Y) * (vy + 1); y += tile_scale.Y) {
                     pos = new Vector2f(x, y) + nonstatic.Position;
                     if (tilemap.GetTileFromWorldPos(pos) != null) {
-                        var r = new Rect(((Vector2f)tilemap.GetPosOfTileFromWorldPos(pos)).Multiply(tile_scale) + tilemap.Position, tile_scale);
-                        list_rects.Add(r);
+                        rpos = tilemap.GetPosOfTileFromWorldPos(pos);
+                        if (!dictsoftilemaps[guid].Contains(rpos)) {
+                            var r = new Rect(((Vector2f)rpos).Multiply(tile_scale) + tilemap.Position, tile_scale);
+                            list_rects.Add(r);
+                            dictsoftilemaps[guid].Add(rpos);
+                        }
                     }
                 }
             }
@@ -266,11 +289,13 @@ namespace MatrixEngine.Physics {
             }
         }
 
-        private void AddRectToCollision(Rect @static) {
+        private void AddRectToCollision(Rect @static)
+        {
             rectsToCalc.Add(@static);
         }
 
-        public Vector2f LineCast(Line line, Func<ColliderComponent, bool> check = null) {
+        public Vector2f LineCast(Line line, Func<ColliderComponent, bool> check = null)
+        {
             var points = new List<Vector2f>();
             foreach (var item in check != null ? collidersToCalc.Where(check).ToList() : collidersToCalc) {
                 switch (item.colliderType) {
@@ -322,7 +347,8 @@ namespace MatrixEngine.Physics {
                                         }
                                     }
                                 }
-                            } else {
+                            }
+                            else {
                                 for (float i = line.start.Y; i.IsBetween(line.start.Y, line.end.Y); i += step * -(line.start.Y - line.end.Y).Sign()) {
                                     Vector2i pos;
                                     Tile tile;
@@ -380,7 +406,8 @@ namespace MatrixEngine.Physics {
                 return line.end;
             }
 
-            points.ForEach(e => {
+            points.ForEach(e =>
+            {
                 var r = new RectangleShape() { Position = e - new Vector2f(0.1f, 0.1f), Size = new Vector2f(0.2f, 0.2f), FillColor = Color.Red };
 
                 App.Window.Draw(r);

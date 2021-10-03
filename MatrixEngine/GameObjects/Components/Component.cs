@@ -4,10 +4,12 @@ using MatrixEngine.Physics;
 using SFML.System;
 using MatrixEngine.Framework.Operations;
 using MatrixEngine.Scenes;
+using System;
 
 namespace MatrixEngine.GameObjects.Components {
 
     public abstract class Component {
+        public readonly Guid guid = Guid.NewGuid();
 
         public OperationManager OperationManager
         {
@@ -26,42 +28,48 @@ namespace MatrixEngine.GameObjects.Components {
         {
             get => GameObject.Position;
 
-            set {
+            set
+            {
                 GameObject.Position = value;
             }
         }
 
         public Scene Scene
         {
-            get {
+            get
+            {
                 return GameObject.Scene;
             }
         }
 
         public Framework.App App
         {
-            get {
+            get
+            {
                 return Scene.app;
             }
         }
 
         public InputHandler InputHandler
         {
-            get {
+            get
+            {
                 return App.InputHandler;
             }
         }
 
         public RigidBodyComponent RigidBodyComponent
         {
-            get {
+            get
+            {
                 return GetComponent<RigidBodyComponent>();
             }
         }
 
         public ColliderComponent ColliderComponent
         {
-            get {
+            get
+            {
                 return GetComponent<ColliderComponent>();
             }
         }
@@ -71,15 +79,18 @@ namespace MatrixEngine.GameObjects.Components {
             get => GameObject.Transform;
         }
 
-        public T GetComponent<T>() where T : Component {
+        public T GetComponent<T>() where T : Component
+        {
             return GameObject.GetComponent<T>();
         }
 
-        public T SetComponent<T>() where T : Component, new() {
+        public T SetComponent<T>() where T : Component, new()
+        {
             return GameObject.SetComponent<T>();
         }
 
-        public T SetComponent<T>(T c) where T : Component {
+        public T SetComponent<T>(T c) where T : Component
+        {
             return (T)GameObject.SetComponent(c);
         }
 
@@ -89,10 +100,12 @@ namespace MatrixEngine.GameObjects.Components {
             set;
         } = false;
 
-        public Component() {
+        public Component()
+        {
         }
 
-        internal void SetupGameobject(GameObject gameObject) {
+        internal void SetupGameobject(GameObject gameObject)
+        {
             this.GameObject = gameObject;
         }
 
@@ -100,13 +113,16 @@ namespace MatrixEngine.GameObjects.Components {
 
         abstract public void Update();
 
-        public virtual void LateUpdate() {
+        public virtual void LateUpdate()
+        {
         }
 
-        public virtual void Setup() {
+        public virtual void Setup()
+        {
         }
 
-        public void Destroy() {
+        public void Destroy()
+        {
             GameObject.DestroyComponent(this);
         }
     }
