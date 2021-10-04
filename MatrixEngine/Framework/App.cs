@@ -23,7 +23,7 @@ namespace MatrixEngine.Framework {
         private readonly bool isDebug;
         public Scene scene;
 
-        public readonly Camera camera;
+        public readonly Camera Camera;
 
         public SpriteRenderer SpriteRenderer { get; private set; }
 
@@ -71,7 +71,7 @@ namespace MatrixEngine.Framework {
             Window.KeyReleased += Window_KeyReleased;
 
             InputHandler = new InputHandler(this);
-            camera = new Camera(this);
+            Camera = new Camera(this);
             SpriteRenderer = new SpriteRenderer(this);
             PhysicsEngine = new PhysicsEngine(this);
             CanvasRenderer = new CanvasRenderer(this);
@@ -81,7 +81,7 @@ namespace MatrixEngine.Framework {
             }
         }
 
-        public Vector2f CameraSize => camera.Size;
+        public Vector2f CameraSize => Camera.Size;
 
         public Vector2i WindowSize => (Vector2i)Window.Size;
 
@@ -108,7 +108,7 @@ namespace MatrixEngine.Framework {
                 DeltaTime = deltaTimeClock.Restart();
 
                 Window.Clear(background);
-                Window.SetView(new View(camera.position, camera.Size));
+                Window.SetView(new View(Camera.position, Camera.Size));
 
                 Window.DispatchEvents();
 

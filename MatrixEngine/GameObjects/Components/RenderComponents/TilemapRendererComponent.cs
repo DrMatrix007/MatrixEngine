@@ -41,7 +41,7 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
             //}
 
             foreach (var item in tilemap.chunks) {
-                if (!item.Value.isRenderedUpdated && new Rect(((Vector2f)item.Key).Multiply(tilemap.Transform.Scale), item.Value.size.Multiply(tilemap.Transform.Scale)).IsColliding(App.camera.Rect)) {
+                if (!item.Value.isRenderedUpdated && new Rect(((Vector2f)item.Key).Multiply(tilemap.Transform.Scale), item.Value.size.Multiply(tilemap.Transform.Scale)).IsColliding(App.Camera.Rect)) {
                     if (chunkTextures.ContainsKey(item.Key)) {
                         chunkTextures[item.Key].Dispose();
                         chunkTextures.Remove(item.Key);
@@ -49,7 +49,7 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
                     chunkTextures[item.Key] = RenderChunk(item.Value);
                     item.Value.isRenderedUpdated = true;
                 }
-                if (!new Rect(((Vector2f)item.Key).Multiply(tilemap.Transform.Scale) + GameObject.Position, tilemap.ChunkRectSize.Multiply(tilemap.Transform.Scale)).IsColliding(App.camera.Rect)) {
+                if (!new Rect(((Vector2f)item.Key).Multiply(tilemap.Transform.Scale) + GameObject.Position, tilemap.ChunkRectSize.Multiply(tilemap.Transform.Scale)).IsColliding(App.Camera.Rect)) {
                     if (chunkTextures.ContainsKey(item.Key)) {
                         chunkTextures[item.Key].Dispose();
                         chunkTextures.Remove(item.Key);
@@ -84,7 +84,7 @@ namespace MatrixEngine.GameObjects.Components.RenderComponents {
 
         public override void Render(RenderTarget target) {
             foreach (var item in chunkTextures.ToList()) {
-                if (!new Rect(((Vector2f)item.Key).Multiply(tilemap.Transform.Scale) + GameObject.Position, (Vector2f)new Vector2f(item.Value.Size.X * Transform.Scale.X, item.Value.Size.Y * Transform.Scale.Y) * 2.0f / tilemap.pixelsPerUnit).IsColliding(App.camera.Rect)) {
+                if (!new Rect(((Vector2f)item.Key).Multiply(tilemap.Transform.Scale) + GameObject.Position, (Vector2f)new Vector2f(item.Value.Size.X * Transform.Scale.X, item.Value.Size.Y * Transform.Scale.Y) * 2.0f / tilemap.pixelsPerUnit).IsColliding(App.Camera.Rect)) {
                     item.Value.Dispose();
                     chunkTextures.Remove(item.Key);
                     continue;

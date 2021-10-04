@@ -50,7 +50,7 @@ namespace MatrixEngine.Framework {
 
             mousepos = mousepos.Multiply((Vector2f)App.CameraSize).Devide((Vector2f)App.WindowSize);
 
-            return mousepos + App.camera.position;
+            return mousepos + App.Camera.position;
         }
 
         private void SetKey(Keyboard.Key key, bool b) {

@@ -21,7 +21,7 @@ namespace MatrixEngine.GameObjects.Components.PhysicsComponents {
 
         public override void Start() {
             sound = AudioManager.GetAudio("tracks/testJump.wav");
-            App.Window.MouseWheelScrolled += (s, e) => { App.camera.zoom += (float)e.Delta / 10; };
+            App.Window.MouseWheelScrolled += (s, e) => { App.Camera.zoom += (float)e.Delta / 10; };
 
             App.AddToDebug(RigidBodyComponent);
         }

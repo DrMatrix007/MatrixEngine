@@ -18,7 +18,7 @@ namespace MatrixEngine.Renderers {
         public override void Render() {
             var list = spriteRendererComponents.OrderBy(e => e.layer);
             var rend_list = new List<RendererComponent>();
-            var cam_rect = app.camera.Rect;
+            var cam_rect = app.Camera.Rect;
 
             Utils.GetTimeInSeconds(() => {
                 foreach (var item in list) {

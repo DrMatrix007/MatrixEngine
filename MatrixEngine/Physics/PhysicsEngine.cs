@@ -2,11 +2,11 @@
 using MatrixEngine.GameObjects.Components.PhysicsComponents;
 using MatrixEngine.GameObjects.Components.TilemapComponents;
 using MatrixEngine.Utilities;
-using SFML.Graphics;
 using SFML.System;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace MatrixEngine.Physics {
 
@@ -19,7 +19,8 @@ namespace MatrixEngine.Physics {
         private readonly List<ColliderComponent> collidersToCalc;
 
         private readonly List<Rect> rectsToCalc;
-        private Dictionary<Guid, List<Vector2i>> dictsoftilemaps;
+        private Dictionary<Guid, List<Vector2i>> dictsoftilemaps = new Dictionary<Guid, List<Vector2i>>();
+        private List<Guid> rectsGuids = new List<Guid>();
         private ColliderComponent[] static_list;
         private RigidBodyComponent[] non_static_list;
 
@@ -49,16 +50,6 @@ namespace MatrixEngine.Physics {
 
         public void Update()
         {
-            // foreach (var nonstatic in dynamicRigidBodiesToCalc) {
-            //     if (!nonstatic.isStatic) {
-            //
-            //
-            //
-            //     }
-            // }
-
-            dictsoftilemaps = new Dictionary<Guid, List<Vector2i>>();
-
             static_list = collidersToCalc.ToArray();
             non_static_list = dynamicRigidBodiesToCalc.ToArray();
 
@@ -75,7 +66,10 @@ namespace MatrixEngine.Physics {
 
                     if (nonstatic.ColliderComponent.colliderType == ColliderComponent.ColliderType.Rect) {
                         if (@static.colliderType == ColliderComponent.ColliderType.Rect) {
-                            AddRectToCollision(@static.Rect);
+                            if (!rectsGuids.Contains(@static.guid)) {
+                                AddRectToCollision(@static.Rect);
+                                rectsGuids.Add(@static.guid);
+                            }
                         }
                         if (@static.colliderType == ColliderComponent.ColliderType.Tilemap) {
                             AddTilemapToCollision(nonstatic, @static);
@@ -104,44 +98,11 @@ namespace MatrixEngine.Physics {
                 nonstatic.Velocity = v;
             }
 
-            //foreach (var nonstatic in dynamicRigidBodiesToCalc) {
-            //    UpdateRigidBody(nonstatic, nonstatic.Velocity);
-
-            //    var add_to_vel = (nonstatic.gravity * App.DeltaTimeAsSeconds);
-
-            //    //add_to_vel += (nonstatic.gravity * app.deltaTime);
-
-            //    nonstatic.Velocity += add_to_vel;
-
-            //    var v = nonstatic.Velocity;
-            //    v.X -= App.DeltaTimeAsSeconds * v.X.Sign() * nonstatic.VelocityDrag.X;
-            //    if (v.X.Sign() != nonstatic.Velocity.X.Sign()) {
-            //        v.X = 0;
-            //    }
-            //    v.Y -= App.DeltaTimeAsSeconds * v.Y.Sign() * nonstatic.VelocityDrag.Y;
-            //    if (v.Y.Sign() != nonstatic.Velocity.Y.Sign()) {
-            //        v.Y = 0;
-            //    }
-            //    nonstatic.Velocity = v;
-            //}
-
-            //foreach (var collider in rectsToCalc) {
-            //    var rect = collider;
-            //    var s = new RectangleShape();
-
-            //    s.Position = rect.position;
-            //    s.Size = rect.size;
-            //    s.FillColor = Color.Red;
-
-            //    app.window.Draw(s);
-
-            //    s.Dispose();
-            //}
-
             dynamicRigidBodiesToCalc.Clear();
             collidersToCalc.Clear();
             rectsToCalc.Clear();
             dictsoftilemaps.Clear();
+            rectsGuids.Clear();
         }
 
         private bool UpdateRigidBodyHorizontaly(RigidBodyComponent nonstatic, float x)
@@ -156,14 +117,23 @@ namespace MatrixEngine.Physics {
             nonstatic.Position += new Vector2f(x, 0) * App.DeltaTimeAsSeconds;
             var nonstatic_rect = nonstatic.Transform.fullRect;
 
+            var oldcx = old_nonstatic_rect.cX;
+            var oldcy = old_nonstatic_rect.cY;
+
+            var cx = nonstatic_rect.cX;
+            var cy = nonstatic_rect.cY;
+
             if (nonstatic.ColliderComponent.colliderType != ColliderComponent.ColliderType.None) {
                 foreach (var rect in l) {
-                    if (nonstatic_rect.IsColliding(rect) || (nonstatic_rect.IsColliding(rect) && (old_nonstatic_rect.center.X < rect.center.X != nonstatic_rect.center.X < rect.center.X))) {
+                }
+
+                foreach (var rect in l) {
+                    if (nonstatic_rect.IsColliding(rect) || ((rect.cY - cy).Abs() * 2 < rect.height + nonstatic_rect.height && (oldcx < rect.center.X != cx < rect.center.X))) {
                         //if (rect.Y == -1) {
                         //    System.Console.WriteLine("?????????????");
                         //}
 
-                        if (old_nonstatic_rect.cX < rect.cX) {
+                        if (oldcx < rect.cX) {
                             nonstatic.Position = new Vector2f(rect.X - nonstatic_rect.width, nonstatic.Position.Y);
                             nonstatic.TouchRight = true;
                         }
@@ -184,17 +154,22 @@ namespace MatrixEngine.Physics {
                 return false;
             }
 
-            var l = rectsToCalc
-                //.Where(e => !e.isColliding(nonstatic_rect))
-                .ToList();
+            var l = rectsToCalc.ToList();
             var old_nonstatic_rect = nonstatic.Transform.fullRect;
             nonstatic.Position += new Vector2f(0, y) * App.DeltaTimeAsSeconds;
             var nonstatic_rect = nonstatic.Transform.fullRect;
 
+            var oldcx = old_nonstatic_rect.cX;
+            var oldcy = old_nonstatic_rect.cY;
+
+            var cx = nonstatic_rect.cX;
+            var cy = nonstatic_rect.cY;
+
             if (nonstatic.ColliderComponent.colliderType != ColliderComponent.ColliderType.None) {
                 foreach (var rect in l) {
-                    if (nonstatic_rect.IsColliding(rect) || (nonstatic_rect.IsColliding(rect) && (old_nonstatic_rect.center.X < rect.center.X != nonstatic_rect.center.X < rect.center.X))) {
-                        if (old_nonstatic_rect.cY < rect.cY) {
+                    if (nonstatic_rect.IsColliding(rect) ||
+                        ((rect.cX - cx).Abs() * 2 < rect.width + nonstatic_rect.width && (oldcy < rect.center.Y != cy < rect.center.Y))) {
+                        if (oldcy < rect.cY) {
                             nonstatic.Position = new Vector2f(nonstatic.Position.X, rect.Y - nonstatic_rect.height);
                             nonstatic.TouchDown = true;
                             nonstatic.Velocity = nonstatic.Velocity.OnlyWithX();
@@ -209,7 +184,6 @@ namespace MatrixEngine.Physics {
                     }
                 }
             }
-
             return false;
         }
 
@@ -217,32 +191,8 @@ namespace MatrixEngine.Physics {
         {
             nonstatic.ClearTouches();
 
-            //for (float i = 0; i < vel.X.Abs(); i += ContinuousStep) {
-            //    if (UpdateRigidBodyHorizontaly(nonstatic, ContinuousStep * vel.X.Sign())) {
-            //        break;
-            //    }
-            //}
-            //var v = vel.X % ContinuousStep;
-            //if (v != 0) {
-            //    UpdateRigidBodyHorizontaly(nonstatic, v);
-            //}
-
             UpdateRigidBodyHorizontaly(nonstatic, vel.X);
             UpdateRigidBodyVerticly(nonstatic, vel.Y);
-
-            //UpdateRigidBodyHorizontaly(nonstatic, vel.X % ContinuousStep);
-
-            //for (float i = 0; i < vel.Y.Abs(); i += ContinuousStep) {
-            //    if (UpdateRigidBodyVerticly(nonstatic, ContinuousStep * vel.Y.Sign())) {
-            //        break;
-            //    }
-            //}
-            //(vel.Y.Abs() / ContinuousStep).Log();
-            //v = vel.Y % ContinuousStep;
-
-            //if (v != 0) {
-            //    UpdateRigidBodyVerticly(nonstatic, v);
-            //}
         }
 
         private void AddTilemapToCollision(RigidBodyComponent nonstatic, ColliderComponent @static)
@@ -268,8 +218,14 @@ namespace MatrixEngine.Physics {
 
             Vector2i rpos;
 
-            vx = vx.Abs() > 1 ? vx.Abs() : 1;
-            vy = vy.Abs() > 1 ? vy.Abs() : 1;
+            //var delmul = App.DeltaTimeAsSeconds > 1 ? App.DeltaTimeAsSeconds : 1 / (1 - App.DeltaTimeAsSeconds);
+
+            //vx = vx.Abs() > 1 ? vx.Abs() + 1 : 1;
+            //vy = vy.Abs() > 1 ? vy.Abs() + 1 : 1;
+            vx = vx.Abs();
+            vy = vy.Abs();
+            //vx *= delmul;
+            //vy *= delmul;
 
             for (float x = -tile_scale.X * (vx + 1); x < (nonstatic_rect.width + tile_scale.X) * (vx + 1); x += tile_scale.X) {
                 for (float y = -tile_scale.Y * (vy + 1); y < (nonstatic_rect.height + tile_scale.Y) * (vy + 1); y += tile_scale.Y) {
@@ -309,6 +265,9 @@ namespace MatrixEngine.Physics {
                         break;
 
                     case ColliderComponent.ColliderType.Tilemap:
+                        Vector2i pos;
+                        Tile tile;
+                        Vector2f rpos;
                         var t = item.GetComponent<TilemapComponent>();
                         if (t != null) {
                             var step = t.Transform.Scale.X > t.Transform.Scale.Y ? t.Transform.Scale.X : t.Transform.Scale.Y;
@@ -318,9 +277,6 @@ namespace MatrixEngine.Physics {
 
                             if (isx) {
                                 for (float i = line.start.X; i.IsBetween(line.start.X, line.end.X); i += step * -(line.start.X - line.end.X).Sign()) {
-                                    Vector2i pos;
-                                    Tile tile;
-                                    Vector2f rpos;
                                     for (int add = -5; add <= 3; add++) {
                                         pos = t.GetPosOfTileFromWorldPos(line.WhereX(i)) + new Vector2i(0, add);
                                         tile = t.GetTileFromTilemapPos(pos);
@@ -330,18 +286,6 @@ namespace MatrixEngine.Physics {
 
                                         rpos = t.GetWorldPosFromTilePos(pos);
 
-                                        var s = new RectangleShape() { Position = rpos, Size = t.TileRect.size, FillColor = new Color(255, 255, 255, 100) };
-                                        App.Window.Draw(s);
-                                        s.Dispose();
-
-                                        //var anspos = line.GetCollidingPosFromLineToRect(t.TileRect.SetPos(rpos));
-                                        //points.AddRange(anspos);
-                                        //if (anspos.IsFinite()) {
-                                        //    points.Add(anspos);
-                                        //    exit = true;
-                                        //    //break;
-
-                                        //}
                                         foreach (var lrect in t.TileRect.SetPos(rpos).ToLines()) {
                                             points.Add(line.GetCollidingPoint(lrect));
                                         }
@@ -350,11 +294,6 @@ namespace MatrixEngine.Physics {
                             }
                             else {
                                 for (float i = line.start.Y; i.IsBetween(line.start.Y, line.end.Y); i += step * -(line.start.Y - line.end.Y).Sign()) {
-                                    Vector2i pos;
-                                    Tile tile;
-                                    Vector2f rpos;
-                                    bool exit = false;
-
                                     for (int add = -4; add <= 4; add++) {
                                         pos = t.GetPosOfTileFromWorldPos(line.WhereY(i)) + new Vector2i(add, 0);
                                         tile = t.GetTileFromTilemapPos(pos);
@@ -363,18 +302,7 @@ namespace MatrixEngine.Physics {
                                         }
                                         rpos = t.GetWorldPosFromTilePos(pos);
 
-                                        var s = new RectangleShape() { Position = rpos, Size = t.TileRect.size, FillColor = new Color(255, 255, 255, 100) };
-
-                                        App.Window.Draw(s);
-                                        s.Dispose();
-
                                         var r = t.TileRect.SetPos(rpos);
-
-                                        foreach (var l in r.ToLines()) {
-                                            var v = l.ToVertexArray();
-                                            App.Window.Draw(v);
-                                            v.Dispose();
-                                        }
 
                                         var anspos = line.GetCollidingPosFromLineToRect(r);
 
@@ -383,13 +311,6 @@ namespace MatrixEngine.Physics {
                                         foreach (var lrect in t.TileRect.SetPos(rpos).ToLines()) {
                                             points.Add(line.GetCollidingPoint(lrect));
                                         }
-
-                                        //if (anspos.IsFinite()) {
-                                        //    points.Add(anspos);
-                                        //    exit = true;
-                                        //    //break;
-
-                                        //}
                                     }
                                 }
                             }
@@ -405,18 +326,9 @@ namespace MatrixEngine.Physics {
             if (points.Count == 0) {
                 return line.end;
             }
-
-            points.ForEach(e =>
-            {
-                var r = new RectangleShape() { Position = e - new Vector2f(0.1f, 0.1f), Size = new Vector2f(0.2f, 0.2f), FillColor = Color.Red };
-
-                App.Window.Draw(r);
-
-                r.Dispose();
-            });
             var ans = points.Aggregate((e, a) => line.start.Distance(a) < line.start.Distance(e) ? a : e);
             points.Clear();
-            if (ans.X.IsInfinite() || ans.Y.IsInfinite()) {
+            if (!ans.IsFinite()) {
                 return line.end;
             }
             return ans;

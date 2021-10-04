@@ -23,32 +23,38 @@ namespace MatrixEngine.Physics {
         public float cX { get => X + width * 0.5f; }
         public float cY { get => Y + height * 0.5f; }
 
-        public Rect SetPos(Vector2f pos) {
+        public Rect SetPos(Vector2f pos)
+        {
             (X, Y) = (pos.X, pos.Y);
             return this;
         }
 
-        public void SetSize(Vector2f size) {
+        public void SetSize(Vector2f size)
+        {
             (width, height) = (size.X, size.Y);
         }
 
-        public void SetAll(Vector2f pos, Vector2f size) {
+        public void SetAll(Vector2f pos, Vector2f size)
+        {
             SetSize(size);
             SetPos(pos);
         }
 
-        public Rect(float x = 0, float y = 0, float width = 10, float height = 10) {
+        public Rect(float x = 0, float y = 0, float width = 10, float height = 10)
+        {
             this.X = x;
             this.Y = y;
             this.width = width;
             this.height = height;
         }
 
-        public Rect(Vector2f pos, Vector2f size) {
+        public Rect(Vector2f pos, Vector2f size)
+        {
             SetAll(pos, size);
         }
 
-        public new string ToString() {
+        public new string ToString()
+        {
             return $"Rect(x:{X.ToString("0.0")}, y:{Y.ToString("0.0")}, width:{width.ToString("0.0")}, height:{height.ToString("0.0")})";
         }
 
@@ -68,15 +74,18 @@ namespace MatrixEngine.Physics {
             get => new Vector2f(width, height);
         }
 
-        public bool IsInside(Vector2f pos) {
+        public bool IsInside(Vector2f pos)
+        {
             return (pos.X >= this.X && pos.Y >= this.Y && pos.X <= this.max.X && pos.Y <= this.max.Y);
         }
 
-        public Rect Copy() {
+        public Rect Copy()
+        {
             return new Rect(position, size);
         }
 
-        public IEnumerable<Line> ToLines() {
+        public IEnumerable<Line> ToLines()
+        {
             yield return new(position, position + size.OnlyWithX());
             yield return new(position, position + size.OnlyWithY());
             yield return new(position + size.OnlyWithY(), max);
