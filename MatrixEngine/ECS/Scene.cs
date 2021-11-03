@@ -106,5 +106,15 @@ namespace MatrixEngine.ECS
                 plugin.Value.Update();
             }
         }
+
+        public T GetPlugin<T>() where T : Plugin
+        {
+            return GetPlugin(typeof(T)) as T;
+        }
+
+        public Plugin GetPlugin(Type t)
+        {
+            return _plugins.GetValueOrDefault(t);
+        }
     }
 }

@@ -7,13 +7,16 @@ using SFML.Window;
 
 namespace MatrixEngine.ECS
 {
-    public class KeyHandler
+    public class InputHandler
     {
         private Dictionary<Keyboard.Key, bool> keys = new Dictionary<Keyboard.Key, bool>();
 
+        public float ScrollDelta { get; private set; }
+        public float ScrollY { get; private set; }
+
         public IEnumerable<Keyboard.Key> GetAllPressedKeys()
         {
-            return keys.Where((pair => pair.Value == true)).Select(e => e.Key);
+            return keys.Where(pair => pair.Value == true).Select(e => e.Key);
         }
 
         public bool IsPressed(Keyboard.Key key)
@@ -23,7 +26,7 @@ namespace MatrixEngine.ECS
 
         public bool IsPressed(IEnumerable<Keyboard.Key> keys)
         {
-            return keys.Any(key => IsPressed(key));
+            return keys.Any(IsPressed);
         }
 
         public bool IsAllPressed(IEnumerable<Keyboard.Key> keys)
@@ -39,6 +42,18 @@ namespace MatrixEngine.ECS
         internal void WindowKeyReleased(object sender, KeyEventArgs e)
         {
             keys[e.Code] = false;
+        }
+
+        internal void Window_MouseWheelScrolled(object sender, MouseWheelScrollEventArgs e)
+        {
+            ScrollDelta = e.Delta;
+
+            ScrollY += ScrollDelta;
+        }
+
+        public void Update()
+        {
+            ScrollDelta = 0;
         }
     }
 }

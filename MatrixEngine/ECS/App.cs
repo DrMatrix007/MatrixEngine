@@ -22,7 +22,7 @@ namespace MatrixEngine.ECS
     {
         public readonly RenderWindow Window;
 
-        public readonly KeyHandler KeyHandler;
+        public readonly InputHandler InputHandler;
 
         private Scene _scene;
 
@@ -53,10 +53,11 @@ namespace MatrixEngine.ECS
 
             CurrentScene = scene ?? new Scene();
 
-            KeyHandler = new KeyHandler();
+            InputHandler = new InputHandler();
 
-            Window.KeyPressed += KeyHandler.WindowKeyPressed;
-            Window.KeyReleased += KeyHandler.WindowKeyReleased; ;
+            Window.KeyPressed += InputHandler.WindowKeyPressed;
+            Window.KeyReleased += InputHandler.WindowKeyReleased;
+            Window.MouseWheelScrolled += InputHandler.Window_MouseWheelScrolled;
         }
 
         public void Run()
@@ -69,6 +70,8 @@ namespace MatrixEngine.ECS
                 Window.DispatchEvents();
 
                 CurrentScene.Update();
+
+                InputHandler.Update();
 
                 Window.Display();
                 DeltaTime = dc.Restart();

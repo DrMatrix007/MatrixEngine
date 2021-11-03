@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MatrixEngine.ECS.Behaviors;
+using MatrixEngine.ECS.Plugins;
 using SFML.System;
 using SFML.Window;
 
@@ -23,29 +24,40 @@ namespace MatrixEngine.ECS
         {
             var trans = GetTransform();
             var app = GetApp();
-            var k = app.KeyHandler;
-
+            var k = app.InputHandler;
+            var add = new Vector2f(0, 0);
             if (k.IsPressed(Keyboard.Key.D))
             {
-                trans.Position += new Vector2f(speed, 0) * app.DeltaTime.AsSeconds();
+                add += new Vector2f(1, 0);
             }
             if (k.IsPressed(Keyboard.Key.A))
             {
-                trans.Position += new Vector2f(-speed, 0) * app.DeltaTime.AsSeconds();
+                add += new Vector2f(-1, 0);
             }
             if (k.IsPressed(Keyboard.Key.W))
             {
-                trans.Position += new Vector2f(0, -speed) * app.DeltaTime.AsSeconds();
+                add += new Vector2f(0, -1);
             }
             if (k.IsPressed(Keyboard.Key.S))
             {
-                trans.Position += new Vector2f(0, speed) * app.DeltaTime.AsSeconds();
+                add += new Vector2f(0, 1);
             }
 
-            Task.Run(
-                () =>
-                    (1 / app.DeltaTime.AsSeconds()).Log()
-            );
+            if (!add.IsZeroZero())
+            {
+                add = add.Normalized() * speed * app.DeltaTime.AsSeconds();
+            }
+            trans.Position += add;
+            //Task.Run(
+            //    () =>
+            //        (1 / app.DeltaTime.AsSeconds()).Log()
+            //);
+
+            var renderer = GetScene().GetPlugin<RendererPlugin>();
+
+            renderer.Camera.Area = 2.Pow(k.ScrollY);
+
+            renderer.Camera.Position = trans.Position;
         }
 
         public override void Dispose()

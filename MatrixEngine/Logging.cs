@@ -19,14 +19,22 @@ namespace MatrixEngine
             return Environment.StackTrace.Split("\n")[3].Split("\\").Last();
         }
 
-        public static void Log(this object t)
+        public static T Log<T>(this T t)
         {
             var frame = new StackTrace(true).GetFrame(1);
-            //Task.Run(
-            //() =>
-            Console.WriteLine($"{frame?.GetFileName()?.Split("\\").Last()} {frame?.GetFileLineNumber()}: {t.ToString()}")
-            ;
-            //);
+            Console.WriteLine($"{frame?.GetFileName()?.Split("\\").Last()} {frame?.GetFileLineNumber()}: {t.ToString()}");
+            return t;
+        }
+
+        public static T TaskLog<T>(this T t)
+        {
+            Task.Run(
+                () =>
+                {
+                    var frame = new StackTrace(true).GetFrame(1);
+                    Console.WriteLine($"{frame?.GetFileName()?.Split("\\").Last()} {frame?.GetFileLineNumber()}: {t.ToString()}");
+                });
+            return t;
         }
     }
 }

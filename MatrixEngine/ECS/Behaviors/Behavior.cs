@@ -9,13 +9,15 @@ namespace MatrixEngine.ECS.Behaviors
 
         private Actor _actor;
 
-        public KeyHandler GetKeyHandler() => GetActor().GetScene().GetApp().KeyHandler;
+        public InputHandler GetInputHandler() => GetActor().GetScene().GetApp().InputHandler;
 
         public App GetApp() => GetActor().GetScene().GetApp();
 
         public Actor GetActor() => _actor ?? throw new NullReferenceException($"GetActor is null in {this}");
 
         public Transform GetTransform() => GetActor().Transform;
+
+        public Scene GetScene() => GetActor().GetScene();
 
         internal void SetActor(Actor a)
         {
