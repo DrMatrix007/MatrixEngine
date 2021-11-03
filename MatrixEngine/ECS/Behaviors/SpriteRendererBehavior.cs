@@ -30,7 +30,7 @@ namespace MatrixEngine.ECS.Behaviors
 
         public override void Render(RenderTarget target)
         {
-            var t = Transform;
+            var t = GetTransform();
             sprite.Position = t.Position;
 
             sprite.Scale = t.Scale / PixelsPerUnit;

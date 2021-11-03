@@ -16,7 +16,7 @@ namespace MatrixEngine.ECS
 
         private App _app;
 
-        public App App => _app ?? throw new NullReferenceException($"App is null in{this}");
+        public App GetApp() => _app ?? throw new NullReferenceException($"GetApp is null in{this}");
 
         private List<Actor> _actors;
         private Dictionary<Type, Plugin> _plugins;
@@ -38,6 +38,7 @@ namespace MatrixEngine.ECS
 
         public void AddActor(Actor actor)
         {
+            actor.SetScene(this);
             _actors.Add(actor);
         }
 

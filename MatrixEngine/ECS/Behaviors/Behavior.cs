@@ -1,4 +1,5 @@
 ﻿using System;
+using SFML.Window;
 
 namespace MatrixEngine.ECS.Behaviors
 {
@@ -8,9 +9,13 @@ namespace MatrixEngine.ECS.Behaviors
 
         private Actor _actor;
 
-        public Actor Actor => _actor ?? throw new NullReferenceException($"Actor is null in {this}");
+        public KeyHandler GetKeyHandler() => GetActor().GetScene().GetApp().KeyHandler;
 
-        public Transform Transform => Actor.Transform;
+        public App GetApp() => GetActor().GetScene().GetApp();
+
+        public Actor GetActor() => _actor ?? throw new NullReferenceException($"GetActor is null in {this}");
+
+        public Transform GetTransform() => GetActor().Transform;
 
         internal void SetActor(Actor a)
         {

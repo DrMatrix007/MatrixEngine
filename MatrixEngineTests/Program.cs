@@ -24,6 +24,7 @@ namespace MatrixEngineTests
             app.CurrentScene.AddActor(new Actor(new Behavior[]
             {
                 new SpriteRendererBehavior(new Texture("object.png"),16 ),
+                new TestBehavior(),
             }));
             app.CurrentScene.AddPlugin(new RendererPlugin());
 

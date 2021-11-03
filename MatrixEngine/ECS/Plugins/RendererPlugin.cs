@@ -34,7 +34,7 @@ namespace MatrixEngine.ECS.Plugins
 
         protected override void OnStart()
         {
-            //Scene.App.Window.Resized += Window_Resized;
+            //GetScene.GetApp.Window.Resized += Window_Resized;
         }
 
         //private void Window_Resized(object sender, SFML.Window.SizeEventArgs e)
@@ -51,7 +51,7 @@ namespace MatrixEngine.ECS.Plugins
 
         protected override void OnUpdate()
         {
-            var window = Scene.App.Window;
+            var window = Scene.GetApp().Window;
 
             var ratio = ((float)window.Size.X) / window.Size.Y;
             var size = new Vector2f((Camera.Area * ratio).Sqrt(), (Camera.Area / ratio).Sqrt());

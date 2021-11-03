@@ -22,7 +22,13 @@ namespace MatrixEngine.ECS
     {
         public readonly RenderWindow Window;
 
+        public readonly KeyHandler KeyHandler;
+
         private Scene _scene;
+
+        public Time DeltaTime { get; private set; }
+
+        public Time Time { get; private set; }
 
         public Scene CurrentScene
         {
@@ -43,11 +49,20 @@ namespace MatrixEngine.ECS
                  ((Window)sender)?.Close();
              };
 
+            Window.SetKeyRepeatEnabled(false);
+
             CurrentScene = scene ?? new Scene();
+
+            KeyHandler = new KeyHandler();
+
+            Window.KeyPressed += KeyHandler.WindowKeyPressed;
+            Window.KeyReleased += KeyHandler.WindowKeyReleased; ;
         }
 
         public void Run()
         {
+            var dc = new Clock();
+            var tc = new Clock();
             while (Window.IsOpen)
             {
                 Window.Clear(Color.Cyan);
@@ -56,6 +71,8 @@ namespace MatrixEngine.ECS
                 CurrentScene.Update();
 
                 Window.Display();
+                DeltaTime = dc.Restart();
+                Time = tc.ElapsedTime;
             }
             CurrentScene.Dispose();
             Window.Dispose();
