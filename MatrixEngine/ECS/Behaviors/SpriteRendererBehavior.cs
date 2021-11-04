@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MatrixEngine.ECS.Behaviors;
+using MatrixEngine.ECS.Plugins;
 using SFML.Graphics;
 
 namespace MatrixEngine.ECS.Behaviors

@@ -42,7 +42,7 @@ namespace MatrixEngine.ECS
 
         public Behavior GetBehavior(Type t)
         {
-            return behaviors[t];
+            return !behaviors.ContainsKey(t) ? null : behaviors[t];
         }
 
         public void Dispose()

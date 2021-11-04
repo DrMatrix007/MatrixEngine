@@ -53,5 +53,20 @@ namespace MatrixEngine
         {
             return MathF.Pow(i, p);
         }
+
+        public static int Floor(this float f)
+        {
+            return (int)MathF.Floor(f);
+        }
+
+        public static Vector2i Floor(this Vector2f f)
+        {
+            return new Vector2i(f.X.Floor(), f.Y.Floor());
+        }
+
+        public static Vector2f Multiply(this Vector2f f, Vector2f ff)
+        {
+            return new Vector2f(f.X * ff.X, f.Y * ff.Y);
+        }
     }
 }

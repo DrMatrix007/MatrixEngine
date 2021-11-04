@@ -26,10 +26,22 @@ namespace MatrixEngineTests
                 new SpriteRendererBehavior(new Texture("object.png"),16 ),
                 new TestBehavior(),
             }));
-
             app.CurrentScene.AddActor(new Actor(new Behavior[]
             {
                 new SpriteRendererBehavior(new Texture("object.png"),16 ),
+            }));
+
+            var t = new TilemapBehavior();
+
+            for (int i = 0; i < 10; i++)
+            {
+                t.SetTile(new Vector2i(i, i), new Tile(new Texture("object.png")));
+            }
+
+            app.CurrentScene.AddActor(new Actor(new Behavior[]
+            {
+                t,
+                new TilemapRendererBehavior(16)
             }));
 
             app.CurrentScene.AddPlugin(new RendererPlugin());
