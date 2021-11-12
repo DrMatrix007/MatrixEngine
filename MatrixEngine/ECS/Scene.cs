@@ -9,14 +9,14 @@ namespace MatrixEngine.ECS
 {
     public class Scene : IDisposable
     {
-        internal void SetApp(App app)
+        internal void SetEngine(Engine app)
         {
             _app = app;
         }
 
-        private App _app;
+        private Engine _app;
 
-        public App GetApp() => _app ?? throw new NullReferenceException($"GetApp is null in{this}");
+        public Engine GetEngine() => _app ?? throw new NullReferenceException($"GetEngine is null in{this}");
 
         private List<Actor> _actors;
         private Dictionary<Type, Plugin> _plugins;
@@ -82,6 +82,11 @@ namespace MatrixEngine.ECS
             }
         }
 
+        public void Destroy(Actor actor)
+        {
+            _actors.Remove(actor);
+        }
+
         public void Update()
         {
             var actors = _actors.ToArray();
@@ -109,7 +114,7 @@ namespace MatrixEngine.ECS
 
         public T GetPlugin<T>() where T : Plugin
         {
-            return GetPlugin(typeof(T)) as T;
+            return GetPlugin(typeof(T)) as T ?? throw new NullReferenceException($"Plugin {typeof(T).Name} does not exist");
         }
 
         public Plugin GetPlugin(Type t)

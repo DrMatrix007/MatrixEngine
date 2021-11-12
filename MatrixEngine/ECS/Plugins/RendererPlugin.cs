@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MatrixEngine.ECS.Behaviors;
+using MatrixEngine.MatrixMath;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
@@ -51,12 +52,12 @@ namespace MatrixEngine.ECS.Plugins
 
         protected override void OnUpdate()
         {
-            var window = Scene.GetApp().Window;
+            var window = GetScene().GetEngine().Window;
 
             var ratio = ((float)window.Size.X) / window.Size.Y;
             var size = new Vector2f((Camera.Area * ratio).Sqrt(), (Camera.Area / ratio).Sqrt());
             window.SetView(new View(Camera.Position, size));
-            foreach (var behavior in Scene.GetAllBehaviorsWithPolymorphism<RendererBehavior>())
+            foreach (var behavior in GetScene().GetAllBehaviorsWithPolymorphism<RendererBehavior>())
             {
                 behavior.Render(window);
             }

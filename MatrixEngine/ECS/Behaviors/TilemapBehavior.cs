@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MatrixEngine.MatrixMath;
 using SFML.Graphics;
 using SFML.System;
 
@@ -18,7 +20,7 @@ namespace MatrixEngine.ECS.Behaviors
         public Texture Texture;
     }
 
-    public class Chunk
+    public class Chunk : IEnumerable<KeyValuePair<Vector2i, Tile>>
     {
         public readonly UInt16 CHUNKSIZE;
 
@@ -40,13 +42,25 @@ namespace MatrixEngine.ECS.Behaviors
                 tiles[vector2] = tile;
             }
         }
+
+        public IEnumerator<KeyValuePair<Vector2i, Tile>> GetEnumerator()
+        {
+            return tiles.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
     }
 
     public class TilemapBehavior : Behavior
     {
-        public readonly UInt16 CHUNKSIZE = 2;
+        public readonly UInt16 CHUNKSIZE = 50;
 
-        private Dictionary<Vector2i, Chunk> chunks = new Dictionary<Vector2i, Chunk>();
+        internal Dictionary<Vector2i, Chunk> chunks = new Dictionary<Vector2i, Chunk>();
+
+        public EventHandler<TilePlacementEventArgs> TilePlaced;
 
         public IEnumerable<KeyValuePair<Vector2i, Tile>> tiles
         {
@@ -56,8 +70,7 @@ namespace MatrixEngine.ECS.Behaviors
                 {
                     foreach (var valueTile in chunk.Value.tiles)
                     {
-
-                        yield return new KeyValuePair<Vector2i, Tile>(chunk.Key+valueTile.Key,valueTile.Value);
+                        yield return new KeyValuePair<Vector2i, Tile>(chunk.Key + valueTile.Key, valueTile.Value);
                     }
                 }
             }
@@ -65,14 +78,22 @@ namespace MatrixEngine.ECS.Behaviors
 
         public Tile SetTile(Vector2i pos, Tile tile)
         {
-            var chunk_pos = GetChunkPos(pos);
+            var chunkPos = GetChunkPos(pos);
 
-            if (!chunks.ContainsKey(chunk_pos))
+            if (!chunks.ContainsKey(chunkPos))
             {
-                chunks[chunk_pos] = new Chunk(CHUNKSIZE);
+                chunks[chunkPos] = new Chunk(CHUNKSIZE);
             }
 
-            chunks[chunk_pos].SetTile(pos - chunk_pos, tile);
+            chunks[chunkPos].SetTile(pos - chunkPos, tile);
+
+            TilePlaced?.Invoke(this, new TilePlacementEventArgs()
+            {
+                Chunk = chunks[chunkPos],
+                GlobalPos = pos,
+                ChunkPos = chunkPos,
+                Tile = tile
+            });
 
             return tile;
         }
@@ -93,5 +114,16 @@ namespace MatrixEngine.ECS.Behaviors
         public override void Dispose()
         {
         }
+    }
+
+    public class TilePlacementEventArgs : EventArgs
+    {
+        public Chunk Chunk;
+
+        public Tile Tile;
+
+        public Vector2i GlobalPos;
+
+        public Vector2i ChunkPos;
     }
 }

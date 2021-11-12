@@ -18,7 +18,7 @@ namespace MatrixEngine.ECS
         public Vector2u Size;
     }
 
-    public class App
+    public class Engine
     {
         public readonly RenderWindow Window;
 
@@ -28,6 +28,8 @@ namespace MatrixEngine.ECS
 
         public Time DeltaTime { get; private set; }
 
+        public float DeltaTimeAsSeconds { get; private set; }
+
         public Time Time { get; private set; }
 
         public Scene CurrentScene
@@ -36,11 +38,11 @@ namespace MatrixEngine.ECS
             set
             {
                 _scene = value ?? throw new ArgumentNullException(nameof(value));
-                _scene.SetApp(this);
+                _scene.SetEngine(this);
             }
         }
 
-        public App(WindowSettings windowSettings, Scene scene = null)
+        public Engine(WindowSettings windowSettings, Scene scene = null)
         {
             Window = new RenderWindow(new VideoMode(windowSettings.Size.X, windowSettings.Size.Y),
                 windowSettings.Name);
@@ -58,14 +60,23 @@ namespace MatrixEngine.ECS
             Window.KeyPressed += InputHandler.WindowKeyPressed;
             Window.KeyReleased += InputHandler.WindowKeyReleased;
             Window.MouseWheelScrolled += InputHandler.Window_MouseWheelScrolled;
+
+            Window.SetActive(false);
+
         }
 
         public void Run()
         {
             var dc = new Clock();
             var tc = new Clock();
+            
+            
+            Window.ResetGLStates();
+
+            Window.SetActive(true);
             while (Window.IsOpen)
             {
+
                 Window.Clear(Color.Cyan);
                 Window.DispatchEvents();
 
@@ -75,7 +86,9 @@ namespace MatrixEngine.ECS
 
                 Window.Display();
                 DeltaTime = dc.Restart();
+                DeltaTimeAsSeconds = DeltaTime.AsSeconds();
                 Time = tc.ElapsedTime;
+
             }
             CurrentScene.Dispose();
             Window.Dispose();

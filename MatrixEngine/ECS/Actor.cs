@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using MatrixEngine.ECS.Behaviors;
+using MatrixEngine.Utils;
+using SFML.System;
 
 namespace MatrixEngine.ECS
 {
@@ -18,6 +20,17 @@ namespace MatrixEngine.ECS
             this._scene = scene;
         }
 
+        public bool HaveBehavior(Type t)
+        {
+            return behaviors.ContainsKey(t);
+        }
+
+        public bool HaveBehavior<T>()
+        {
+            return HaveBehavior(typeof(T));
+        }
+
+
         public Actor(IEnumerable<Behavior> behaviors)
         {
             foreach (var behavior in behaviors)
@@ -25,24 +38,49 @@ namespace MatrixEngine.ECS
                 AddBehavior(behavior);
             }
         }
+        public Actor(Vector2f pos,IEnumerable<Behavior> behaviors):this(behaviors)
+        {
+            Transform.Position = pos;
+        }
 
         private Dictionary<Type, Behavior> behaviors = new Dictionary<Type, Behavior>();
 
-        public void AddBehavior(Behavior behavior)
+        public Behavior AddBehavior(Behavior behavior)
         {
+            if (behavior == null)
+            {
+                throw new ArgumentNullException(nameof(behavior));
+            }
             behavior.GetType().Log();
             behavior.SetActor(this);
             behaviors[behavior.GetType()] = behavior;
+            return behavior;
+        }
+
+        public T AddBehavior<T>(T b) where T : Behavior
+        {
+            return (T)AddBehavior(b as Behavior);
         }
 
         public T GetBehavior<T>() where T : Behavior
         {
-            return GetBehavior(typeof(T)) as T;
+            return (T)GetBehavior(typeof(T));
+        }
+
+        public void Destroy(Behavior behavior)
+        {
+            behaviors.Remove(behavior.GetType());
+        }
+
+        public void Destroy()
+        {
+            GetScene().Destroy(this);
         }
 
         public Behavior GetBehavior(Type t)
         {
-            return !behaviors.ContainsKey(t) ? null : behaviors[t];
+            return behaviors.GetValueOrDefault(t);
+            //return !behaviors.ContainsKey(t) ? null : behaviors[t];
         }
 
         public void Dispose()

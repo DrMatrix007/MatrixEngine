@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using SFML.System;
 
-namespace MatrixEngine
+namespace MatrixEngine.MatrixMath
 {
     internal static class MatrixMath
     {
@@ -21,7 +17,7 @@ namespace MatrixEngine
 
         public static Vector2f Normalized(this Vector2f f)
         {
-            return f / (f.X.Sqr() + f.Y.Sqr()).Sqrt();
+            return f.IsZeroZero() ? f : f / (f.X.Sqr() + f.Y.Sqr()).Sqrt();
         }
 
         public static float Length(this Vector2f f)
@@ -64,9 +60,24 @@ namespace MatrixEngine
             return new Vector2i(f.X.Floor(), f.Y.Floor());
         }
 
-        public static Vector2f Multiply(this Vector2f f, Vector2f ff)
+        public static Vector2f Multiply(this Vector2f a, Vector2f b)
         {
-            return new Vector2f(f.X * ff.X, f.Y * ff.Y);
+            return new Vector2f(a.X * b.X, a.Y * b.Y);
+        }
+
+        public static Vector2f OnlyWithX(this Vector2f v)
+        {
+            return new Vector2f(v.X, 0);
+        }
+
+        public static Vector2f OnlyWithY(this Vector2f v)
+        {
+            return new Vector2f(0, v.Y);
+        }
+
+        public static float Abs(this float f)
+        {
+            return MathF.Abs(f);
         }
     }
 }

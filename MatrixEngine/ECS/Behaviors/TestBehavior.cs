@@ -1,15 +1,19 @@
-﻿using System;
+﻿
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using MatrixEngine.ECS.Behaviors;
+using MatrixEngine.ECS.Behaviors.Physics;
 using MatrixEngine.ECS.Plugins;
+using MatrixEngine.MatrixMath;
+using MatrixEngine.Utils;
 using SFML.System;
 using SFML.Window;
 
-namespace MatrixEngine.ECS
+
+namespace MatrixEngine.ECS.Behaviors
 {
     public class TestBehavior : Behavior
     {
@@ -22,8 +26,9 @@ namespace MatrixEngine.ECS
 
         protected override void OnUpdate()
         {
+
             var trans = GetTransform();
-            var app = GetApp();
+            var app = GetEngine();
             var k = app.InputHandler;
             var add = new Vector2f(0, 0);
             if (k.IsPressed(Keyboard.Key.D))
@@ -45,9 +50,9 @@ namespace MatrixEngine.ECS
 
             if (!add.IsZeroZero())
             {
-                add = add.Normalized() * speed * app.DeltaTime.AsSeconds();
+                add = add.Normalized() * speed;
             }
-            trans.Position += add;
+            GetBehavior<DynamicRigidbodyBehavior>().Velocity = add;
             //Task.Run(
             //    () =>
             //        (1 / app.DeltaTime.AsSeconds()).Log()
@@ -55,9 +60,16 @@ namespace MatrixEngine.ECS
 
             var renderer = GetScene().GetPlugin<RendererPlugin>();
 
+            
+
             renderer.Camera.Area = 2.Pow(k.ScrollY);
 
             renderer.Camera.Position = trans.Position;
+
+
+            $"FPS: {1 / GetEngine().DeltaTimeAsSeconds}\r".Log();
+            Console.SetCursorPosition(0,Console.CursorTop-1);
+            
         }
 
         public override void Dispose()

@@ -12,11 +12,15 @@ namespace MatrixEngine.ECS
 
         private Scene _scene;
 
-        public Scene Scene => _scene ?? throw new NullReferenceException($"GetScene is empty for {this}");
+        public Scene GetScene() => _scene ?? throw new NullReferenceException($"GetScene is empty for {this}");
 
         internal void SetScene(Scene scene)
         {
             this._scene = scene;
+        }
+        public Engine GetEngine()
+        {
+            return GetScene().GetEngine();
         }
 
         public void Dispose()

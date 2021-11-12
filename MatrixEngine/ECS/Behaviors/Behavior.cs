@@ -9,9 +9,9 @@ namespace MatrixEngine.ECS.Behaviors
 
         private Actor _actor;
 
-        public InputHandler GetInputHandler() => GetActor().GetScene().GetApp().InputHandler;
+        public InputHandler GetInputHandler() => GetActor().GetScene().GetEngine().InputHandler;
 
-        public App GetApp() => GetActor().GetScene().GetApp();
+        public Engine GetEngine() => GetActor().GetScene().GetEngine();
 
         public Actor GetActor() => _actor ?? throw new NullReferenceException($"GetActor is null in {this}");
 
@@ -19,9 +19,24 @@ namespace MatrixEngine.ECS.Behaviors
 
         public Scene GetScene() => GetActor().GetScene();
 
+        public T AddBehavior<T>(T t) where T:Behavior => GetActor().AddBehavior<T>(t);
+        public Behavior AddBehavior(Behavior t) => GetActor().AddBehavior(t);
+
+        public bool HaveBehavior(Type t) => GetActor().HaveBehavior(t);
+
+        public bool HaveBehavior<T>() => GetActor().HaveBehavior<T>();
+
+        public Transform Transform { get;private set; }
+
         internal void SetActor(Actor a)
         {
             _actor = a;
+            Transform = GetTransform();
+        }
+
+        public T GetBehavior<T>() where T : Behavior
+        {
+            return GetActor().GetBehavior<T>();
         }
 
         public void Start()
@@ -42,5 +57,12 @@ namespace MatrixEngine.ECS.Behaviors
         protected abstract void OnUpdate();
 
         public abstract void Dispose();
+
+        public void Destory()
+        {
+            GetActor().Destroy(this);
+        }
+
+
     }
 }
