@@ -7,7 +7,7 @@ using MatrixEngine.ECS.Plugins;
 using MatrixEngine.MatrixMath;
 using MatrixEngine.Utils;
 
-namespace MatrixEngine.ECS.Behaviors.Physics
+namespace MatrixEngine.ECS.Behaviors.PhysicsBehaviors
 {
     public abstract class StaticRigidbodyBehavior : Behavior
     {

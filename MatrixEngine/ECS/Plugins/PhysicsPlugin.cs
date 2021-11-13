@@ -1,4 +1,4 @@
-﻿using MatrixEngine.ECS.Behaviors.Physics;
+﻿using MatrixEngine.ECS.Behaviors.PhysicsBehaviors;
 using MatrixEngine.MatrixMath;
 using SFML.System;
 using System;
@@ -45,11 +45,7 @@ namespace MatrixEngine.ECS.Plugins
             var engine = GetEngine();
 
             var trans = nonstatic.GetTransform();
-
-            var g = nonstatic.Gravity * engine.DeltaTimeAsSeconds;
-
-            nonstatic.Velocity += g * engine.DeltaTimeAsSeconds;
-
+            
             var options = new List<float>(staticRigidbodies.Count);
 
             var startXRect = nonstatic.RectBehavior.GetRect();
@@ -63,12 +59,20 @@ namespace MatrixEngine.ECS.Plugins
             {
                 var xValue = options.Aggregate((a, b) => a.Abs() < b.Abs() ? a : b);
                 nonstatic.Transform.Position -= new Vector2f(xValue, 0);
+                if (xValue != 0)
+                {
+                    nonstatic.Velocity.X = 0;
+                }
             }
 
             options.Clear();
 
             var startYRect = nonstatic.RectBehavior.GetRect();
             trans.Position += nonstatic.Velocity.OnlyWithY() * engine.DeltaTimeAsSeconds;
+            if (engine.DeltaTimeAsSeconds > 0.5)
+            {
+            }
+
             var endYRect = nonstatic.RectBehavior.GetRect();
 
 
@@ -78,8 +82,16 @@ namespace MatrixEngine.ECS.Plugins
             {
                 var yValue = options.Aggregate((a, b) => a.Abs() < b.Abs() ? a : b);
                 nonstatic.Transform.Position -= new Vector2f(0, yValue);
+                if (yValue != 0)
+                {
+                    nonstatic.Velocity.Y = 0;
+                }
             }
+            
+            var g = nonstatic.Gravity * engine.DeltaTimeAsSeconds;
 
+            nonstatic.Velocity += g;
+            
             options.Clear();
         }
     }

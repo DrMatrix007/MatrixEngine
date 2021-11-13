@@ -52,29 +52,35 @@ namespace MatrixEngine.ECS.Behaviors
         {
             return GetEnumerator();
         }
+
+        public Tile GetTileFromLocalPosition(Vector2i offset)
+        {
+            if ((!offset.X.IsInRangeIncludes(0, CHUNKSIZE-1)) || (!offset.Y.IsInRangeIncludes(0, CHUNKSIZE-1)))
+            {
+                throw new ArgumentOutOfRangeException(nameof(offset));
+            }
+            return tiles[offset];
+        }
     }
 
     public class TilemapBehavior : Behavior
     {
-        public readonly UInt16 CHUNKSIZE = 50;
+        public readonly ushort CHUNK_SIZE = 50;
 
         internal Dictionary<Vector2i, Chunk> chunks = new Dictionary<Vector2i, Chunk>();
 
         public EventHandler<TilePlacementEventArgs> TilePlaced;
 
-        public IEnumerable<KeyValuePair<Vector2i, Tile>> tiles
-        {
-            get
-            {
-                foreach (var chunk in chunks)
-                {
-                    foreach (var valueTile in chunk.Value.tiles)
-                    {
-                        yield return new KeyValuePair<Vector2i, Tile>(chunk.Key + valueTile.Key, valueTile.Value);
-                    }
-                }
-            }
-        }
+        public IEnumerable<KeyValuePair<Vector2i, Tile>> tiles => from chunk in chunks
+            from valueTile in chunk.Value.tiles
+            select new KeyValuePair<Vector2i, Tile>(chunk.Key + valueTile.Key, valueTile.Value);
+        //foreach (var chunk in chunks)
+        // {
+        //     foreach (var valueTile in chunk.Value.tiles)
+        //     {
+        //         yield return new KeyValuePair<Vector2i, Tile>(chunk.Key + valueTile.Key, valueTile.Value);
+        //     }
+        // }
 
         public Tile SetTile(Vector2i pos, Tile tile)
         {
@@ -82,7 +88,7 @@ namespace MatrixEngine.ECS.Behaviors
 
             if (!chunks.ContainsKey(chunkPos))
             {
-                chunks[chunkPos] = new Chunk(CHUNKSIZE);
+                chunks[chunkPos] = new Chunk(CHUNK_SIZE);
             }
 
             chunks[chunkPos].SetTile(pos - chunkPos, tile);
@@ -98,9 +104,53 @@ namespace MatrixEngine.ECS.Behaviors
             return tile;
         }
 
+        private Vector2i GetLocalChunkPos(Vector2i i, Vector2i chunk_pos)
+        {
+            var pos = i - chunk_pos;
+            if (pos.X < 0)
+            {
+                pos.X = CHUNK_SIZE + pos.X;
+            }
+
+            if (pos.Y < 0)
+            {
+                pos.Y = CHUNK_SIZE + pos.Y;
+            }
+
+            return pos;
+        }
+
+        public Tile GetTileFromTilemapPos(Vector2i i)
+        {
+            var chunk_vec = new Vector2i((int)MathF.Floor((float)(i.X) / CHUNK_SIZE),
+                (int)MathF.Floor((float)(i.Y) / CHUNK_SIZE)) * CHUNK_SIZE;
+            if (chunks.ContainsKey(chunk_vec))
+            {
+                return chunks[chunk_vec].GetTileFromLocalPosition(GetLocalChunkPos(i, chunk_vec));
+            }
+
+            return default;
+        }
+
+        public Vector2i GetPosOfTileFromWorldPos(Vector2f pos)
+        {
+            return (Vector2i)(new Vector2f(pos.X / Transform.Scale.X, pos.Y / Transform.Scale.Y).Floor() -
+                              Transform.Position);
+        }
+
+        public Tile GetTileFromWorldPos(Vector2f pos)
+        {
+            return GetTileFromTilemapPos(GetPosOfTileFromWorldPos(pos));
+        }
+
+        public Vector2f GetWorldPosFromTilePos(Vector2i pos)
+        {
+            return Transform.Position + ((Vector2f)pos).Multiply(Transform.Scale);
+        }
+
         public Vector2i GetChunkPos(Vector2i vector2)
         {
-            return ((Vector2f)vector2 / CHUNKSIZE).Floor() * CHUNKSIZE;
+            return ((Vector2f)vector2 / CHUNK_SIZE).FloorToInt() * CHUNK_SIZE;
         }
 
         protected override void OnStart()

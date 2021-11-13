@@ -68,7 +68,7 @@ namespace MatrixEngine.ECS.Behaviors
             foreach (var item in tilemap.chunks)
             {
                 var iscolliding = new Rect(((Vector2f)item.Key).Multiply(trans.Scale) + trans.Position,
-                    tilemap.CHUNKSIZE * new Vector2f(1, 1).Multiply(trans.Scale)).IsColliding(camrect);
+                    tilemap.CHUNK_SIZE * new Vector2f(1, 1).Multiply(trans.Scale)).IsColliding(camrect);
 
                 if ((nonUpdatedChunks.Contains(item.Key) && iscolliding) || (iscolliding && !chunkTextures.ContainsKey(item.Key)))
                 {
@@ -133,7 +133,7 @@ namespace MatrixEngine.ECS.Behaviors
             foreach (var item in chunkTextures.ToList())
             {
                 var iscolliding = new Rect(((Vector2f)item.Key).Multiply(trans.Scale) + trans.Position,
-                tilemap.CHUNKSIZE * new Vector2f(1, 1).Multiply(trans.Scale)).IsColliding(camrect);
+                tilemap.CHUNK_SIZE * new Vector2f(1, 1).Multiply(trans.Scale)).IsColliding(camrect);
                 if (!iscolliding)
 
                 {

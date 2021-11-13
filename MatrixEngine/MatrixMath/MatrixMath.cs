@@ -55,7 +55,11 @@ namespace MatrixEngine.MatrixMath
             return (int)MathF.Floor(f);
         }
 
-        public static Vector2i Floor(this Vector2f f)
+        public static Vector2f Floor(this Vector2f f)
+        {
+            return new Vector2f(f.X.Floor(), f.Y.Floor());
+        }
+        public static Vector2i FloorToInt(this Vector2f f)
         {
             return new Vector2i(f.X.Floor(), f.Y.Floor());
         }
@@ -79,5 +83,44 @@ namespace MatrixEngine.MatrixMath
         {
             return MathF.Abs(f);
         }
+
+        public static bool IsInRange(this  float f, float f1, float f2)
+        {
+            
+            if (f1 > f2)
+            {
+                return f.IsInRange(f2, f1);
+            }
+            return f1 < f && f < f2;
+        }        
+        public static bool IsInRange(this  int f, int f1, int f2)
+        {
+            
+            if (f1 > f2)
+            {
+                return f.IsInRange(f2, f1);
+            }
+            return f1 < f && f < f2;
+        }
+        public static bool IsInRangeIncludes(this  float f, float f1, float f2)
+        {
+            
+            if (f1 >= f2)
+            {
+                return f.IsInRange(f2, f1);
+            }
+            return f1 <= f && f <= f2;
+        }        
+        public static bool IsInRangeIncludes(this  int f, int f1, int f2)
+        {
+            
+            if (f1 >= f2)
+            {
+                return f.IsInRange(f2, f1);
+            }
+            return f1 <= f && f <= f2;
+        }
+
+        
     }
 }

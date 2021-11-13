@@ -1,6 +1,6 @@
 ﻿using MatrixEngine.ECS;
 using MatrixEngine.ECS.Behaviors;
-using MatrixEngine.ECS.Behaviors.Physics;
+using MatrixEngine.ECS.Behaviors.PhysicsBehaviors;
 using MatrixEngine.ECS.Plugins;
 using MatrixEngine.Utils;
 using SFML.System;
@@ -35,7 +35,7 @@ namespace MatrixEngineTests
 
             scene.AddPlugin(new PhysicsPlugin());
 
-            var engine = new Engine(new WindowSettings() { Name = "tests", Size = new SFML.System.Vector2u(1000, 500) }, scene);
+            var engine = new Engine(new WindowSettings() { Name = "tests", Size = new Vector2u(1000, 500) }, scene);
 
 
 

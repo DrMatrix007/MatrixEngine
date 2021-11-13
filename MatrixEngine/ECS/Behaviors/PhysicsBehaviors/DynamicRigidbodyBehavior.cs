@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixEngine.ECS.Behaviors.Physics
+namespace MatrixEngine.ECS.Behaviors.PhysicsBehaviors
 {
     public class DynamicRigidbodyBehavior : Behavior
     {
