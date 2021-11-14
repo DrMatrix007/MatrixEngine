@@ -4,7 +4,7 @@ using MatrixEngine.Utils;
 
 namespace MatrixEngine.ECS.Behaviors.PhysicsBehaviors
 {
-    public class RectStaticRigidbody : StaticRigidbodyBehavior
+    public class RectStaticRigidbodyBehabior : StaticRigidbodyBehavior
     {
         private RectBehavior RectBehavior;
 
