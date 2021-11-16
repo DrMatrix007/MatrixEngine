@@ -59,6 +59,7 @@ namespace MatrixEngine.MatrixMath
         {
             return new Vector2f(f.X.Floor(), f.Y.Floor());
         }
+
         public static Vector2i FloorToInt(this Vector2f f)
         {
             return new Vector2i(f.X.Floor(), f.Y.Floor());
@@ -84,43 +85,79 @@ namespace MatrixEngine.MatrixMath
             return MathF.Abs(f);
         }
 
-        public static bool IsInRange(this  float f, float f1, float f2)
+        public static bool IsInRange(this float f, float f1, float f2)
         {
-            
             if (f1 > f2)
             {
                 return f.IsInRange(f2, f1);
             }
-            return f1 < f && f < f2;
-        }        
-        public static bool IsInRange(this  int f, int f1, int f2)
-        {
-            
-            if (f1 > f2)
-            {
-                return f.IsInRange(f2, f1);
-            }
+
             return f1 < f && f < f2;
         }
-        public static bool IsInRangeIncludes(this  float f, float f1, float f2)
+
+        public static bool IsInRange(this int f, int f1, int f2)
         {
-            
+            if (f1 > f2)
+            {
+                return f.IsInRange(f2, f1);
+            }
+
+            return f1 < f && f < f2;
+        }
+
+        public static bool IsInRangeIncludes(this float f, float f1, float f2)
+        {
             if (f1 >= f2)
             {
                 return f.IsInRange(f2, f1);
             }
-            return f1 <= f && f <= f2;
-        }        
-        public static bool IsInRangeIncludes(this  int f, int f1, int f2)
-        {
-            
-            if (f1 >= f2)
-            {
-                return f.IsInRange(f2, f1);
-            }
+
             return f1 <= f && f <= f2;
         }
 
-        
+        public static bool IsInRangeIncludes(this int f, int f1, int f2)
+        {
+            if (f1 >= f2)
+            {
+                return f.IsInRange(f2, f1);
+            }
+
+            return f1 <= f && f <= f2;
+        }
+
+        public static float Min(this float a, float b)
+        {
+            return a < b ? a : b;
+        }
+
+        public static float Max(this float a, float b)
+        {
+            return a > b ? a : b;
+        }
+
+
+        public static Rect BigRectArea(this Rect a, Rect b)
+        {
+            var left = a.X.Min(b.X);
+            var right = a.max.X.Max(b.max.X);
+            var up = a.Y.Min(b.Y);
+            var down = a.max.Y.Max(b.max.Y);
+
+
+            return new Rect(left, up, right - left, down - up);
+        }
+
+        public static int Sign(this float f)
+        {
+            if(f < 0)
+            {
+                return -1;
+            }
+            if (f > 1)
+            {
+                return 1;
+            }
+            return 0;
+        }
     }
 }

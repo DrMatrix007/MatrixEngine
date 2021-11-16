@@ -59,7 +59,8 @@ namespace MatrixEngine.ECS.Behaviors
             {
                 throw new ArgumentOutOfRangeException(nameof(offset));
             }
-            return tiles[offset];
+
+            return tiles.GetValueOrDefault(offset);
         }
     }
 
@@ -134,7 +135,7 @@ namespace MatrixEngine.ECS.Behaviors
 
         public Vector2i GetPosOfTileFromWorldPos(Vector2f pos)
         {
-            return (Vector2i)(new Vector2f(pos.X / Transform.Scale.X, pos.Y / Transform.Scale.Y).Floor() -
+            return (Vector2i)(new Vector2f(pos.X / Transform.Scale.X, pos.Y / Transform.Scale.Y) -
                               Transform.Position);
         }
 

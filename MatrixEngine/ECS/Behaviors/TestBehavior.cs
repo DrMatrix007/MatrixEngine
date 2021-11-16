@@ -28,32 +28,42 @@ namespace MatrixEngine.ECS.Behaviors
             var trans = GetTransform();
             var app = GetEngine();
             var k = app.InputHandler;
-            var add = new Vector2f(0, 0);
+            float x = 0;
+            float y = 0;
             if (k.IsPressed(Keyboard.Key.D))
             {
-                add += new Vector2f(1, 0);
+                x += 1;
+            }
+            if (k.IsPressed(Keyboard.Key.K))
+            {
+                y -= 0.01f;
             }
 
             if (k.IsPressed(Keyboard.Key.A))
             {
-                add += new Vector2f(-1, 0);
+                x -= 1;
             }
 
             if (k.IsPressed(Keyboard.Key.W))
             {
-                add += new Vector2f(0, -1);
+                y -= 1;
             }
 
             if (k.IsPressed(Keyboard.Key.S))
             {
-                add += new Vector2f(0, 1);
+                y += 1;
             }
 
-            if (!add.IsZeroZero())
+
+            var add = new Vector2f(x, y) * speed;
+            x = add.X;
+            y = add.Y;
+            GetBehavior<DynamicRigidbodyBehavior>().Velocity.X = x;
+
+            if (y != 0)
             {
-                add = add.Normalized() * speed;
+                GetBehavior<DynamicRigidbodyBehavior>().Velocity.Y = y;
             }
-            GetBehavior<DynamicRigidbodyBehavior>().Velocity = add;
 
 
             //Task.Run(
@@ -68,10 +78,9 @@ namespace MatrixEngine.ECS.Behaviors
 
             renderer.Camera.Position = trans.Position;
 
-
+            Console.SetCursorPosition(0, Console.CursorTop - 2);
             $"FPS: {1 / GetEngine().DeltaTimeAsSeconds}\r".Log();
             $"Position: {Transform.Position}; Velocity:{GetBehavior<DynamicRigidbodyBehavior>().Velocity}".Log();
-            Console.SetCursorPosition(0, Console.CursorTop - 2);
         }
 
         public override void Dispose()

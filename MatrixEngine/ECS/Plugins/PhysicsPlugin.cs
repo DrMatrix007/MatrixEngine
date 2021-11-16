@@ -1,9 +1,11 @@
 ﻿using MatrixEngine.ECS.Behaviors.PhysicsBehaviors;
 using MatrixEngine.MatrixMath;
+using MatrixEngine.Utils;
 using SFML.System;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,9 +24,12 @@ namespace MatrixEngine.ECS.Plugins
 
         protected override void OnUpdate()
         {
+            var time = Stopwatch.StartNew();
+
+
             var scene = GetScene();
 
-            var engine = GetEngine();
+            
 
             DynamicRigidbodies.Clear();
             StaticRigidbodies.Clear();
@@ -37,6 +42,8 @@ namespace MatrixEngine.ECS.Plugins
             {
                 UpdateRigidbody(item, StaticRigidbodies);
             }
+            time.Elapsed.TotalSeconds.Log();
+            time.Stop();
         }
 
         private void UpdateRigidbody(DynamicRigidbodyBehavior nonstatic,
@@ -57,7 +64,7 @@ namespace MatrixEngine.ECS.Plugins
                 item.GetCollidingFix(startXRect, endXRect, Utils.Direction.X)));
             if (options.Count != 0)
             {
-                var xValue = options.Aggregate((a, b) => a.Abs() < b.Abs() ? a : b);
+                var xValue = options.Aggregate((a, b) => a.Abs() > b.Abs() ? a : b);
                 nonstatic.Transform.Position -= new Vector2f(xValue, 0);
                 if (xValue != 0)
                 {
@@ -80,7 +87,7 @@ namespace MatrixEngine.ECS.Plugins
                 item.GetCollidingFix(startYRect, endYRect, Utils.Direction.Y)));
             if (options.Count != 0)
             {
-                var yValue = options.Aggregate((a, b) => a.Abs() < b.Abs() ? a : b);
+                var yValue = options.Aggregate((a, b) => a.Abs() > b.Abs() ? a : b);
                 nonstatic.Transform.Position -= new Vector2f(0, yValue);
                 if (yValue != 0)
                 {

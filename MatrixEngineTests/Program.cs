@@ -14,7 +14,7 @@ namespace MatrixEngineTests
 {
     public partial class Program
     {
-        private static void Main(string[] args)
+        private static void Main1(string[] args)
         {
 
             var scene = new Scene();
@@ -28,7 +28,7 @@ namespace MatrixEngineTests
             scene.AddActor(new Actor(new Vector2f(0, 0), new Behavior[]
             {
                 new SpriteRendererBehavior(new SFML.Graphics.Texture("grass.png"),16),
-                new RectStaticRigidbody()
+                new RectStaticRigidbodyBehavior()
             }));
 
             scene.AddPlugin(new RendererPlugin());

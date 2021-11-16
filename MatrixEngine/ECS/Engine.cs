@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using Microsoft.VisualBasic;
 using SFML.System;
 using SFML.Window;
+using MatrixEngine.MatrixMath;
+using MatrixEngine.Utils;
 
 namespace MatrixEngine.ECS
 {
@@ -41,7 +43,18 @@ namespace MatrixEngine.ECS
                 _scene.SetEngine(this);
             }
         }
+        public void QuickDrawRect(Rect r,Color color)
+        {
+            var rr = r.ToDrawableRect();
 
+            rr.FillColor = color;
+
+            Window.Draw(rr);
+
+            rr.Dispose();
+
+
+        }
         public Engine(WindowSettings windowSettings, Scene scene = null)
         {
             Window = new RenderWindow(new VideoMode(windowSettings.Size.X, windowSettings.Size.Y),
@@ -74,6 +87,7 @@ namespace MatrixEngine.ECS
             Window.ResetGLStates();
 
             Window.SetActive(true);
+             //Window.SetFramerateLimit(100); 
             while (Window.IsOpen)
             {
 

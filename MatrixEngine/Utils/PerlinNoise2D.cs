@@ -64,21 +64,27 @@ namespace MatrixEngine.Utils
                     randoms[x, y] = (random.RandomFloat() * (range.max - range.min) + range.min);
                 }
             }
+            float upleft;
+            float upright;
+            float downleft;
+            float downright;
+            float topl;
+            float downl;
             for (int x = 0; x < size - 1; x++)
             {
                 for (int y = 0; y < size - 1; y++)
                 {
-                    var upleft = randoms[x, y];
-                    var downleft = randoms[x, y + 1];
-                    var upright = randoms[x + 1, y];
-                    var downright = randoms[x + 1, y + 1];
+                    upleft = randoms[x, y];
+                    downleft = randoms[x, y + 1];
+                    upright = randoms[x + 1, y];
+                    downright = randoms[x + 1, y + 1];
 
                     for (int dx = 0; dx <= density; dx += 1)
                     {
                         for (int dy = 0; dy <= density; dy += 1)
                         {
-                            var topl = Lerp(upleft, upright, (float)dx/density);
-                            var downl = Lerp(downleft, downright, (float)dx/density);
+                            topl = Lerp(upleft, upright, (float)dx/density);
+                            downl = Lerp(downleft, downright, (float)dx/density);
                             floats[(int)(x * density + dx ), (int)(y * density + dy )] = (Lerp(topl, downl, (float)dy/density));
                             //Console.WriteLine(floats[(int)(x + dx * RandomGenerationSize), (int)(y + dy * RandomGenerationSize)]);
                         }

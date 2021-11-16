@@ -9,12 +9,13 @@ namespace MatrixEngine.MatrixMath
 {
     public static class Physics
     {
+        public const float EPSILON = 0.01f;
         public static bool IsColliding(this Rect rect1, Rect rect2)
         {
-            return rect1.X < rect2.max.X &&
-                   rect1.max.X > rect2.X &&
-                   rect1.Y < rect2.max.Y &&
-                   rect1.max.Y > rect2.Y;
+            return rect1.X - rect2.max.X < 0 &&
+                   rect1.max.X - rect2.X > 0 &&
+                   rect1.Y - rect2.max.Y < 0 &&
+                   rect1.max.Y - rect2.Y > 0;
         }
 
 
@@ -26,7 +27,7 @@ namespace MatrixEngine.MatrixMath
             {
                 case Direction.X:
                     if (!isColliding &&
-                        (!((staticRect.cY - dynamicStartRect.cY).Abs() * 2 <
+                        (!((staticRect.cY - dynamicStartRect.cY).Abs() * 2 + EPSILON <
                            staticRect.height + dynamicStartRect.height) ||
                          dynamicStartRect.cX < staticRect.cX == dynamicEndRect.cX < staticRect.cX)) return 0;
                     if (dynamicStartRect.cX < staticRect.cX)
@@ -38,7 +39,7 @@ namespace MatrixEngine.MatrixMath
 
                 case Direction.Y:
                     if (!isColliding &&
-                        (!((staticRect.cX - dynamicStartRect.cX).Abs() * 2 <
+                        (!((staticRect.cX - dynamicStartRect.cX).Abs() * 2 + EPSILON <
                            staticRect.width + dynamicStartRect.width) ||
                          dynamicStartRect.cY < staticRect.cY == dynamicEndRect.cY < staticRect.cY)) return 0;
 

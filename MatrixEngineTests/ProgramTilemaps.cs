@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MatrixEngine.ECS;
 using MatrixEngine.ECS.Behaviors;
+using MatrixEngine.ECS.Behaviors.PhysicsBehaviors;
 using MatrixEngine.ECS.Plugins;
 using MatrixEngine.Utils;
 using SFML.Graphics;
@@ -15,32 +16,34 @@ namespace MatrixEngineTests
 {
     public static partial class Program
     {
-        public static void Main1(string[] args)
+        public static void Main(string[] args)
         {
-            var app = new Engine(new WindowSettings() { Name = "Tests", Size = new Vector2u(1000, 500) });
 
-            app.CurrentScene = new Scene();
+            var engine = new Engine(new WindowSettings() { Name = "Tests", Size = new Vector2u(1000, 500) });
 
-            app.CurrentScene.AddActor(new Actor(new Behavior[]
+            engine.CurrentScene = new Scene();
+
+            engine.CurrentScene.AddActor(new Actor(new Vector2f(-10, -10), new Behavior[]
             {
-                new SpriteRendererBehavior(new Texture("object.png"), 16),
+                new SpriteRendererBehavior(new Texture("object.png"), 18),
                 new TestBehavior(),
+                new DynamicRigidbodyBehavior(new Vector2f(0,50),new Vector2f())
             }));
-            app.CurrentScene.AddActor(new Actor(new Behavior[]
+            engine.CurrentScene.AddActor(new Actor(new Behavior[]
             {
                 new SpriteRendererBehavior(new Texture("object.png"), 16),
             }));
 
             var t = new TilemapBehavior();
 
-            var tex = new Texture("object.png");
+            var tex = new Texture("grass.png");
 
             var ran = new MatrixRandom(100);
 
-            var s = 20;
-            var d = 100;
+            var s = 200;
+            var d = 10;
 
-            var perlin = new PerlinNoise2D(s, d, MatrixRange.ZeroToOne, 0);
+            var perlin = new PerlinNoise2D(s, d, MatrixRange.ZeroToOne, 69);
 
             Logging.LogTime(perlin.Generate);
 
@@ -48,7 +51,7 @@ namespace MatrixEngineTests
             {
                 for (int j = 0; j < s * d; j++)
                 {
-                    if (perlin.floats[i, j] > 0.5f || j * i == 0 || j == s * d - 1 || i == s * d - 1)
+                    if (perlin.floats[i, j] < 0.5f)
                     {
                         t.SetTile(new Vector2i(i, j), new Tile(tex));
                     }
@@ -56,16 +59,19 @@ namespace MatrixEngineTests
 
                 i.Log();
             }
+            
 
-            app.CurrentScene.AddActor(new Actor(new Behavior[]
+            engine.CurrentScene.AddActor(new Actor(new Behavior[]
             {
                 t,
-                new TilemapRendererBehavior(16)
+                new TilemapRendererBehavior(16),
+                new TilemapStaticRigidbodyBehavior()
             }));
 
-            app.CurrentScene.AddPlugin(new RendererPlugin());
+            engine.CurrentScene.AddPlugin(new RendererPlugin());
+            engine.CurrentScene.AddPlugin(new PhysicsPlugin());
 
-            app.Run();
+            engine.Run();
         }
     }
 }
