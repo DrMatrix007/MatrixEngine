@@ -37,7 +37,7 @@ namespace MatrixEngine.ECS.Behaviors
             tilemap.TilePlaced += TilePlaced;
         }
 
-        private void TilePlaced(object? sender, TilePlacementEventArgs e)
+        private void TilePlaced(object sender, TilePlacementEventArgs e)
         {
             if (!nonUpdatedChunks.Contains(e.ChunkPos))
             {
