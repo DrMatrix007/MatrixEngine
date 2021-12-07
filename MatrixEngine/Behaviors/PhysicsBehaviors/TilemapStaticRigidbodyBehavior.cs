@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using MatrixEngine.Behaviors;
 using MatrixEngine.MatrixMath;
 using MatrixEngine.Utils;
 using SFML.Graphics;
 using SFML.System;
 
-namespace MatrixEngine.ECS.Behaviors.PhysicsBehaviors
+namespace MatrixEngine.Behaviors.PhysicsBehaviors
 {
     public class TilemapStaticRigidbodyBehavior : StaticRigidbodyBehavior
     {
@@ -21,6 +22,7 @@ namespace MatrixEngine.ECS.Behaviors.PhysicsBehaviors
         protected override void OnUpdate()
         {
             Logging.Assert(HaveBehavior<TilemapBehavior>(), "There is no TilemapBehavior in this Actor");
+            _tilemapBehavior = GetBehavior<TilemapBehavior>();
         }
 
         public override void Dispose()
@@ -40,34 +42,34 @@ namespace MatrixEngine.ECS.Behaviors.PhysicsBehaviors
             var maxSize = areaRect.max;
 
 
-            var tilemapScale = _tilemapBehavior.Transform.Scale;
+            var tilemapScale = _tilemapBehavior.Scale;
 
             var options = new List<float>();
 
 
             var array = new VertexArray();
 
-            
+
 
             var x = 0.0f;
             var y = 0.0f;
-            for (x = (areaRect.position - tilemapScale).X; x < areaRect.max.X + tilemapScale.X; x += tilemapScale.X/2)
+            for (x = (areaRect.Position - tilemapScale).X; x < areaRect.max.X + tilemapScale.X; x += tilemapScale.X / 2)
             {
-                for (y = (areaRect.position -tilemapScale).Y ; y < areaRect.max.Y + tilemapScale.Y; y += tilemapScale.Y/2)
+                for (y = (areaRect.Position - tilemapScale).Y; y < areaRect.max.Y + tilemapScale.Y; y += tilemapScale.Y / 2)
                 {
                     testingPos = new Vector2f(x, y);
                     tilepos = _tilemapBehavior.GetPosOfTileFromWorldPos(testingPos);
                     worldpos = _tilemapBehavior.GetWorldPosFromTilePos(tilepos);
                     t = _tilemapBehavior.GetTileFromTilemapPos(tilepos);
 
-                    array.Append(new Vertex((Vector2f)worldpos) {Color=Color.Black });
+                    array.Append(new Vertex(worldpos) { Color = Color.Black });
 
                     if (t != null)
                     {
                         tileRect = new Rect(worldpos, tilemapScale);
-                        GetEngine().QuickDrawRect(tileRect,Color.Magenta);
+                        GetEngine().QuickDrawRect(tileRect, Color.Magenta);
                         fixFloat = Physics.GetCollisionFix(dynamicStartRect, dynamicEndRect, tileRect, dir);
-                        if (fixFloat!=0)
+                        if (fixFloat != 0)
                         {
                             options.Add(fixFloat);
 

@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using MatrixEngine.ECS.Behaviors;
+using MatrixEngine.Behaviors;
+using MatrixEngine.Plugins;
 
-namespace MatrixEngine.ECS
+namespace MatrixEngine
 {
     public class Scene : IDisposable
     {
@@ -23,9 +24,9 @@ namespace MatrixEngine.ECS
 
         public Scene(List<Actor> entities = null, List<Plugin> plugins = null)
         {
-            this._actors = entities ?? new List<Actor>();
+            _actors = entities ?? new List<Actor>();
 
-            this._plugins = new Dictionary<Type, Plugin>();
+            _plugins = new Dictionary<Type, Plugin>();
             foreach (Plugin item in plugins ?? new List<Plugin>())
             {
                 AddPlugin(item);

@@ -2,7 +2,7 @@
 using MatrixEngine.MatrixMath;
 using MatrixEngine.Utils;
 
-namespace MatrixEngine.ECS.Behaviors.PhysicsBehaviors
+namespace MatrixEngine.Behaviors.PhysicsBehaviors
 {
     public class RectStaticRigidbodyBehavior : StaticRigidbodyBehavior
     {
@@ -10,12 +10,12 @@ namespace MatrixEngine.ECS.Behaviors.PhysicsBehaviors
 
         public override float GetCollidingFix(Rect dynamicStartRect, Rect dynamicEndRect, Direction dir)
         {
-            return Physics.GetCollisionFix(dynamicStartRect, dynamicEndRect, RectBehavior.GetRect(), dir);
+            return Physics.GetCollisionFix(dynamicStartRect, dynamicEndRect, RectBehavior.Rect, dir);
         }
 
         protected override void OnStart()
         {
-            RectBehavior = GetBehavior<RectBehavior>() ?? AddBehavior<RectBehavior>(new RectBehavior());
+            RectBehavior = GetBehavior<RectBehavior>() ?? AddBehavior(new RectBehavior());
         }
 
         protected override void OnUpdate()

@@ -1,7 +1,7 @@
 ﻿using System;
 using SFML.Window;
 
-namespace MatrixEngine.ECS.Behaviors
+namespace MatrixEngine.Behaviors
 {
     public abstract class Behavior : IDisposable
     {
@@ -15,23 +15,21 @@ namespace MatrixEngine.ECS.Behaviors
 
         public Actor GetActor() => _actor ?? throw new NullReferenceException($"GetActor is null in {this}");
 
-        public Transform GetTransform() => GetActor().Transform;
 
         public Scene GetScene() => GetActor().GetScene();
 
-        public T AddBehavior<T>(T t) where T:Behavior => GetActor().AddBehavior<T>(t);
+        public T AddBehavior<T>(T t) where T : Behavior => GetActor().AddBehavior(t);
         public Behavior AddBehavior(Behavior t) => GetActor().AddBehavior(t);
 
         public bool HaveBehavior(Type t) => GetActor().HaveBehavior(t);
 
         public bool HaveBehavior<T>() => GetActor().HaveBehavior<T>();
 
-        public Transform Transform { get;private set; }
+
 
         internal void SetActor(Actor a)
         {
             _actor = a;
-            Transform = GetTransform();
         }
 
         public T GetBehavior<T>() where T : Behavior

@@ -1,4 +1,4 @@
-﻿using MatrixEngine.ECS.Behaviors.PhysicsBehaviors;
+﻿using MatrixEngine.Behaviors.PhysicsBehaviors;
 using MatrixEngine.MatrixMath;
 using MatrixEngine.Utils;
 using SFML.System;
@@ -10,7 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixEngine.ECS.Plugins
+namespace MatrixEngine.Plugins
 {
     public class PhysicsPlugin : Plugin
     {
@@ -29,7 +29,7 @@ namespace MatrixEngine.ECS.Plugins
 
             var scene = GetScene();
 
-            
+
 
             DynamicRigidbodies.Clear();
             StaticRigidbodies.Clear();
@@ -42,7 +42,7 @@ namespace MatrixEngine.ECS.Plugins
             {
                 UpdateRigidbody(item, StaticRigidbodies);
             }
-            time.Elapsed.TotalSeconds.Log();
+            //time.Elapsed.TotalSeconds.Log();
             time.Stop();
         }
 
@@ -51,54 +51,55 @@ namespace MatrixEngine.ECS.Plugins
         {
             var engine = GetEngine();
 
-            var trans = nonstatic.GetTransform();
-            
+            var trans = nonstatic.RectBehavior;
+
             var options = new List<float>(staticRigidbodies.Count);
 
-            var startXRect = nonstatic.RectBehavior.GetRect();
-            trans.Position += nonstatic.Velocity.OnlyWithX() * engine.DeltaTimeAsSeconds;
-            var endXRect = nonstatic.RectBehavior.GetRect();
+            var startXRect = nonstatic.RectBehavior.Rect;
+            trans.Rect.Position += nonstatic.Velocity.OnlyWithX() * engine.DeltaTimeAsSeconds;
+            var endXRect = nonstatic.RectBehavior.Rect;
 
 
             options.AddRange(staticRigidbodies.Select(item =>
-                item.GetCollidingFix(startXRect, endXRect, Utils.Direction.X)));
+                item.GetCollidingFix(startXRect, endXRect, Direction.X)));
             if (options.Count != 0)
             {
                 var xValue = options.Aggregate((a, b) => a.Abs() > b.Abs() ? a : b);
-                nonstatic.Transform.Position -= new Vector2f(xValue, 0);
+                trans.Position -= new Vector2f(xValue, 0);
                 if (xValue != 0)
                 {
                     nonstatic.Velocity.X = 0;
+                    nonstatic.HorizontalCollisionDirection = xValue < 0 ? HorizontalDirections.Left : HorizontalDirections.Right;
                 }
             }
 
             options.Clear();
 
-            var startYRect = nonstatic.RectBehavior.GetRect();
+            var startYRect = nonstatic.RectBehavior.Rect;
             trans.Position += nonstatic.Velocity.OnlyWithY() * engine.DeltaTimeAsSeconds;
-            if (engine.DeltaTimeAsSeconds > 0.5)
-            {
-            }
 
-            var endYRect = nonstatic.RectBehavior.GetRect();
+
+            var endYRect = nonstatic.RectBehavior.Rect;
 
 
             options.AddRange(staticRigidbodies.Select(item =>
-                item.GetCollidingFix(startYRect, endYRect, Utils.Direction.Y)));
+                item.GetCollidingFix(startYRect, endYRect, Direction.Y)));
             if (options.Count != 0)
             {
                 var yValue = options.Aggregate((a, b) => a.Abs() > b.Abs() ? a : b);
-                nonstatic.Transform.Position -= new Vector2f(0, yValue);
+                trans.Position -= new Vector2f(0, yValue);
                 if (yValue != 0)
                 {
                     nonstatic.Velocity.Y = 0;
+                    nonstatic.VerticalCollisionDirection = yValue < 0 ? VerticalDirections.Up : VerticalDirections.Down;
+
                 }
             }
-            
+
             var g = nonstatic.Gravity * engine.DeltaTimeAsSeconds;
 
             nonstatic.Velocity += g;
-            
+
             options.Clear();
         }
     }

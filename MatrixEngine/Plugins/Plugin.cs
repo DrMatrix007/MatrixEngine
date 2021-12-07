@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixEngine.ECS
+namespace MatrixEngine.Plugins
 {
     public abstract class Plugin : IDisposable
     {
@@ -16,7 +16,7 @@ namespace MatrixEngine.ECS
 
         internal void SetScene(Scene scene)
         {
-            this._scene = scene;
+            _scene = scene;
         }
         public Engine GetEngine()
         {

@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MatrixEngine.Behaviors.RendererBehaviors;
 using MatrixEngine.MatrixMath;
 using MatrixEngine.Utils;
 using SFML.Graphics;
 using SFML.System;
 
-namespace MatrixEngine.ECS.Behaviors
+namespace MatrixEngine.Behaviors
 {
     public class TilemapRendererBehavior : RendererBehavior
     {
@@ -37,7 +38,7 @@ namespace MatrixEngine.ECS.Behaviors
             tilemap.TilePlaced += TilePlaced;
         }
 
-        private void TilePlaced(object? sender, TilePlacementEventArgs e)
+        private void TilePlaced(object sender, TilePlacementEventArgs e)
         {
             if (!nonUpdatedChunks.Contains(e.ChunkPos))
             {
@@ -47,7 +48,7 @@ namespace MatrixEngine.ECS.Behaviors
 
         protected override void OnUpdate()
         {
-            Logging.Assert(GetBehavior<TilemapBehavior>()==tilemap,"tilemap has changed! (it shouldn't)");
+            Logging.Assert(GetBehavior<TilemapBehavior>() == tilemap, "tilemap has changed! (it shouldn't)");
             RenderTexture();
         }
 
@@ -63,21 +64,21 @@ namespace MatrixEngine.ECS.Behaviors
 
             //}
 
-            var trans = GetTransform();
+            
             var camrect = GetEngine().Window.GetView().ToRect();
             foreach (var item in tilemap.chunks)
             {
-                var iscolliding = new Rect(((Vector2f)item.Key).Multiply(trans.Scale) + trans.Position,
-                    tilemap.CHUNK_SIZE * new Vector2f(1, 1).Multiply(trans.Scale)).IsColliding(camrect);
+                var iscolliding = new Rect(((Vector2f)item.Key).Multiply(tilemap.Scale) ,
+                    tilemap.CHUNK_SIZE * new Vector2f(1, 1).Multiply(tilemap.Scale)).IsColliding(camrect);
 
-                if ((nonUpdatedChunks.Contains(item.Key) && iscolliding) || (iscolliding && !chunkTextures.ContainsKey(item.Key)))
+                if (nonUpdatedChunks.Contains(item.Key) && iscolliding || iscolliding && !chunkTextures.ContainsKey(item.Key))
                 {
                     if (chunkTextures.ContainsKey(item.Key))
                     {
                         chunkTextures[item.Key].Dispose();
                         chunkTextures.Remove(item.Key);
                     }
-                    chunkTextures[item.Key] = this.RenderChunk(item.Value);
+                    chunkTextures[item.Key] = RenderChunk(item.Value);
                     nonUpdatedChunks.Remove(item.Key);
                 }
                 if (iscolliding && !chunkTextures.ContainsKey(item.Key))
@@ -128,12 +129,12 @@ namespace MatrixEngine.ECS.Behaviors
         public override void Render(RenderTarget target)
         {
             var camrect = GetEngine().Window.GetView().ToRect();
-            var trans = GetTransform();
+            
 
             foreach (var item in chunkTextures.ToList())
             {
-                var iscolliding = new Rect(((Vector2f)item.Key).Multiply(trans.Scale) + trans.Position,
-                tilemap.CHUNK_SIZE * new Vector2f(1, 1).Multiply(trans.Scale)).IsColliding(camrect);
+                var iscolliding = new Rect(((Vector2f)item.Key).Multiply(tilemap.Scale),
+                tilemap.CHUNK_SIZE * new Vector2f(1, 1).Multiply(tilemap.Scale)).IsColliding(camrect);
                 if (!iscolliding)
 
                 {
@@ -148,12 +149,12 @@ namespace MatrixEngine.ECS.Behaviors
                 {
                     sprite = new Sprite(item.Value.Texture)
                     {
-                        Texture = (item.Value.Texture),
-                        Position = trans.Position
+                        Texture = item.Value.Texture,
+                        Position = new Vector2f(),
                     };
-                    sprite.Position += new Vector2f(item.Key.X * trans.Scale.X, item.Key.Y * trans.Scale.Y);
+                    sprite.Position += new Vector2f(item.Key.X * tilemap.Scale.X, item.Key.Y * tilemap.Scale.Y);
                     sprite.Scale /= PixelsPerUnit;
-                    sprite.Scale = new Vector2f(sprite.Scale.X * trans.Scale.X, sprite.Scale.Y * trans.Scale.Y);
+                    sprite.Scale = new Vector2f(sprite.Scale.X * tilemap.Scale.X, sprite.Scale.Y * tilemap.Scale.Y);
                     target.Draw(sprite);
                 }
                 else

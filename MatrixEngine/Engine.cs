@@ -1,17 +1,11 @@
-﻿using SFML.Graphics;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.VisualBasic;
-using SFML.System;
-using SFML.Window;
+﻿using System;
 using MatrixEngine.MatrixMath;
 using MatrixEngine.Utils;
+using SFML.Graphics;
+using SFML.System;
+using SFML.Window;
 
-namespace MatrixEngine.ECS
+namespace MatrixEngine
 {
     public struct WindowSettings
     {

@@ -69,6 +69,26 @@ namespace MatrixEngine.MatrixMath
         {
             return new Vector2f(a.X * b.X, a.Y * b.Y);
         }
+        public static Vector2f Multiply(this Vector2f a, Vector2u b)
+        {
+            return new Vector2f(a.X * b.X, a.Y * b.Y);
+        }
+        public static Vector2f Multiply(this Vector2f a, Vector2i b)
+        {
+            return new Vector2f(a.X * b.X, a.Y * b.Y);
+        }
+        public static Vector2f Devide(this Vector2f a, Vector2f b)
+        {
+            return new Vector2f(a.X / b.X, a.Y / b.Y);
+        }
+        public static Vector2f Devide(this Vector2f a, Vector2u b)
+        {
+            return new Vector2f(a.X / b.X, a.Y / b.Y);
+        }
+        public static Vector2f Devide(this Vector2f a, Vector2i b)
+        {
+            return new Vector2f(a.X / b.X, a.Y / b.Y);
+        }
 
         public static Vector2f OnlyWithX(this Vector2f v)
         {

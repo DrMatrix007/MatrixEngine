@@ -4,15 +4,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using MatrixEngine.ECS.Behaviors.PhysicsBehaviors;
-using MatrixEngine.ECS.Plugins;
+using MatrixEngine.Behaviors.PhysicsBehaviors;
 using MatrixEngine.MatrixMath;
+using MatrixEngine.Plugins;
 using MatrixEngine.Utils;
 using SFML.System;
 using SFML.Window;
 
 
-namespace MatrixEngine.ECS.Behaviors
+namespace MatrixEngine.Behaviors
 {
     public class TestBehavior : Behavior
     {
@@ -25,7 +25,7 @@ namespace MatrixEngine.ECS.Behaviors
 
         protected override void OnUpdate()
         {
-            var trans = GetTransform();
+            var trans =GetBehavior<RectBehavior>();
             var app = GetEngine();
             var k = app.InputHandler;
             float x = 0;
@@ -78,9 +78,9 @@ namespace MatrixEngine.ECS.Behaviors
 
             renderer.Camera.Position = trans.Position;
 
-            Console.SetCursorPosition(0, Console.CursorTop - 2);
-            $"FPS: {1 / GetEngine().DeltaTimeAsSeconds}\r".Log();
-            $"Position: {Transform.Position}; Velocity:{GetBehavior<DynamicRigidbodyBehavior>().Velocity}".Log();
+            //Console.SetCursorPosition(0, Console.CursorTop - 2);
+            //$"FPS: {1 / GetEngine().DeltaTimeAsSeconds}\r".Log();
+            //$"Position: {trans.Position}; Velocity:{GetBehavior<DynamicRigidbodyBehavior>().Velocity}".Log();
         }
 
         public override void Dispose()

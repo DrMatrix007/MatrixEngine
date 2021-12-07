@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using MatrixEngine.ECS.Behaviors;
 using MatrixEngine.MatrixMath;
 using SFML.Graphics;
 
@@ -18,7 +17,7 @@ namespace MatrixEngine.Utils
 
         public static RectangleShape ToDrawableRect(this Rect rect)
         {
-            return new RectangleShape() { Position = rect.position, Size = rect.size };
+            return new RectangleShape() { Position = rect.Position, Size = rect.Size };
         }
 
     }

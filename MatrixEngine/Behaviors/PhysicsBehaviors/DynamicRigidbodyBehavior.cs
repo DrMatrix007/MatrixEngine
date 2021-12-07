@@ -7,10 +7,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MatrixEngine.ECS.Behaviors.PhysicsBehaviors
+namespace MatrixEngine.Behaviors.PhysicsBehaviors
 {
     public class DynamicRigidbodyBehavior : Behavior
     {
+
+        public VerticalDirections VerticalCollisionDirection { get;internal set; }
+        public HorizontalDirections HorizontalCollisionDirection { get; internal set; }
+
         public Vector2f Velocity;
 
         public Vector2f Gravity;

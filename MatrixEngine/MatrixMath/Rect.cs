@@ -62,10 +62,14 @@ namespace MatrixEngine.MatrixMath
             return $"Rect(x:{X.ToString("0.0")}, y:{Y.ToString("0.0")}, width:{width.ToString("0.0")}, height:{height.ToString("0.0")})";
         }
 
-        public Vector2f position
+        public Vector2f Position
         {
-            get { return new Vector2f(X, Y); }
-            set { X = value.X; Y = value.Y; }
+            get => new Vector2f(X, Y);
+            set
+            {
+                X = value.X;
+                Y = value.Y;
+            }
         }
 
         public Vector2f center
@@ -73,9 +77,14 @@ namespace MatrixEngine.MatrixMath
             get => new Vector2f(cX, cY);
         }
 
-        public Vector2f size
+        public Vector2f Size
         {
             get => new Vector2f(width, height);
+            set
+            {
+                width = value.X;
+                height = value.Y;
+            }
         }
 
         public bool IsInside(Vector2f pos)
@@ -85,15 +94,15 @@ namespace MatrixEngine.MatrixMath
 
         public Rect Copy()
         {
-            return new Rect(position, size);
+            return new Rect(Position, Size);
         }
 
         public IEnumerable<Line> ToLines()
         {
-            yield return new Line(position, position + size.OnlyWithX());
-            yield return new Line(position, position + size.OnlyWithY());
-            yield return new Line(position + size.OnlyWithY(), max);
-            yield return new Line(position + size.OnlyWithX(), max);
+            yield return new Line(Position, Position + Size.OnlyWithX());
+            yield return new Line(Position, Position + Size.OnlyWithY());
+            yield return new Line(Position + Size.OnlyWithY(), max);
+            yield return new Line(Position + Size.OnlyWithX(), max);
         }
     }
 }

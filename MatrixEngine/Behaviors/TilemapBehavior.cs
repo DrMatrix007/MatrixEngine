@@ -8,13 +8,13 @@ using MatrixEngine.MatrixMath;
 using SFML.Graphics;
 using SFML.System;
 
-namespace MatrixEngine.ECS.Behaviors
+namespace MatrixEngine.Behaviors
 {
     public class Tile
     {
         public Tile(Texture texture)
         {
-            this.Texture = texture;
+            Texture = texture;
         }
 
         public Texture Texture;
@@ -22,11 +22,11 @@ namespace MatrixEngine.ECS.Behaviors
 
     public class Chunk : IEnumerable<KeyValuePair<Vector2i, Tile>>
     {
-        public readonly UInt16 CHUNKSIZE;
+        public readonly ushort CHUNKSIZE;
 
         internal readonly Dictionary<Vector2i, Tile> tiles = new Dictionary<Vector2i, Tile>();
 
-        public Chunk(UInt16 size)
+        public Chunk(ushort size)
         {
             CHUNKSIZE = size;
         }
@@ -55,7 +55,7 @@ namespace MatrixEngine.ECS.Behaviors
 
         public Tile GetTileFromLocalPosition(Vector2i offset)
         {
-            if ((!offset.X.IsInRangeIncludes(0, CHUNKSIZE-1)) || (!offset.Y.IsInRangeIncludes(0, CHUNKSIZE-1)))
+            if (!offset.X.IsInRangeIncludes(0, CHUNKSIZE - 1) || !offset.Y.IsInRangeIncludes(0, CHUNKSIZE - 1))
             {
                 throw new ArgumentOutOfRangeException(nameof(offset));
             }
@@ -68,13 +68,16 @@ namespace MatrixEngine.ECS.Behaviors
     {
         public readonly ushort CHUNK_SIZE = 50;
 
+        public Vector2f Scale = new Vector2f(1, 1);
+
+
         internal Dictionary<Vector2i, Chunk> chunks = new Dictionary<Vector2i, Chunk>();
 
         public EventHandler<TilePlacementEventArgs> TilePlaced;
 
         public IEnumerable<KeyValuePair<Vector2i, Tile>> tiles => from chunk in chunks
-            from valueTile in chunk.Value.tiles
-            select new KeyValuePair<Vector2i, Tile>(chunk.Key + valueTile.Key, valueTile.Value);
+                                                                  from valueTile in chunk.Value.tiles
+                                                                  select new KeyValuePair<Vector2i, Tile>(chunk.Key + valueTile.Key, valueTile.Value);
         //foreach (var chunk in chunks)
         // {
         //     foreach (var valueTile in chunk.Value.tiles)
@@ -123,8 +126,8 @@ namespace MatrixEngine.ECS.Behaviors
 
         public Tile GetTileFromTilemapPos(Vector2i i)
         {
-            var chunk_vec = new Vector2i((int)MathF.Floor((float)(i.X) / CHUNK_SIZE),
-                (int)MathF.Floor((float)(i.Y) / CHUNK_SIZE)) * CHUNK_SIZE;
+            var chunk_vec = new Vector2i((int)MathF.Floor((float)i.X / CHUNK_SIZE),
+                (int)MathF.Floor((float)i.Y / CHUNK_SIZE)) * CHUNK_SIZE;
             if (chunks.ContainsKey(chunk_vec))
             {
                 return chunks[chunk_vec].GetTileFromLocalPosition(GetLocalChunkPos(i, chunk_vec));
@@ -135,8 +138,7 @@ namespace MatrixEngine.ECS.Behaviors
 
         public Vector2i GetPosOfTileFromWorldPos(Vector2f pos)
         {
-            return (Vector2i)(new Vector2f(pos.X / Transform.Scale.X, pos.Y / Transform.Scale.Y) -
-                              Transform.Position);
+            return (Vector2i)(new Vector2f(pos.X /Scale.X, pos.Y / Scale.Y));
         }
 
         public Tile GetTileFromWorldPos(Vector2f pos)
@@ -146,7 +148,7 @@ namespace MatrixEngine.ECS.Behaviors
 
         public Vector2f GetWorldPosFromTilePos(Vector2i pos)
         {
-            return Transform.Position + ((Vector2f)pos).Multiply(Transform.Scale);
+            return ((Vector2f)pos).Multiply(Scale);
         }
 
         public Vector2i GetChunkPos(Vector2i vector2)

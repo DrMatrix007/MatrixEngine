@@ -1,31 +1,40 @@
 ﻿using MatrixEngine.MatrixMath;
 using SFML.System;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace MatrixEngine.ECS.Behaviors
+namespace MatrixEngine.Behaviors;
+public class RectBehavior : Behavior
 {
-    public class RectBehavior : Behavior
+
+    public Rect Rect;
+
+    public RectBehavior(Rect? r = null)
     {
+        Rect = r.HasValue ? r.Value : new Rect(0, 0, 1, 1);
+    }
 
-        private Rect _rect;
+    //public Rect GetRect() => new Rect(Transform.Position, Transform.Scale.Multiply(Size));
+    public Vector2f Size
+    {
+        get => Rect.Size;
+        set => Rect.Size = value;
+    }
 
-        public Rect GetRect() =>new Rect(Transform.Position,Transform.Scale.Multiply(Size));
-        public Vector2f Size;
+    public Vector2f Position
+    {
+        get => Rect.Position;
+        set => Rect.Position = value;
+    }
 
-        public override void Dispose()
-        {
-        }
 
-        protected override void OnStart()
-        {
-        }
+    public override void Dispose()
+    {
+    }
 
-        protected override void OnUpdate()
-        {
-        }
+    protected override void OnStart()
+    {
+    }
+
+    protected override void OnUpdate()
+    {
     }
 }

@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using MatrixEngine.ECS.Plugins;
 using SFML.Graphics;
 
-namespace MatrixEngine.ECS.Behaviors
+namespace MatrixEngine.Behaviors.RendererBehaviors
 {
     public abstract class RendererBehavior : Behavior
     {

@@ -5,7 +5,7 @@ VisualStudioVersion = 17.0.31512.422
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MatrixEngineTests", "MatrixEngineTests\MatrixEngineTests.csproj", "{23CEDA49-8D74-486E-930F-67E591ECD465}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatrixEngine", "MatrixEngine\MatrixEngine.csproj", "{038F1EAD-D074-4963-9B58-E130A00527BC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MatrixEngine", "MatrixEngine\MatrixEngine.csproj", "{038F1EAD-D074-4963-9B58-E130A00527BC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

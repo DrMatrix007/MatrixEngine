@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using MatrixEngine.ECS.Behaviors;
+using MatrixEngine.Behaviors;
 using MatrixEngine.Utils;
 using SFML.System;
 
-namespace MatrixEngine.ECS
+namespace MatrixEngine
 {
     public class Actor : IDisposable
     {
-        public readonly Transform Transform = new Transform();
+        //public readonly Transform Transform = new Transform();
 
         private Scene _scene;
 
@@ -38,10 +38,11 @@ namespace MatrixEngine.ECS
                 AddBehavior(behavior);
             }
         }
-        public Actor(Vector2f pos,IEnumerable<Behavior> behaviors):this(behaviors)
+        public Actor(params Behavior[] behaviors) : this(behaviors as IEnumerable<Behavior>)
         {
-            Transform.Position = pos;
+
         }
+
 
         private Dictionary<Type, Behavior> behaviors = new Dictionary<Type, Behavior>();
 
