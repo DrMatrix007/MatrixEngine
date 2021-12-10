@@ -31,7 +31,7 @@ engine.CurrentScene.AddActor(new Actor(new Behavior[]
     new SpriteBehavior(new Texture("object.png"), 18),
     new RectBehavior(new Rect(0,0,0.8f,1.6f)),
     new TestBehavior(),
-    new DynamicRigidbodyBehavior(new Vector2f(0,50),new Vector2f())
+    new DynamicRigidbodyBehavior(new Vector2f(0,0),new Vector2f(50,50))
 }));
 engine.CurrentScene.AddActor(new Actor(new Behavior[]
 {
@@ -48,10 +48,10 @@ var tex = new Texture("grass.png");
 
 var ran = new MatrixRandom(100);
 
-var s = 20;
+var s = 200;
 var d = 10;
 
-var perlin = new PerlinNoise2D(s, d, MatrixRange.ZeroToOne, 69);
+var perlin = new PerlinNoise2D(s, d, MatrixRange.ZeroToOne, 15);
 
 Logging.LogTime(perlin.Generate);
 

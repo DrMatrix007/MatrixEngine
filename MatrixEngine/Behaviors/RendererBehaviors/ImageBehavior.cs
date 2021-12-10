@@ -34,7 +34,9 @@ namespace MatrixEngine.Behaviors.RendererBehaviors
             float maxPixels;
 
 
+
             RectangleShape shape;
+
 
 
             windowSize = ((Vector2f)target.Size);
@@ -47,26 +49,29 @@ namespace MatrixEngine.Behaviors.RendererBehaviors
             sprite.Position = AnchorBehavior.Position;
             sprite.Scale = AnchorBehavior.Size;
 
+
             maxPixels = MathF.Max(sprite.Texture.Size.X, sprite.Texture.Size.Y);
 
-            if (sprite.Texture.Size.X > maxPixels)
+            if (Math.Abs(sprite.Texture.Size.X * sprite.Scale.X - windowSpriteSize.X) > 0.001 ||
+                Math.Abs(sprite.Texture.Size.Y * sprite.Scale.Y - windowSpriteSize.Y) > 0.001)
             {
-                newScale = sprite.Texture.Size.Y / windowSpriteSize.Y;
-                sprite.Scale = new Vector2f(newScale / widthHeightRatio, newScale);
+
+
+                // if (sprite.TextureRect.Width*sprite.Scale.X > maxPixels)
+                // {
+                newScale = (float)windowSpriteSize.X / sprite.TextureRect.Width;
+                sprite.Scale = new Vector2f(newScale, newScale);
+                // }
+                if (sprite.TextureRect.Height * sprite.Scale.Y > windowSpriteSize.Y)
+                {
+                    newScale = (float)windowSpriteSize.Y / sprite.TextureRect.Height;
+                    sprite.Scale = new Vector2f(newScale, newScale);
+                }
             }
-            else if (sprite.Texture.Size.Y > maxPixels)
-            {
-                newScale = sprite.Texture.Size.X / windowSpriteSize.X;
-                sprite.Scale = new Vector2f(newScale / widthHeightRatio, newScale);
-            }
-            else
-            {
-                sprite.Scale = AnchorBehavior.Size.Devide(sprite.Texture.Size);
-            }
-            shape = new RectangleShape() { Position = AnchorBehavior.Position, Size = AnchorBehavior.Size, FillColor = Color.Blue };
+
+            shape = new RectangleShape() { Position = windowSpritePos, Size = windowSpriteSize, FillColor = Color.Blue };
             target.Draw(shape);
-            //target.Draw(sprite);
-            //target.Draw(shape);
+            target.Draw(sprite);
 
 
             shape.Dispose();

@@ -47,7 +47,6 @@ namespace MatrixEngine.Behaviors.PhysicsBehaviors
             var options = new List<float>();
 
 
-            var array = new VertexArray();
 
 
 
@@ -62,12 +61,11 @@ namespace MatrixEngine.Behaviors.PhysicsBehaviors
                     worldpos = _tilemapBehavior.GetWorldPosFromTilePos(tilepos);
                     t = _tilemapBehavior.GetTileFromTilemapPos(tilepos);
 
-                    array.Append(new Vertex(worldpos) { Color = Color.Black });
 
                     if (t != null)
                     {
                         tileRect = new Rect(worldpos, tilemapScale);
-                        GetEngine().QuickDrawRect(tileRect, Color.Magenta);
+                        // GetEngine().QuickDrawRect(tileRect, Color.Magenta);
                         fixFloat = Physics.GetCollisionFix(dynamicStartRect, dynamicEndRect, tileRect, dir);
                         if (fixFloat != 0)
                         {
@@ -77,7 +75,6 @@ namespace MatrixEngine.Behaviors.PhysicsBehaviors
                     }
                 }
             }
-            GetEngine().Window.Draw(array);
 
             return options.Count == 0 ? 0 : options.Aggregate((a, b) => a.Abs() > b.Abs() ? a : b);
         }

@@ -81,7 +81,7 @@ namespace MatrixEngine
             Window.ResetGLStates();
 
             Window.SetActive(true);
-             //Window.SetFramerateLimit(100); 
+            Window.SetFramerateLimit(144); 
             while (Window.IsOpen)
             {
 

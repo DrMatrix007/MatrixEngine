@@ -11,6 +11,7 @@ namespace MatrixEngine.Behaviors.RendererBehaviors
     {
         public AnchorBehavior AnchorBehavior { get; private set; }
 
+        public bool IsActive = true;
 
 
         protected override void OnStart()

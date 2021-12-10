@@ -57,7 +57,7 @@ namespace MatrixEngine.Plugins
             RenderWindow window;
             float ratio;
             Vector2f size;
-            View temp;
+            
             View newView;
             
             window = GetScene().GetEngine().Window;
@@ -73,10 +73,10 @@ namespace MatrixEngine.Plugins
             }
 
             
-            newView = new View(new Vector2f(0, 0), new Vector2f(2, 2));
+            newView = new View(new Vector2f(window.Size.X/2, window.Size.Y/2),(Vector2f) window.Size);
             window.SetView(newView);
 
-            foreach (var behavior in GetScene().GetAllBehaviorsWithPolymorphism<UserInterfaceBehavior>())
+            foreach (var behavior in GetScene().GetAllBehaviorsWithPolymorphism<UserInterfaceBehavior>().Where(a=>a.IsActive))
             {
                 behavior.Render(window);
             }

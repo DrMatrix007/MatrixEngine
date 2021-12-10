@@ -96,9 +96,24 @@ namespace MatrixEngine.Plugins
                 }
             }
 
+            var v = nonstatic.Velocity;
+            v.X -= engine.DeltaTimeAsSeconds * v.X.Sign() * nonstatic.Friction.X;
+            if (v.X.Sign() != nonstatic.Velocity.X.Sign())
+            {
+                v.X = 0;
+            }
+            v.Y -= engine.DeltaTimeAsSeconds * v.Y.Sign() * nonstatic.Friction.Y;
+            if (v.Y.Sign() != nonstatic.Velocity.Y.Sign())
+            {
+                v.Y = 0;
+            }
+            nonstatic.Velocity = v;
+
             var g = nonstatic.Gravity * engine.DeltaTimeAsSeconds;
 
             nonstatic.Velocity += g;
+
+
 
             options.Clear();
         }

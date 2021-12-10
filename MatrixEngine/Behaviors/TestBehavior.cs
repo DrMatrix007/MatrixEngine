@@ -25,7 +25,7 @@ namespace MatrixEngine.Behaviors
 
         protected override void OnUpdate()
         {
-            var trans =GetBehavior<RectBehavior>();
+            var trans = GetBehavior<RectBehavior>();
             var app = GetEngine();
             var k = app.InputHandler;
             float x = 0;
@@ -58,7 +58,11 @@ namespace MatrixEngine.Behaviors
             var add = new Vector2f(x, y) * speed;
             x = add.X;
             y = add.Y;
-            GetBehavior<DynamicRigidbodyBehavior>().Velocity.X = x;
+            if (x != 0)
+            {
+
+                GetBehavior<DynamicRigidbodyBehavior>().Velocity.X = x;
+            }
 
             if (y != 0)
             {
