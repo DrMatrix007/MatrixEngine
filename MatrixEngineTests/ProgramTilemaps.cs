@@ -26,27 +26,46 @@ var engine = new Engine(new WindowSettings() { Name = "Tests", Size = new Vector
 
 engine.CurrentScene = new Scene();
 
+var dy =
+    new DynamicRigidbodyBehavior(new Vector2f(0, 0), new Vector2f(50, 50));
+
+dy.OnCollisionTrigger += (a, b) =>
+ {
+     "Collision Triggered".Log();
+ };
+
 engine.CurrentScene.AddActor(new Actor(new Behavior[]
 {
-    new SpriteBehavior(new Texture("object.png"), 18),
+    new SpriteBehavior(new Texture("object.png")),
     new RectBehavior(new Rect(0,0,0.8f,1.6f)),
     new TestBehavior(),
-    new DynamicRigidbodyBehavior(new Vector2f(0,0),new Vector2f(50,50))
+    dy
 }));
+
 engine.CurrentScene.AddActor(new Actor(new Behavior[]
 {
-                new SpriteBehavior(new Texture("object.png"), 16),
-                new RectStaticRigidbodyBehavior(),
+    new SpriteBehavior(new Texture("object.png")),
+    new RectBehavior(new Rect(0,0,0.8f,1.6f)),
+    new DynamicRigidbodyBehavior(new Vector2f(0,0),new Vector2f(50,50),true)
 }));
+
+engine.CurrentScene.AddActor(new Actor(new Behavior[]
+{
+    new SpriteBehavior(new Texture("object.png")),
+    new RectStaticRigidbodyBehavior(),
+}));
+var image = new ImageBehavior(new Texture("grass.png"));
+
+
 engine.CurrentScene.AddActor(new Actor(
     new AnchorBehavior(new Vector2f(-0.5f, -0.5f), new Vector2f(0.5f, 0.5f)),
-    new ImageBehavior(new Texture("grass.png"))
+    image
 ));
 var t = new TilemapBehavior();
 
 var tex = new Texture("grass.png");
 
-var ran = new MatrixRandom(100);
+var ran = new MatrixRandom(69420);
 
 var s = 200;
 var d = 10;

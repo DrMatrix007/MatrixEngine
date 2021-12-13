@@ -22,12 +22,16 @@ namespace MatrixEngine.Behaviors.PhysicsBehaviors
         public Vector2f Friction;
 
         public RectBehavior RectBehavior { get; private set; }
+        public bool IsTrigger = false;
 
-        public DynamicRigidbodyBehavior(Vector2f gravity, Vector2f friction)
+        public EventHandler<DynamicRigidbodyBehavior> OnCollisionTrigger = new EventHandler<DynamicRigidbodyBehavior>((a, b) => { });
+
+        public DynamicRigidbodyBehavior(Vector2f gravity, Vector2f friction,bool IsTrigger = false)
         {
             Velocity = new Vector2f();
             Gravity = gravity;
             Friction = friction;
+            this.IsTrigger = IsTrigger;
         }
 
         public override void Dispose()

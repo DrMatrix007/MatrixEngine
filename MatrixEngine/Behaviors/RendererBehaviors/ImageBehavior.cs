@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SFML.Window;
+using MatrixEngine.Utils;
 
 namespace MatrixEngine.Behaviors.RendererBehaviors
 {
@@ -23,6 +25,13 @@ namespace MatrixEngine.Behaviors.RendererBehaviors
             sprite?.Dispose();
         }
 
+
+
+        public override bool IsOverlapping(Vector2f pos)
+        {
+            return sprite.GetGlobalBounds().Contains(pos.X,pos.Y);
+        }
+
         public override void Render(RenderTarget target)
         {
             Vector2f windowSize;
@@ -32,7 +41,7 @@ namespace MatrixEngine.Behaviors.RendererBehaviors
             float newScale;
             float widthHeightRatio;
             float maxPixels;
-
+            
 
 
             RectangleShape shape;

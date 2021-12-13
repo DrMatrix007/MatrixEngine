@@ -67,10 +67,13 @@ namespace MatrixEngine
             Window.KeyPressed += InputHandler.WindowKeyPressed;
             Window.KeyReleased += InputHandler.WindowKeyReleased;
             Window.MouseWheelScrolled += InputHandler.Window_MouseWheelScrolled;
+            Window.MouseButtonPressed +=InputHandler.Window_MouseButtonPressed;
+            Window.MouseButtonReleased += InputHandler.Window_MouseButtonReleased;
 
             Window.SetActive(false);
 
         }
+
 
         public void Run()
         {

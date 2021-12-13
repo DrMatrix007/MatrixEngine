@@ -16,11 +16,9 @@ namespace MatrixEngine.Behaviors.RendererBehaviors
 
         private Sprite sprite;
 
-        public float PixelsPerUnit = 1;
 
-        public SpriteBehavior(Texture texture, float pixelperunit)
+        public SpriteBehavior(Texture texture)
         {
-            PixelsPerUnit = pixelperunit;
             sprite = new Sprite(texture);
         }
         private Rect rect = new Rect(0, 0, 0, 0);

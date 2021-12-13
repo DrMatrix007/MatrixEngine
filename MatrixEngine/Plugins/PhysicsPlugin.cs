@@ -42,6 +42,16 @@ namespace MatrixEngine.Plugins
             {
                 UpdateRigidbody(item, StaticRigidbodies);
             }
+            foreach (var item in DynamicRigidbodies)
+            {
+                foreach (var itemToTest in DynamicRigidbodies.Where(e=>e!=item && e.IsTrigger))
+                {
+                    if (item.RectBehavior.Rect.IsColliding(itemToTest.RectBehavior.Rect))
+                    {
+                        item.OnCollisionTrigger.Invoke(this, itemToTest);
+                    }
+                }
+            }
             //time.Elapsed.TotalSeconds.Log();
             time.Stop();
         }
