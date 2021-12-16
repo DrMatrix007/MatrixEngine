@@ -65,6 +65,11 @@ namespace MatrixEngine.MatrixMath
             return new Vector2i(f.X.Floor(), f.Y.Floor());
         }
 
+        public static float Ceil(this float f)
+        {
+            return MathF.Ceiling(f);
+        }
+
         public static Vector2f Multiply(this Vector2f a, Vector2f b)
         {
             return new Vector2f(a.X * b.X, a.Y * b.Y);

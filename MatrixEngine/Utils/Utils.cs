@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MatrixEngine.MatrixMath;
 using SFML.Graphics;
+using SFML.System;
 
 namespace MatrixEngine.Utils
 {
@@ -18,6 +19,10 @@ namespace MatrixEngine.Utils
         public static RectangleShape ToDrawableRect(this Rect rect)
         {
             return new RectangleShape() { Position = rect.Position, Size = rect.Size };
+        }
+        public static Vector2f ToVector2f(this float f)
+        {
+            return new Vector2f(f, f);
         }
 
     }

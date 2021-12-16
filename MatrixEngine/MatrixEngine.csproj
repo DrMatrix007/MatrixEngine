@@ -24,6 +24,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="CascadiaMono.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="fonts\CascadiaCode.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

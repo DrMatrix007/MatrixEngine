@@ -11,8 +11,14 @@ namespace MatrixEngine.Behaviors.RendererBehaviors
 {
     public abstract class UserInterfaceBehavior : Behavior
     {
-        public AnchorBehavior AnchorBehavior { get; private set; }
 
+        public UserInterfaceBehavior(int layer)
+        {
+            Layer = layer;
+        }
+
+        public AnchorBehavior AnchorBehavior { get; private set; }
+        public int Layer;
 
         public abstract bool IsOverlapping(Vector2f pos);
 
@@ -23,19 +29,19 @@ namespace MatrixEngine.Behaviors.RendererBehaviors
 
         //}
 
-        public EventHandler<Mouse.Button> OnClick = new EventHandler<Mouse.Button>((a,b) => { });
+        public EventHandler<Mouse.Button> OnClick = new EventHandler<Mouse.Button>((a, b) => { });
 
 
         public EventHandler<Mouse.Button> OnContinuesClick = new EventHandler<Mouse.Button>((a, b) => { });
 
-        public EventHandler OnHover = new EventHandler((a,b) => { });
+        public EventHandler OnHover = new EventHandler((a, b) => { });
         protected override void OnStart()
         {
         }
 
         protected override void OnUpdate()
         {
-            AnchorBehavior = GetBehavior<AnchorBehavior>();
+            AnchorBehavior = GetBehavior<AnchorBehavior>()?? throw new BehaviorNotFoundException(typeof(AnchorBehavior));
         }
         public abstract void Render(RenderTarget target);
 

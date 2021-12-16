@@ -9,6 +9,14 @@ namespace MatrixEngine.Behaviors.RendererBehaviors
 {
     public abstract class RendererBehavior : Behavior
     {
+        public int Layer = 0;
+
+        public bool IsActive = true;
+        public RendererBehavior(int layer)
+        {
+            Layer = layer;
+        }
+
         protected override void OnStart()
         {
         }

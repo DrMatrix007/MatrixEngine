@@ -71,18 +71,18 @@ namespace MatrixEngine.Plugins
             ratio = (float)window.Size.X / window.Size.Y;
             size = new Vector2f((Camera.Area * ratio).Sqrt(), (Camera.Area / ratio).Sqrt());
             window.SetView(new View(Camera.Position, size));
-            foreach (var behavior in GetScene().GetAllBehaviorsWithPolymorphism<RendererBehavior>())
+            foreach (var behavior in GetScene().GetAllBehaviorsWithPolymorphism<RendererBehavior>().Where(e=>e.IsActive).OrderBy(e=>e.Layer))
             {
                 behavior.Render(window);
             }
 
             
-            newView = new View(new Vector2f(window.Size.X/2, window.Size.Y/2),(Vector2f) window.Size);
+            newView = new View(new Vector2f(window.Size.X, window.Size.Y)/2,(Vector2f) window.Size);
             window.SetView(newView);
 
             mousePos = window.MapPixelToCoords(Mouse.GetPosition(window));
 
-            foreach (var behavior in GetScene().GetAllBehaviorsWithPolymorphism<UserInterfaceBehavior>().Where(a=>a.IsActive))
+            foreach (var behavior in GetScene().GetAllBehaviorsWithPolymorphism<UserInterfaceBehavior>().Where(a=>a.IsActive).OrderBy(a=>a.Layer))
             {
                 behavior.Render(window);
                 if (behavior.IsOverlapping(mousePos))

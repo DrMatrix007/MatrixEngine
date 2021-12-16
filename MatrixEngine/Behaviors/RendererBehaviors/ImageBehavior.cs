@@ -15,7 +15,7 @@ namespace MatrixEngine.Behaviors.RendererBehaviors
     {
         public Sprite sprite;
 
-        public ImageBehavior(Texture texture)
+        public ImageBehavior(Texture texture,int layer): base(layer)
         {
             sprite = new Sprite(texture);
         }
@@ -40,7 +40,7 @@ namespace MatrixEngine.Behaviors.RendererBehaviors
 
             float newScale;
             float widthHeightRatio;
-            float maxPixels;
+
             
 
 
@@ -59,7 +59,7 @@ namespace MatrixEngine.Behaviors.RendererBehaviors
             sprite.Scale = AnchorBehavior.Size;
 
 
-            maxPixels = MathF.Max(sprite.Texture.Size.X, sprite.Texture.Size.Y);
+
 
             if (Math.Abs(sprite.Texture.Size.X * sprite.Scale.X - windowSpriteSize.X) > 0.001 ||
                 Math.Abs(sprite.Texture.Size.Y * sprite.Scale.Y - windowSpriteSize.Y) > 0.001)
@@ -78,12 +78,12 @@ namespace MatrixEngine.Behaviors.RendererBehaviors
                 }
             }
 
-            shape = new RectangleShape() { Position = windowSpritePos, Size = windowSpriteSize, FillColor = Color.Blue };
-            target.Draw(shape);
+            //shape = new RectangleShape() { Position = windowSpritePos, Size = windowSpriteSize, FillColor = Color.Blue };
+            //target.Draw(shape);
             target.Draw(sprite);
+            //GetEngine().QuickDrawRect(new Rect(sprite.GetGlobalBounds()), Color.Black);
 
-
-            shape.Dispose();
+            //shape.Dispose();
 
 
 

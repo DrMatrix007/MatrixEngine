@@ -36,7 +36,7 @@ dy.OnCollisionTrigger += (a, b) =>
 
 engine.CurrentScene.AddActor(new Actor(new Behavior[]
 {
-    new SpriteBehavior(new Texture("object.png")),
+    new SpriteBehavior(new Texture("object.png"),1),
     new RectBehavior(new Rect(0,0,0.8f,1.6f)),
     new TestBehavior(),
     dy
@@ -44,22 +44,32 @@ engine.CurrentScene.AddActor(new Actor(new Behavior[]
 
 engine.CurrentScene.AddActor(new Actor(new Behavior[]
 {
-    new SpriteBehavior(new Texture("object.png")),
+    new SpriteBehavior(new Texture("object.png"),2),
     new RectBehavior(new Rect(0,0,0.8f,1.6f)),
     new DynamicRigidbodyBehavior(new Vector2f(0,0),new Vector2f(50,50),true)
 }));
 
 engine.CurrentScene.AddActor(new Actor(new Behavior[]
 {
-    new SpriteBehavior(new Texture("object.png")),
+    new SpriteBehavior(new Texture("object.png"),5),
     new RectStaticRigidbodyBehavior(),
 }));
-var image = new ImageBehavior(new Texture("grass.png"));
+var image = new ImageBehavior(new Texture("grass.png"),10);
 
+var text =
+        new TextInterfaceRendererBehavior("Tests", 5);
+
+text.OnHover += (a, b) =>
+{
+    "gg".Log();
+};
+engine.CurrentScene.AddActor(new Actor(
+    new AnchorBehavior(new Vector2f(0,0.5f),new Vector2f(0.10f,0.10f)),
+    text));
 
 engine.CurrentScene.AddActor(new Actor(
-    new AnchorBehavior(new Vector2f(-0.5f, -0.5f), new Vector2f(0.5f, 0.5f)),
-    image
+    new AnchorBehavior(new Vector2f(-0.5f, -0.5f), new Vector2f(0.25f, 0.25f))
+    , image
 ));
 var t = new TilemapBehavior();
 
@@ -67,7 +77,7 @@ var tex = new Texture("grass.png");
 
 var ran = new MatrixRandom(69420);
 
-var s = 200;
+var s = 20;
 var d = 10;
 
 var perlin = new PerlinNoise2D(s, d, MatrixRange.ZeroToOne, 15);
@@ -91,7 +101,7 @@ for (int i = 0; i < s * d; i++)
 engine.CurrentScene.AddActor(new Actor(new Behavior[]
 {
                 t,
-                new TilemapRendererBehavior(16),
+                new TilemapRendererBehavior(0,16),
                 new TilemapStaticRigidbodyBehavior()
 }));
 

@@ -13,7 +13,7 @@ namespace MatrixEngine.Behaviors
 {
     public class TilemapRendererBehavior : RendererBehavior
     {
-        public TilemapRendererBehavior(float pixelsPerUnit)
+        public TilemapRendererBehavior(int layer, float pixelsPerUnit) : base(layer)
         {
             PixelsPerUnit = pixelsPerUnit;
         }

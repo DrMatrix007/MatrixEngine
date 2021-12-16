@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SFML.Graphics;
 using SFML.System;
 
 namespace MatrixEngine.MatrixMath
@@ -47,6 +48,11 @@ namespace MatrixEngine.MatrixMath
             this.Y = y;
             this.width = width;
             this.height = height;
+        }
+
+        public Rect(FloatRect r): this(r.Left,r.Top,r.Width,r.Height)
+        {
+
         }
 
         public Rect(Vector2f pos, Vector2f size)

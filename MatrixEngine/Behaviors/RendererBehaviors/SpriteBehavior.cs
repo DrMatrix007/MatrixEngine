@@ -17,7 +17,7 @@ namespace MatrixEngine.Behaviors.RendererBehaviors
         private Sprite sprite;
 
 
-        public SpriteBehavior(Texture texture)
+        public SpriteBehavior( Texture texture, int layer) :base(layer)
         {
             sprite = new Sprite(texture);
         }
