@@ -1,63 +1,61 @@
-use std::{
-    sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}},
-    time::Duration,
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, RwLock,
 };
 
 use crate::*;
 
-use super::{ecs::registry::Registry, event::Events, utils::clock::Clock};
+use super::{ecs::registry::Registry, event::Events, layer::LayerPool, utils::clock::Clock};
 
 pub struct Application {
-    quitting: AtomicBool,
-    layers: Vec<LayerHolder>,
-    events: Events,
-    registry: Arc<Mutex<Registry>>,
+    quitting: Arc<AtomicBool>,
+    layers: LayerPool,
+    events: Arc<RwLock<Events>>,
+    target_frames_per_second: Arc<RwLock<f64>>,
+    registry: Arc<RwLock<Registry>>,
 }
 
 impl Application {
+    const DEFUALT_TARGET_FRAMES_PER_SECOND: f64 = 1.0 / 60.0;
+
     pub fn new() -> Self {
         Application {
-            layers: Vec::new(),
-            quitting: AtomicBool::new(false),
-            events: Events::new(),
-            registry: Arc::new(Mutex::new(Registry::new())),
+            layers: LayerPool::new(),
+            target_frames_per_second: Arc::new(RwLock::new(Self::DEFUALT_TARGET_FRAMES_PER_SECOND)),
+            quitting: Arc::new(AtomicBool::new(false)),
+            events: Arc::new(RwLock::new(Events::new())),
+            registry: Arc::new(RwLock::new(Registry::new())),
         }
     }
-
+    pub fn set_target_fps(&mut self, target: u64) {
+        *self.target_frames_per_second.write().unwrap() = 1.0 / target as f64;
+    }
+    pub fn get_target_fps(&self) -> u64 {
+        (1.0 / *self.target_frames_per_second.read().unwrap() as f64) as u64
+    }
     pub fn stop(&mut self) {
         self.quitting.store(true, Ordering::Relaxed);
     }
 
-    pub fn push_box(&mut self, layer: Box<dyn Layer>) {
-        self.layers.push(LayerHolder::new(layer));
-    }
-
     pub fn push_layer<T: Layer + 'static>(&mut self, val: T) {
-        self.push_box(Box::new(val));
+        self.layers.push_layer(val);
     }
 
-    pub fn run(&mut self) {
-        let mut delta_clock = Clock::start_new();
+    pub fn run(mut self) {
         let time_clock = Clock::start_new();
-        let mut currnet_time = Duration::ZERO;
-        let mut current_delta = Duration::ZERO;
-        while !*self.quitting.get_mut() {
-            let args = LayerArgs {
-                events: &self.events,
-                registry: self.registry.clone(),
-                delta_time: current_delta,
-                time: currnet_time,
-                quit_ref: &self.quitting
-            };
-            for layer in self.layers.iter_mut() {
-                layer.start(&args);
-            }
-            for layer in self.layers.iter_mut() {
-                layer.update(&args);            }
-            current_delta = delta_clock.restart();
-            currnet_time = time_clock.elapsed();
-        }
-        for layer in self.layers.iter_mut(){
+
+        let args = LayerArgs {
+            events: self.events.clone(),
+            registry: self.registry.clone(),
+            time: time_clock,
+            quit_ref: self.quitting.clone(),
+            target_frames_per_second: self.target_frames_per_second.clone(),
+        };
+        self.layers.start_all(args);
+
+        while !self.layers.is_done() {}
+
+        for layer in self.layers.iter_mut() {
             layer.clean_up();
         }
     }

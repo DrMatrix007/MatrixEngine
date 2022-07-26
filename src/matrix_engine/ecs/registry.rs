@@ -30,6 +30,11 @@ pub struct Registry {
 
     data: HashMap<TypeId, Box<dyn Any>>,
 }
+
+unsafe impl Send for Registry {}
+
+unsafe impl Sync for Registry {}
+
 #[allow(dead_code)]
 impl Registry {
     pub fn new() -> Self {
