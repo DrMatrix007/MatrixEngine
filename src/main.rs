@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
 mod matrix_engine;
-pub mod tests;
 use matrix_engine::{application::*, event::Event, layer::*};
 #[derive(Debug)]
 struct Test;
@@ -14,8 +13,7 @@ impl MyLayer {
 }
 impl Layer for MyLayer {
     fn on_start(&mut self, _args: &LayerArgs) {
-        let registry = _args.registry.lock();
-        if let Ok(mut registry) = registry {
+        if let Some(mut registry) = _args.write_registry() {
             let mut e = registry.create_entity();
             for _ in 1..100 {
                 e = registry.create_entity();
@@ -24,10 +22,12 @@ impl Layer for MyLayer {
             }
             println!("{:?}", registry.borrow_component_mut::<Test>(e));
         }
+        println!("?");
     }
 
     fn on_update(&mut self, mut _args: &LayerArgs) {
-        // print!("{}\n", (_args.delta_time.as_secs_f64()));
+        print!("{}\n", (_args.time.elapsed().as_secs_f64()));
+
     }
 
     fn on_clean_up(&mut self) {}

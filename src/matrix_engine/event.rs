@@ -8,10 +8,12 @@ pub trait Event {}
 pub trait ApplicationEvent: Event {}
 
 #[allow(dead_code)]
+
 pub struct Events {
     data: HashMap<TypeId, Box<dyn Any>>,
 }
 
+unsafe impl Send for Events {}
 
 #[allow(dead_code)]
 impl Events {
