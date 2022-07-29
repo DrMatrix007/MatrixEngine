@@ -30,8 +30,10 @@ pub struct Registry {
 
     data: HashMap<TypeId, Box<dyn Any>>,
 }
-unsafe impl Send for Registry {
-}
+
+unsafe impl Send for Registry {}
+
+unsafe impl Sync for Registry {}
 
 #[allow(dead_code)]
 impl Registry {
@@ -58,9 +60,6 @@ impl Registry {
         let map = self.data.get(&TypeId::of::<T>())?;
         let map = map.downcast_ref::<HashMap<Entity, T>>()?;
         map.borrow_component(e)
-
-
-        
     }
     pub fn insert_component<T: 'static>(&mut self, e: Entity, c: T) {
         let ent = self.data.entry(TypeId::of::<T>());

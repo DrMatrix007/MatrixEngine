@@ -1,18 +1,21 @@
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc, RwLock, Mutex,
+    Arc, RwLock,
 };
 
-use crate::*;
-
-use super::{ecs::registry::Registry, event::Events, layer::{LayerHolder, Layer, LayerPool}};
+use super::{
+    ecs::registry::Registry,
+    event::Events,
+    layer::{Layer, LayerArgs, LayerPool},
+    utils::clock::Clock,
+};
 
 pub struct Application {
-    pub(super) quitting: Arc<AtomicBool>,
-    pub(super) layers: Arc<RwLock<Vec<LayerHolder>>>,
-    pub(super) events: Arc<RwLock<Events>>,
-    pub(super) registry: Arc<RwLock<Registry>>,
-    target_frames_per_second: Mutex<f64>
+    quitting: Arc<AtomicBool>,
+    layers: LayerPool,
+    events: Arc<RwLock<Events>>,
+    target_frames_per_second: Arc<RwLock<f64>>,
+    registry: Arc<RwLock<Registry>>,
 }
 
 impl Application {
@@ -20,11 +23,11 @@ impl Application {
 
     pub fn new() -> Self {
         Application {
-            layers: Arc::new(RwLock::new(Vec::new())),
+            layers: LayerPool::new(),
+            target_frames_per_second: Arc::new(RwLock::new(Self::DEFUALT_TARGET_FRAMES_PER_SECOND)),
             quitting: Arc::new(AtomicBool::new(false)),
             events: Arc::new(RwLock::new(Events::new())),
             registry: Arc::new(RwLock::new(Registry::new())),
-            
         }
     }
     pub fn set_target_fps(&mut self, target: u64) {
@@ -38,21 +41,26 @@ impl Application {
     }
 
     pub fn push_layer<T: Layer + 'static>(&mut self, val: T) {
-        self.layers.write().unwrap().push(LayerHolder::new(Box::new(val)));
+        self.layers.push_layer(val);
     }
 
-    pub fn run(&mut self) {
-        let e = self.events.clone();
-        let r = self.registry.clone();
-        let q = self.quitting.clone();
-        let pool = LayerPool::new(self.layers.clone());
-        pool.start_execution(e, r, q);
+    pub fn run(mut self) {
+        let time_clock = Clock::start_new();
 
-        while !self.quitting.load(Ordering::SeqCst) {}
-        // }
-        // for layer in self.layers.() {
-        //     layer.clean_up();
-        // }
+        let args = LayerArgs {
+            events: self.events.clone(),
+            registry: self.registry.clone(),
+            time: time_clock,
+            quit_ref: self.quitting.clone(),
+            target_frames_per_second: self.target_frames_per_second.clone(),
+        };
+        self.layers.start_all(args);
+
+        while !self.layers.is_done() {}
+
+        for layer in self.layers.iter_mut() {
+            layer.clean_up();
+        }
     }
 }
 

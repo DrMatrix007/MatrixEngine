@@ -1,7 +1,6 @@
 use std::time::{Instant, Duration};
 
-
-#[derive(Debug,Clone, Copy)]
+#[derive(Copy,Clone)]
 pub struct Clock {
     start_time: Instant
 }

@@ -1,9 +1,6 @@
 #![allow(dead_code)]
 
-mod matrix_engine;
-use matrix_engine::{application::*, event::Event, layer::*};
-#[derive(Debug)]
-struct Test;
+use matrix_engine::matrix_engine::{layer::{LayerArgs, Layer}, application::Application};
 
 pub mod tests;
 struct WorkLayer {}
@@ -19,21 +16,16 @@ impl TimerLayer {
 }
 impl Layer for TimerLayer {
     fn on_start(&mut self, _args: &LayerArgs) {
-        if let Some(mut registry) = _args.write_registry() {
-            let mut e = registry.create_entity();
-            for _ in 1..100 {
-                e = registry.create_entity();
-
-                registry.insert_component(e, Test {});
-            }
-            println!("{:?}", registry.borrow_component_mut::<Test>(e));
-        }
-        println!("?");
+        println!("started!");
     }
 
-    fn on_update(&mut self, mut _args: &LayerArgs) {
-        print!("{}\n", (_args.time.elapsed().as_secs_f64()));
+    fn on_update(&mut self, _args: &LayerArgs) {
+        if _args.time.elapsed().as_secs_f64() > self.max {
 
+            println!("frame: {}", _args.time.elapsed().as_secs_f64());
+            _args.stop_application();
+            
+        }
     }
 
     fn on_clean_up(&mut self) {}
