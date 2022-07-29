@@ -101,6 +101,8 @@ impl LayerHolder {
         });
     }
 
+
+    
     fn update(&mut self, _args: &LayerArgs) {
         self.layer.as_mut().on_update(_args);
     }
