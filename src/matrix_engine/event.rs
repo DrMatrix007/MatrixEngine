@@ -12,6 +12,7 @@ pub trait ApplicationEvent: Event {}
 pub struct Events {
     data: HashMap<TypeId, Box<dyn Any>>,
 }
+unsafe impl Send for Events {}
 
 unsafe impl Send for Events {}
 
@@ -25,7 +26,7 @@ impl Events {
     pub fn add_event<T: Event + 'static>(&mut self, e: T) {
         let ent = self.data.entry(TypeId::of::<T>());
 
-        let b = ent.or_insert(Box::new(Vec::<T>::new()));
+        let b = ent.or_insert_with(|| Box::new(Vec::<T>::new()));
         if let Some(vec) = b.downcast_mut::<Vec<T>>() {
             vec.insert_event(e);
         }
@@ -33,8 +34,14 @@ impl Events {
     pub fn read_events<T: Event + 'static>(&self) -> Iter<T> {
         self.data
             .get(&TypeId::of::<T>())
-            .and_then(|x| x.downcast_ref::<Vec<T>>().and_then(|x| Some(x.iter())))
-            .unwrap_or([].iter())
+            .and_then(|x| x.downcast_ref::<Vec<T>>().map(|x| x.iter()))
+            .unwrap_or_else(|| [].iter())
+    }
+}
+
+impl Default for Events {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub mod layer;
 pub mod application;
 pub mod ecs;

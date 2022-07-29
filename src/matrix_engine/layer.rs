@@ -1,3 +1,4 @@
+
 use std::{
     sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -61,10 +62,37 @@ impl LayerHolder {
             started: false,
         }
     }
-    pub(crate) fn update(&mut self, _args: &LayerArgs) {
+    pub(super) fn begin_thread(mut self, thread_c: Arc<AtomicUsize>, args: LayerArgs) {
+        thread_c.fetch_add(1, Ordering::SeqCst);
+        thread::spawn(move || {
+
+            self.start(&args);
+
+            let mut dt_checker = Clock::start_new();
+            let mut dt;
+            let mut target;
+            while !args.is_running() {
+                dt_checker.restart();
+                self.update(&args);
+
+                dt = dt_checker.elapsed().as_secs_f64();
+                target = args.get_frame_time_as_secs();
+                // println!("dt = {}; target = {}", dt, target);
+                if dt < target {
+                    thread::sleep(Duration::from_secs_f64(target - dt));
+                }
+
+            }
+            thread_c.fetch_sub(1, Ordering::Relaxed)
+        });
+    }
+
+
+    
+    fn update(&mut self, _args: &LayerArgs) {
         self.layer.as_mut().on_update(_args);
     }
-    pub(crate) fn start(&mut self, _args: &LayerArgs) {
+    fn start(&mut self, _args: &LayerArgs) {
         if !self.started {
             self.started = true;
             self.layer.as_mut().on_start(_args);

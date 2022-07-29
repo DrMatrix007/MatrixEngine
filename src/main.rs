@@ -5,13 +5,19 @@ use matrix_engine::{application::*, event::Event, layer::*};
 #[derive(Debug)]
 struct Test;
 
-struct MyLayer {}
-impl MyLayer {
-    fn new() -> Self {
-        MyLayer {}
+pub mod tests;
+struct WorkLayer {}
+
+struct TimerLayer {
+    max: f64,
+}
+
+impl TimerLayer {
+    fn new(max: f64) -> Self {
+        Self { max }
     }
 }
-impl Layer for MyLayer {
+impl Layer for TimerLayer {
     fn on_start(&mut self, _args: &LayerArgs) {
         if let Some(mut registry) = _args.write_registry() {
             let mut e = registry.create_entity();
@@ -32,18 +38,11 @@ impl Layer for MyLayer {
 
     fn on_clean_up(&mut self) {}
 }
-struct MyEvent;
-impl Event for MyEvent {}
-
 fn main() {
     let mut app = Application::new();
+    app.set_target_fps(144);
 
-    {
-        let layer = MyLayer::new();
-        app.push_layer(layer);
 
-        // app.push_layer(FpsLayer::new());
-    }
 
     app.run();
 }

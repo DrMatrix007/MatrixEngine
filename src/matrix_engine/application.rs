@@ -15,6 +15,8 @@ pub struct Application {
 }
 
 impl Application {
+    const DEFUALT_TARGET_FRAMES_PER_SECOND: f64 = 1.0 / 60.0;
+
     pub fn new() -> Self {
         Application {
             layers: Arc::new(RwLock::new(Vec::new())),
@@ -23,7 +25,12 @@ impl Application {
             registry: Arc::new(RwLock::new(Registry::new())),
         }
     }
-
+    pub fn set_target_fps(&mut self, target: u64) {
+        *self.target_frames_per_second.write().unwrap() = 1.0 / target as f64;
+    }
+    pub fn get_target_fps(&self) -> u64 {
+        (1.0 / *self.target_frames_per_second.read().unwrap() as f64) as u64
+    }
     pub fn stop(&mut self) {
         self.quitting.store(true, Ordering::Relaxed);
     }
@@ -44,5 +51,11 @@ impl Application {
         // for layer in self.layers.() {
         //     layer.clean_up();
         // }
+    }
+}
+
+impl Default for Application {
+    fn default() -> Self {
+        Self::new()
     }
 }

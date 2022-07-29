@@ -72,6 +72,12 @@ impl Registry {
     }
 }
 
+impl Default for Registry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<Comp> ComponentVec<Comp> for HashMap<Entity, Comp> {
     fn insert_component(&mut self, e: Entity, c: Comp) {
         self.insert(e, c);
