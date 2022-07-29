@@ -24,6 +24,7 @@ impl Layer for TimerLayer {
 
             println!("frame: {}", _args.time.elapsed().as_secs_f64());
             _args.stop_application();
+            
         }
     }
 
@@ -33,10 +34,7 @@ fn main() {
     let mut app = Application::new();
     app.set_target_fps(144);
 
-    app.push_layer(TimerLayer::new(0.1));
-    app.push_layer(TimerLayer::new(0.1));
-    app.push_layer(TimerLayer::new(0.1));
-    app.push_layer(TimerLayer::new(0.1));
+    
 
     app.run();
 }

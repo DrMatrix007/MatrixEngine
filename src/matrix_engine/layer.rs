@@ -2,7 +2,7 @@ use std::{
     slice::{Iter, IterMut},
     sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering},
-        Arc, RwLock,
+        Arc, RwLock, RwLockReadGuard, RwLockWriteGuard,
     },
     thread::{self},
     time::Duration,
@@ -11,8 +11,8 @@ use std::{
 use super::{ecs::registry::Registry, event::Events, utils::clock::Clock};
 
 pub struct LayerArgs {
-    pub events: Arc<RwLock<Events>>,
-    pub registry: Arc<RwLock<Registry>>,
+    pub(super) events: Arc<RwLock<Events>>,
+    pub(super) registry: Arc<RwLock<Registry>>,
     pub time: Clock,
     pub(crate) quit_ref: Arc<AtomicBool>,
     pub(super) target_frames_per_second: Arc<RwLock<f64>>,
@@ -28,13 +28,26 @@ impl LayerArgs {
     pub(super) fn get_frame_time_as_secs(&self) -> f64 {
         *self.target_frames_per_second.read().unwrap()
     }
+    pub fn borrow_registry(&self) -> RwLockReadGuard<Registry> {
+        self.registry.read().unwrap()
+    }
+    pub fn borrow_registry_mut(&self) -> RwLockWriteGuard<Registry> {
+        self.registry.write().unwrap()
+    }
+
+    pub fn borrow_events(&self) -> RwLockReadGuard<Events> {
+        self.events.read().unwrap()
+    }
+    pub fn borrow_events_mut(&self) -> RwLockWriteGuard<Events> {
+        self.events.write().unwrap()
+    }
 }
 impl Clone for LayerArgs {
     fn clone(&self) -> Self {
         Self {
             events: self.events.clone(),
             registry: self.registry.clone(),
-            time: self.time.clone(),
+            time: self.time,
             quit_ref: self.quit_ref.clone(),
             target_frames_per_second: self.target_frames_per_second.clone(),
         }
