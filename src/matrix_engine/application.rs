@@ -3,9 +3,12 @@ use std::sync::{
     Arc, RwLock,
 };
 
-use crate::*;
-
-use super::{ecs::registry::Registry, event::Events, layer::LayerPool, utils::clock::Clock};
+use super::{
+    ecs::registry::Registry,
+    event::Events,
+    layer::{Layer, LayerArgs, LayerPool},
+    utils::clock::Clock,
+};
 
 pub struct Application {
     quitting: Arc<AtomicBool>,
@@ -58,5 +61,11 @@ impl Application {
         for layer in self.layers.iter_mut() {
             layer.clean_up();
         }
+    }
+}
+
+impl Default for Application {
+    fn default() -> Self {
+        Self::new()
     }
 }

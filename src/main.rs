@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
+use matrix_engine::matrix_engine::{layer::{LayerArgs, Layer}, application::Application};
 
-mod matrix_engine;
-use matrix_engine::{application::*, layer::*};
+pub mod tests;
 struct WorkLayer {}
 
 struct TimerLayer {
@@ -34,7 +34,7 @@ fn main() {
     let mut app = Application::new();
     app.set_target_fps(144);
 
-    
+
 
     app.run();
 }

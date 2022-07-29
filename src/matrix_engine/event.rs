@@ -38,6 +38,12 @@ impl Events {
     }
 }
 
+impl Default for Events {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 trait EventVec<T> {
     fn insert_event(&mut self, i: T);
     fn clear(&mut self);

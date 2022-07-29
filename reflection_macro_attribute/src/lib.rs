@@ -14,7 +14,7 @@ pub fn polymorphic(_attr_data: TokenStream, original_item: TokenStream) -> Token
 
     let expanded = quote!(
         #item
-        impl<T: #name> CanBe<dyn #name> for CheckCasting<T, dyn #name> {}
+        impl<T: #name> CanBe<dyn #name> for CastChecker<T, dyn #name> {}
     );
     TokenStream::from(expanded)
 }

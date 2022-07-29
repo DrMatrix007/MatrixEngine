@@ -1,3 +1,4 @@
+
 use std::{
     slice::{Iter, IterMut},
     sync::{
@@ -120,7 +121,6 @@ pub(super) struct LayerPool {
     args: Option<LayerArgs>,
     counter: Arc<AtomicUsize>,
 }
-
 impl LayerPool {
     pub fn new() -> Self {
         LayerPool {

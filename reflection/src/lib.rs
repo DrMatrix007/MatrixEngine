@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
-pub struct CheckCasting<A: ?Sized, B: ?Sized>(PhantomData<A>, PhantomData<B>);
-impl<A: ?Sized, B: ?Sized> CheckCasting<A, B> {
+pub struct CastChecker<A: ?Sized, B: ?Sized>(PhantomData<A>, PhantomData<B>);
+impl<A: ?Sized, B: ?Sized> CastChecker<A, B> {
     pub fn new() -> Self {
-        CheckCasting(PhantomData, PhantomData)
+        CastChecker(PhantomData, PhantomData)
     }
 }
 pub trait CanBe<T: ?Sized + 'static>: Sized {
@@ -13,7 +13,7 @@ pub trait CanBe<T: ?Sized + 'static>: Sized {
         true
     }
 }
-impl<T, Trait: ?Sized + 'static> CanBe<Trait> for &'_ CheckCasting<T, Trait> {
+impl<T, Trait: ?Sized + 'static> CanBe<Trait> for &'_ CastChecker<T, Trait> {
     fn check(self) -> bool
     where
         Self: Sized,
@@ -21,6 +21,7 @@ impl<T, Trait: ?Sized + 'static> CanBe<Trait> for &'_ CheckCasting<T, Trait> {
         false
     }
 }
+
 // #[macro_export]
 // macro_rules! impl_type_polymorphic {
 //     ($_trait:path) => {
