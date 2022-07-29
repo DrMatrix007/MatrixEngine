@@ -58,6 +58,9 @@ impl Registry {
         let map = self.data.get(&TypeId::of::<T>())?;
         let map = map.downcast_ref::<HashMap<Entity, T>>()?;
         map.borrow_component(e)
+
+
+        
     }
     pub fn insert_component<T: 'static>(&mut self, e: Entity, c: T) {
         let ent = self.data.entry(TypeId::of::<T>());
