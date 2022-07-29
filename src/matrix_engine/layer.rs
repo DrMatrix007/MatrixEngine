@@ -71,7 +71,7 @@ impl LayerHolder {
             let mut dt_checker = Clock::start_new();
             let mut dt;
             let mut target;
-            while !args.is_running() {
+            while !args.() {
                 dt_checker.restart();
                 self.update(&args);
 

@@ -5,13 +5,14 @@ use std::sync::{
 
 use crate::*;
 
-use super::{ecs::registry::Registry, event::Events};
+use super::{ecs::registry::Registry, event::Events, layer::{LayerHolder, Layer, LayerPool}};
 
 pub struct Application {
     pub(super) quitting: Arc<AtomicBool>,
     pub(super) layers: Arc<RwLock<Vec<LayerHolder>>>,
     pub(super) events: Arc<RwLock<Events>>,
     pub(super) registry: Arc<RwLock<Registry>>,
+    target_frames_per_second: Mutex<f64>
 }
 
 impl Application {
@@ -23,6 +24,7 @@ impl Application {
             quitting: Arc::new(AtomicBool::new(false)),
             events: Arc::new(RwLock::new(Events::new())),
             registry: Arc::new(RwLock::new(Registry::new())),
+            
         }
     }
     pub fn set_target_fps(&mut self, target: u64) {

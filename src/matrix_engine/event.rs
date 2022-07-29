@@ -14,7 +14,6 @@ pub struct Events {
 }
 unsafe impl Send for Events {}
 
-unsafe impl Send for Events {}
 
 #[allow(dead_code)]
 impl Events {
