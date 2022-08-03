@@ -1,12 +1,10 @@
-
+use core::time;
 use std::{
     slice::{Iter, IterMut},
     sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc, RwLock, RwLockReadGuard, RwLockWriteGuard,
-    },
-    thread::{self},
-    time::Duration,
+    }, thread, time::Duration,
 };
 
 use super::{ecs::registry::Registry, event::Events, utils::clock::Clock};
@@ -16,7 +14,7 @@ pub struct LayerArgs {
     pub(super) registry: Arc<RwLock<Registry>>,
     pub time: Clock,
     pub(crate) quit_ref: Arc<AtomicBool>,
-    pub(super) target_frames_per_second: Arc<RwLock<f64>>,
+    pub(super) target_nanos_per_second: Arc<RwLock<Duration>>,
 }
 unsafe impl Send for LayerArgs {}
 impl LayerArgs {
@@ -26,21 +24,22 @@ impl LayerArgs {
     pub(super) fn is_running(&self) -> bool {
         self.quit_ref.load(Ordering::Relaxed)
     }
-    pub(super) fn get_frame_time_as_secs(&self) -> f64 {
-        *self.target_frames_per_second.read().unwrap()
-    }
-    pub fn borrow_registry(&self) -> RwLockReadGuard<Registry> {
-        self.registry.read().unwrap()
-    }
-    pub fn borrow_registry_mut(&self) -> RwLockWriteGuard<Registry> {
-        self.registry.write().unwrap()
+    pub(super) fn get_frame_time(&self) -> Duration {
+        *self.target_nanos_per_second.read().unwrap()
     }
 
-    pub fn borrow_events(&self) -> RwLockReadGuard<Events> {
-        self.events.read().unwrap()
+    pub fn read_registry(&self) -> Option<RwLockReadGuard<Registry>> {
+        self.registry.try_read().ok()
     }
-    pub fn borrow_events_mut(&self) -> RwLockWriteGuard<Events> {
-        self.events.write().unwrap()
+    pub fn write_registry(&self) -> Option<RwLockWriteGuard<Registry>> {
+        self.registry.write().ok()
+    }
+
+    pub fn write_events(&self) -> Option<RwLockReadGuard<Events>> {
+        self.events.try_read().ok()
+    }
+    pub fn read_events(&self) -> Option<RwLockWriteGuard<Events>> {
+        self.events.try_write().ok()
     }
 }
 impl Clone for LayerArgs {
@@ -50,7 +49,7 @@ impl Clone for LayerArgs {
             registry: self.registry.clone(),
             time: self.time,
             quit_ref: self.quit_ref.clone(),
-            target_frames_per_second: self.target_frames_per_second.clone(),
+            target_nanos_per_second: self.target_nanos_per_second.clone(),
         }
     }
 }
@@ -77,32 +76,36 @@ impl LayerHolder {
         }
     }
     pub(super) fn begin_thread(mut self, thread_c: Arc<AtomicUsize>, args: LayerArgs) {
-        thread_c.fetch_add(1, Ordering::SeqCst);
+        thread_c.fetch_add(1, Ordering::Relaxed);
         thread::spawn(move || {
-
             self.start(&args);
-
-            let mut dt_checker = Clock::start_new();
             let mut dt;
+            let mut dt_checker = Clock::start_new();
             let mut target;
+            let mut d = Duration::default();
             while !args.is_running() {
-                dt_checker.restart();
+                target = args.get_frame_time();
+                // println!("check: {}",dt_checker.restart().as_secs_f64());
+                
                 self.update(&args);
+                dt_checker.restart();
 
-                dt = dt_checker.elapsed().as_secs_f64();
-                target = args.get_frame_time_as_secs();
-                // println!("dt = {}; target = {}", dt, target);
+                dt =dt_checker.elapsed();
+                // println!("{}",d.as_secs_f64());
                 if dt < target {
-                    thread::sleep(Duration::from_secs_f64(target - dt));
+                    d = target-dt;
+                    spin_sleep::sleep(d);
+                    // dt_checker.restart();
                 }
 
+                // println!("{} {}",dt_checker.restart().as_secs_f64(),(d+dt).as_secs_f64());
+                // dt_checker.restart();
             }
+            self.layer.on_clean_up();
             thread_c.fetch_sub(1, Ordering::Relaxed)
         });
     }
 
-
-    
     fn update(&mut self, _args: &LayerArgs) {
         self.layer.as_mut().on_update(_args);
     }

@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 reflection = { path = "./reflection"}
 reflection_macro_attribute = { path = "./reflection_macro_attribute"}
+spin_sleep = "1.1.1"
 
