@@ -15,12 +15,11 @@ struct WorkLayer {}
 
 struct TimerLayer {
     max: f64,
-    counter: u128
 }
 
 impl TimerLayer {
     fn new(max: f64) -> Self {
-        Self { max,counter:0 }
+        Self { max }
     }
 }
 impl Layer for TimerLayer {
@@ -34,15 +33,14 @@ impl Layer for TimerLayer {
 
     fn on_update(&mut self, _args: &LayerArgs) {
     
-    self.counter+=1;
-        // {
-        //     let mut reg = unwrap_or_return!(_args.write_registry());
-        //     let e = reg.create_entity();
+        {
+            let mut reg = unwrap_or_return!(_args.write_registry());
+            let e = reg.create_entity();
 
-        //     let mut v = unwrap_or_return!(reg.write_vec::<i128>());
-        //     let sum: i128 = v.len() as i128;
-        //     v.push(e, sum);
-        // }
+            let mut v = unwrap_or_return!(reg.write_vec::<i128>());
+            let sum: i128 = v.len() as i128;
+            v.push(e, sum);
+        }
         if _args.time.elapsed().as_secs_f64() > self.max {
             println!("frame: {}", _args.time.elapsed().as_secs_f64());
             _args.stop_application();
@@ -57,13 +55,12 @@ impl Layer for TimerLayer {
     }
 
     fn on_clean_up(&mut self) {
-        println!("counted: {}",self.counter);
     }
 }
 
 fn main() {
     let mut app = Application::new();
-    app.set_target_fps(Duration::from_secs_f64(1.0 / 10.0));
+    app.set_target_fps(100);
 
     app.push_layer(TimerLayer::new(1.0));
 

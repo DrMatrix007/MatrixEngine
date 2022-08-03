@@ -35,8 +35,8 @@ impl Application {
             registry: Arc::new(RwLock::new(Registry::new())),
         }
     }
-    pub fn set_target_fps(&mut self, target: Duration) {
-        *self.target_duration.write().unwrap() = target;
+    pub fn set_target_fps(&mut self, target: u128) {
+        *self.target_duration.write().unwrap() = Duration::from_secs_f64(1.0 / target as f64);
     }
     pub fn stop(&mut self) {
         self.quitting.store(true, Ordering::Relaxed);
