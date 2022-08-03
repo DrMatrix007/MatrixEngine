@@ -1,10 +1,11 @@
-use core::time;
 use std::{
     slice::{Iter, IterMut},
     sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc, RwLock, RwLockReadGuard, RwLockWriteGuard,
-    }, thread, time::Duration,
+    },
+    thread,
+    time::Duration,
 };
 
 use super::{ecs::registry::Registry, event::Events, utils::clock::Clock};
@@ -82,18 +83,18 @@ impl LayerHolder {
             let mut dt;
             let mut dt_checker = Clock::start_new();
             let mut target;
-            let mut d = Duration::default();
+            let mut d ;
             while !args.is_running() {
                 target = args.get_frame_time();
                 // println!("check: {}",dt_checker.restart().as_secs_f64());
-                
+
                 self.update(&args);
                 dt_checker.restart();
 
-                dt =dt_checker.elapsed();
+                dt = dt_checker.elapsed();
                 // println!("{}",d.as_secs_f64());
                 if dt < target {
-                    d = target-dt;
+                    d = target - dt;
                     spin_sleep::sleep(d);
                     // dt_checker.restart();
                 }
