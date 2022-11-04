@@ -13,11 +13,7 @@ class ValueComponent : public ecs::component
 {
 public:
     int a = 0;
-
-    virtual ~ValueComponent() {
-
-    };
-
+    virtual ~ValueComponent(){};
 };
 
 std::unique_ptr<Application> create_main_app()
@@ -59,5 +55,5 @@ std::unique_ptr<Application> create_main_app()
     t1.join();
     wt1.join();
 
-    return std::unique_ptr<Application>(app);
+    return std::unique_ptr<MyApplication>(app);
 }
