@@ -1,7 +1,6 @@
 #ifndef MATRIX_ENGINE_APPLICATION
 #define MATRIX_ENGINE_APPLICATION
 
-int main();
 namespace me
 {
 	class Application
@@ -10,11 +9,10 @@ namespace me
 		inline void stop() {
 			m_Running = false;
 		}
+		void run();	
 
 	private:
 		bool m_Running = true;
-		void run();	
-		friend int ::main();
 	};
 }
 

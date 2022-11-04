@@ -4,6 +4,9 @@ project(MatrixEngine VERSION 0.1.0)
 include(CTest)
 enable_testing()
 
+set (CMAKE_CXX_STANDARD 20)
+
+
 find_package(SDL2 REQUIRED)
 
 file(GLOB_RECURSE SOURCES src/**.cpp src/**.h)

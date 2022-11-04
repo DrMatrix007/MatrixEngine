@@ -151,7 +151,7 @@ template <typename T, typename F>
 inline std::vector<std::thread> me::ecs::registry::write_components_async(const F &f)
 {
 	std::vector<std::thread> threads;
-	const T *ptr;
+	T *ptr;
 	locker<component_vec> *v = this->get<T>();
 	if (v)
 	{

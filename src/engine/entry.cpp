@@ -1,7 +1,10 @@
 #include "entry.h"
+#ifdef linux
 #define SDL_MAIN_HANDLED
+#endif
 #include <SDL2/SDL.h>
-int main()
+
+int main(int argc, char **argv)
 {
 	SDL_Init(SDL_INIT_EVERYTHING);
 

@@ -54,7 +54,9 @@ std::unique_ptr<Application> create_main_app()
 
     t2.join();
     t1.join();
-    wt1.join();
+    for(auto& t : wt1) {
+        t.join();
+    }
 
     return std::unique_ptr<MyApplication>(app);
 }
