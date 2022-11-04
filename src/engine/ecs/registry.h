@@ -59,7 +59,13 @@ namespace me::ecs
 		std::thread write_components(const F &);
 
 		template <typename T, typename F>
-		std::thread read(const F &);
+		std::thread read_component(const F &);
+
+		template <typename T, typename F>
+		std::vector<std::thread> write_components_async(const F &);
+
+		template <typename T, typename F>
+		std::vector<std::thread> read_component_async(const F &);
 
 		template <typename T>
 		locker<component_vec> *get();
@@ -121,7 +127,7 @@ inline std::thread me::ecs::registry::write_components(const F &f)
 }
 
 template <typename T, typename F>
-std::thread me::ecs::registry::read(const F &f)
+std::thread me::ecs::registry::read_component(const F &f)
 {
 	return std::thread([this, &f]()
 					   {
@@ -138,8 +144,49 @@ std::thread me::ecs::registry::read(const F &f)
 					f(e, ptr);
 				}
 			}
-
 		} });
+}
+
+template <typename T, typename F>
+inline std::vector<std::thread> me::ecs::registry::write_components_async(const F &f)
+{
+	std::vector<std::thread> threads;
+	const T *ptr;
+	locker<component_vec> *v = this->get<T>();
+	if (v)
+	{
+		auto [g, m] = v->read();
+		for (const auto &[e, c] : m)
+		{
+			ptr = dynamic_cast<T *>(c.get());
+			if (ptr)
+			{
+				threads.push_back(std::thread(f,e, ptr));
+			}
+		}
+	}
+	return threads;
+}
+
+template <typename T, typename F>
+std::vector<std::thread> me::ecs::registry::read_component_async(const F &f)
+{
+	std::vector<std::thread> threads;
+	const T *ptr;
+	locker<component_vec> *v = this->get<T>();
+	if (v)
+	{
+		auto [g, m] = v->read();
+		for (const auto &[e, c] : m)
+		{
+			ptr = dynamic_cast<const T *>(c.get());
+			if (ptr)
+			{
+				f(e, ptr);
+			}
+		}
+	}
+	return threads;
 }
 
 template <typename T>
@@ -147,11 +194,7 @@ inline locker<me::ecs::component_vec> *me::ecs::registry::get()
 {
 	auto i = vecs.find(typeid(T));
 	if (i == vecs.end())
-
 	{
-
-		// vecs.insert(typeid(T),new locker<component_vec>());
-		// return vecs.find(typeid(T))->second.get();
 		return nullptr;
 	}
 	else

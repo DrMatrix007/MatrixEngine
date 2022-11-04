@@ -33,22 +33,23 @@ std::unique_ptr<Application> create_main_app()
     }
     locker<int> values = locker(0);
 
-    auto wt1 = app->reg.write_components<ValueComponent>([&values](const entity &e, ValueComponent *p)
+    auto wt1 = app->reg.write_components_async<ValueComponent>([&values](const entity &e, ValueComponent *p)
                                                          {
                                         auto [g,v] = values.write();
                                         p->a = v;
                                         v++; });
 
-    auto t1 = app->reg.read<ValueComponent>([](const entity &e, const ValueComponent *p)
+    auto t1 = app->reg.read_component<ValueComponent>([](const entity &e, const ValueComponent *p)
                                             {if (!(p->a %1000)){
-
-                                            me::meout << "yoo: " << p->a << std::endl;
+                                            auto [g,cout] = me::meout.get();
+                                            cout << "yoo: " << p->a << std::endl;
                                             } });
 
-    auto t2 = app->reg.read<ValueComponent>([](const entity &e, const ValueComponent *p)
+    auto t2 = app->reg.read_component<ValueComponent>([](const entity &e, const ValueComponent *p)
                                             { if (!(p->a %1000)){
+                                            auto [g,cout] = me::meout.get();
 
-                                            me::meout << "nice: " << p->a << std::endl;
+                                            cout << "nice: " << p->a << std::endl;
                                             } });
 
     t2.join();

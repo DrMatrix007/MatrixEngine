@@ -11,12 +11,15 @@ namespace me
         inline threadstream(std::ostream &s) : stream(s)
         {
         }
-        template <typename T>
-        inline threadstream operator<<(const T &data)
-        {
-            auto [g,io] = stream.write();
-            io << data;
-            return *this;
+        // template <typename T>
+        // inline threadstream& operator<<(const T &data)
+        // {
+        //     auto [g,io] = stream.write();
+        //     io << data;
+        //     return *this;
+        // }
+        std::pair<std::unique_lock<std::shared_mutex>, std::ostream &> get() {
+            return stream.write();
         }
 
     private:
