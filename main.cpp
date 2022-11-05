@@ -1,4 +1,5 @@
 #include <iostream>
+
 #include "src/engine/matrix_engine.h"
 
 using namespace me;
@@ -9,6 +10,7 @@ public:
     ecs::registry reg;
 };
 
+template <int b>
 class ValueComponent : public ecs::component
 {
 public:
@@ -19,38 +21,43 @@ public:
 std::unique_ptr<Application> create_main_app()
 {
     using namespace ecs;
+    using namespace queries;
     MyApplication *app = new MyApplication{};
     auto e = entity{};
-    auto e1 = entity{};
     // auto v = me::ecs::component_vec{};
     //
     // v.set(T{}, e);
     auto &reg = app->reg;
-
     for (size_t i = 0; i < 200; i++)
     {
-        reg.set(entity{}, ValueComponent{});
+        e = entity{};
+        reg.set(e, ValueComponent<0>{});
+        reg.set(e, ValueComponent<1>{});
     }
     locker<int> values = locker(0);
 
-    auto wt1 = app->reg.write_components<ValueComponent>([&values](const entity &e, ValueComponent *p)
-                                                         {
-                                        auto [g,v] = values.write();
-                                        p->a = v;
-                                        v++; });
+    app->reg.query_sync<queries::write<ValueComponent<0>>, queries::write<ValueComponent<1>>>(
+        std::function([&values](ValueComponent<0> *p, ValueComponent<1> *p1)
+                      {
+            auto v = values.write();
+            p->a = *v;
+            p1->a = (*v)*(*v);
+            (*v)++; }));
 
-    // auto t1 = app->reg.read_component<ValueComponent>([](const entity &e, const ValueComponent *p)
+    // auto t1 = app->reg.read_component<ValueComponent>([](const entity &e,
+    // const ValueComponent *p)
     //                                         {if (!(p->a %1000)){
     //                                         auto [g,cout] = me::meout.get();
-    //                                         cout << "yoo: " << p->a << std::endl;
-    //                                         } });
+    //                                         cout << "yoo: " << p->a <<
+    //                                         std::endl; } });
 
-    // auto t2 = app->reg.read_component<ValueComponent>([](const entity &e, const ValueComponent *p)
+    // auto t2 = app->reg.read_component<ValueComponent>([](const entity &e,
+    // const ValueComponent *p)
     //                                         { if (!(p->a %1000)){
     //                                         auto [g,cout] = me::meout.get();
 
-    //                                         cout << "nice: " << p->a << std::endl;
-    //                                         } });
+    //                                         cout << "nice: " << p->a <<
+    //                                         std::endl; } });
 
     // t2.join();
     // t1.join();
@@ -58,11 +65,14 @@ std::unique_ptr<Application> create_main_app()
     //     t.join();
     // }
 
-    app->reg.query_sync(query::query<query::read<ValueComponent>>(std::function([](const ValueComponent *p)
-                                                                           {
-        
-                                            auto [g,cout] = me::meout.get();
-                                            cout << "yoo: " << p->a << std::endl; })));
-    wt1.join();
+    app->reg.query_sync<queries::read<ValueComponent<0>>, queries::read<ValueComponent<1>>>(
+        [](const ValueComponent<0> *p, const ValueComponent<1> *p1)
+        {
+        auto cout = me::meout.get();
+        **cout << "yoo: " << p->a << "  " <<p1->a << std::endl; });
+
+    std::cout << "done!"
+              << "\n";
+
     return std::unique_ptr<MyApplication>(app);
 }

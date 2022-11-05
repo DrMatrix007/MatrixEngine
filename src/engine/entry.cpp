@@ -10,8 +10,8 @@ int main(int argc, char **argv)
 
 	auto app = create_main_app();
 
-	app->run();
-
+	// app->run();
+	
 	SDL_Quit();
 	return 0;
 }

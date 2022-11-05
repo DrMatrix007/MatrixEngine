@@ -63,11 +63,7 @@ namespace me::utils
         using type = base<T1...,T2...>;
     };
 
-    template<typename ...T>
-    class A{};
-    template<typename ...T>
-    using B = A<T...>;
-    connect_templates<B,B<int>,B<float>>::type a;
+ 
 
 
 

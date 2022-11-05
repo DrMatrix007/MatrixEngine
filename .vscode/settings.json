@@ -89,6 +89,7 @@
         "typeindex": "cpp",
         "__nullptr": "cpp",
         "__debug": "cpp",
-        "__locale": "cpp"
+        "__locale": "cpp",
+        "__string": "cpp"
     }
 }

@@ -8,7 +8,7 @@ namespace me
     class threadstream
     {
     public:
-        inline threadstream(std::ostream &s) : stream(s)
+        inline threadstream(std::ostream* s) : stream(s)
         {
         }
         // template <typename T>
@@ -18,16 +18,16 @@ namespace me
         //     io << data;
         //     return *this;
         // }
-        std::pair<std::unique_lock<std::shared_mutex>, std::ostream &> get() {
+        auto get() {
             return stream.write();
         }
 
     private:
-        locker<std::ostream&> stream;
+        locker<std::ostream*> stream;
     
     };
 
-    threadstream meout(std::cout);
+    threadstream meout(&std::cout);
 }
 
 #endif

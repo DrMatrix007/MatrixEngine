@@ -21,7 +21,6 @@ namespace me::ecs
 	{
 	private:
 		std::map<entity, std::unique_ptr<component>> components;
-		std::map<std::type_index, std::unique_ptr<base_system>> systems;
 
 	public:
 		template <typename T>
@@ -50,7 +49,7 @@ namespace me::ecs
 			return components.cend();
 		}
 	};
-	namespace query
+	namespace queries
 	{
 
 		template <typename T>
@@ -59,11 +58,11 @@ namespace me::ecs
 		};
 
 		template <template <typename> typename base, typename T>
-		class query_vec_result<base<T>>
+		struct query_vec_result<base<T>>
 		{
 			using guard_type = base<T>::guard_type;
 
-			inline query_vec_result(guard_type g, component_vec &c) : l(g), v(c){};
+			inline query_vec_result(std::shared_mutex &g, component_vec &c) : l(g), v(c){};
 			guard_type l;
 			component_vec &v;
 		};
@@ -81,12 +80,13 @@ namespace me::ecs
 			using format_type = const A;
 			using param_type = format_type<T *>;
 			using type = T;
-			using guard_type = std::shared_lock<std::shared_mutex>;
+			using guard_type = guard<std::shared_lock<std::shared_mutex>, const T>;
 
-			static inline query_vec_result<read<T>> get_guard(locker<component_vec> &l)
+			template <typename Val>
+			static inline guard<std::shared_lock<std::shared_mutex>, const Val> get_guard(locker<Val> &l)
 			{
 
-				return query_vec_result<read<T>>(guard_type(l.mutex), l.value);
+				return l.read();
 			}
 		};
 
@@ -98,12 +98,13 @@ namespace me::ecs
 			using param_type = format_type<T *>;
 
 			using type = T;
-			using guard_type = std::unique_lock<std::shared_mutex>;
+			using guard_type = guard<std::unique_lock<std::shared_mutex>, T>;
 
-			static inline query_vec_result<write<T>> get_guard(locker<component_vec> &l)
+			template <typename Val>
+			static inline guard<std::unique_lock<std::shared_mutex>, Val> get_guard(locker<Val> &l)
 			{
-				auto [a, b] = l.write();
-				return query_vec_result<write<T>>(a, b);
+
+				return l.write();
 			}
 		};
 
@@ -130,8 +131,20 @@ namespace me::ecs
 
 			func f;
 
+			inline void run_query(std::tuple<typename T1::param_type, typename T::param_type...> t)
+			{
+				_run_query(t,std::make_index_sequence<sizeof...(T)+1>());
+			}
+
 			inline query(func fun) : f(fun)
 			{
+			}
+
+		private:
+			template <size_t... I>
+			inline void _run_query(std::tuple<typename T1::param_type, typename T::param_type...> ts, std::index_sequence<I...> is)
+			{
+				f(std::get<I>(ts)...);
 			}
 		};
 
@@ -147,6 +160,7 @@ namespace me::ecs
 	{
 	private:
 		std::map<std::type_index, std::unique_ptr<locker<component_vec>>> vecs;
+		std::map<std::type_index, std::unique_ptr<base_system>> systems;
 
 	public:
 		template <typename T, typename F>
@@ -167,72 +181,91 @@ namespace me::ecs
 		template <typename T>
 		T *set(const entity &, T);
 
-		template <typename T1, typename T2, typename... Ts>
-		query::query<Ts...>::vecs_types get_vecs()
-		{
-			return std::tuple_cat(get_vec<T1>(), get_vecs<T2, Ts...>());
-		}
-		template <typename T1>
-		query::query<T1>::vecs_types get_vecs()
-		{
-			return std::make_tuple(get_vec<T1>());
-		}
+		// template <typename T1, typename T2, typename... Ts>
+		// queries::query<T1, T2, Ts...>::vecs_types get_vecs()
+		// {
+		// 	return std::tuple_cat(get_vec<T1>(), get_vecs<T2, Ts...>());
+		// }
+		// template <typename T1>
+		// queries::query<T1>::vecs_types get_vecs()
+		// {
+		// 	return std::make_tuple(get_vec<T1>());
+		// }
+		// template <typename... Ts, typename... ComponentLocks>
+		// std::tuple<ComponentLocks::type...> get(const entity &e)
+		// {
+		// 	return std::make_tuple(((Ts)locks->get(e))...);
+		// }
 
-		template <typename base>
-		std::unique_ptr<query::query_vec_result<base>> get_vec()
+		template <typename T1, typename... Ts>
+		void query_sync(queries::query<T1, Ts...>::func f)
 		{
-			auto ptr = get<typename base::type>();
-			if (ptr)
+
+			queries::query<T1, Ts...> q(f);
+			auto guards = std::make_tuple(T1::get_guard(*get<typename T1::type>()), (Ts::get_guard(*get<typename Ts::type>()))...);
+
+			// bool a = is_nulls<std::unique_ptr<queries::query_vec_result<T1>>, std::unique_ptr<queries::query_vec_result<Ts>>...>(vs);
+			// if(!a) {
+			// return;
+			// }
+
+			auto p = get<typename T1::type>();
+			component_vec &v = p->value;
+			//
+
+			for (auto &[e, c] : v)
 			{
-				return std::make_unique<query::query_vec_result<base>>(base::get_guard(*ptr));
+				auto values = std::make_tuple(get<typename T1::type>()->value.template get<typename T1::type>(e), (get<typename Ts::type>()->value.template get<typename Ts::type>(e))...);
+				if (is_not_nulls(values))
+				{
+					q.run_query(values);
+				}
 			}
+		};
+	};
+
+	template <typename T>
+	T *me::ecs::component_vec::get(const entity &e)
+	{
+		auto i = components.find(e);
+		if (i == components.end())
+		{
 			return nullptr;
 		}
-	};
-};
-
-template <typename T>
-T *me::ecs::component_vec::get(const entity &e)
-{
-	auto i = components.find(e);
-	if (i == components.end())
-	{
-		return nullptr;
+		else
+		{
+			return dynamic_cast<T *>(i->second.get());
+		}
 	}
-	else
+	template <typename T>
+	T *me::ecs::component_vec::set(std::unique_ptr<T> t, const entity &e)
 	{
-		return dynamic_cast<T *>(i->second.get());
+		T *og = t.release();
+		auto c = dynamic_cast<component *>(og);
+		if (c)
+		{
+			components[e] = std::unique_ptr<component>(c);
+		}
+		return c ? og : nullptr;
 	}
-}
-template <typename T>
-T *me::ecs::component_vec::set(std::unique_ptr<T> t, const entity &e)
-{
-	T *og = t.release();
-	auto c = dynamic_cast<component *>(og);
-	if (c)
+	template <typename T>
+	T *me::ecs::component_vec::set(T t, const entity &e)
 	{
-		components[e] = std::unique_ptr<component>(c);
+		return set(std::make_unique<T>(t), e);
 	}
-	return c ? og : nullptr;
-}
-template <typename T>
-T *me::ecs::component_vec::set(T t, const entity &e)
-{
-	return set(std::make_unique<T>(t), e);
-}
 
-template <typename T, typename F>
-inline std::thread me::ecs::registry::write_components(const F &f)
-{
+	template <typename T, typename F>
+	inline std::thread me::ecs::registry::write_components(const F &f)
+	{
 
-	return std::thread([this, &f]()
-					   {
+		return std::thread([this, &f]()
+						   {
 		T* ptr;
 		locker<component_vec>* v = this->get<T>();
 		if (v)
 		{
-			auto [g,m] = v->write();
-			for (const auto& [e, c] : m)
+			auto m = v->write();
+			for (const auto& [e, c] : *m)
 			{
 				ptr = dynamic_cast<T*>(c.get());
 				if (ptr)
@@ -242,19 +275,19 @@ inline std::thread me::ecs::registry::write_components(const F &f)
 			}
 
 		} });
-}
+	}
 
-template <typename T, typename F>
-std::thread me::ecs::registry::read_component(const F &f)
-{
-	return std::thread([this, &f]()
-					   {
+	template <typename T, typename F>
+	std::thread me::ecs::registry::read_component(const F &f)
+	{
+		return std::thread([this, &f]()
+						   {
 		const T* ptr;
 		locker<component_vec>* v = this->get<T>();
 		if (v)
 		{
-			auto [g,m] = v->read();
-			for (const auto& [e, c] : m)
+			auto m = v->read();
+			for (const auto& [e, c] : *m)
 			{
 				ptr = dynamic_cast<const T*>(c.get());
 				if (ptr)
@@ -263,81 +296,81 @@ std::thread me::ecs::registry::read_component(const F &f)
 				}
 			}
 		} });
-}
+	}
 
-template <typename T, typename F>
-inline std::vector<std::thread> me::ecs::registry::write_components_async(const F &f)
-{
-	std::vector<std::thread> threads;
-	T *ptr;
-	locker<component_vec> *v = this->get<T>();
-	if (v)
+	template <typename T, typename F>
+	inline std::vector<std::thread> me::ecs::registry::write_components_async(const F &f)
 	{
-		auto [g, m] = v->read();
-		for (const auto &[e, c] : m)
+		std::vector<std::thread> threads;
+		T *ptr;
+		locker<component_vec> *v = this->get<T>();
+		if (v)
 		{
-			ptr = dynamic_cast<T *>(c.get());
-			if (ptr)
+			auto m = v->read();
+			for (const auto &[e, c] : *m)
 			{
-				threads.push_back(std::thread(f, e, ptr));
+				ptr = dynamic_cast<T *>(c.get());
+				if (ptr)
+				{
+					threads.push_back(std::thread(f, e, ptr));
+				}
 			}
 		}
+		return threads;
 	}
-	return threads;
-}
 
-template <typename T, typename F>
-std::vector<std::thread> me::ecs::registry::read_component_async(const F &f)
-{
-	std::vector<std::thread> threads;
-	const T *ptr;
-	locker<component_vec> *v = this->get<T>();
-	if (v)
+	template <typename T, typename F>
+	std::vector<std::thread> me::ecs::registry::read_component_async(const F &f)
 	{
-		auto [g, m] = v->read();
-		for (const auto &[e, c] : m)
+		std::vector<std::thread> threads;
+		const T *ptr;
+		locker<component_vec> *v = this->get<T>();
+		if (v)
 		{
-			ptr = dynamic_cast<const T *>(c.get());
-			if (ptr)
+			auto m = v->read();
+			for (const auto &[e, c] : *m)
 			{
-				f(e, ptr);
+				ptr = dynamic_cast<const T *>(c.get());
+				if (ptr)
+				{
+					f(e, ptr);
+				}
 			}
 		}
+		return threads;
 	}
-	return threads;
-}
 
-template <typename T>
-inline locker<me::ecs::component_vec> *me::ecs::registry::get()
-{
-	auto i = vecs.find(typeid(T));
-	if (i == vecs.end())
+	template <typename T>
+	inline locker<me::ecs::component_vec> *me::ecs::registry::get()
 	{
+		auto i = vecs.find(typeid(T));
+		if (i == vecs.end())
+		{
+			return nullptr;
+		}
+		else
+		{
+			return i->second.get();
+		}
+	}
+
+	template <typename T>
+	inline T *me::ecs::registry::set(const entity &e, T t)
+	{
+		locker<component_vec> *v = nullptr;
+		auto i = vecs.find(typeid(T));
+		if (i == vecs.end())
+		{
+			vecs.emplace(typeid(T), new locker<component_vec>());
+			v = vecs.find(typeid(T))->second.get();
+		}
+		else
+		{
+			v = i->second.get();
+		}
+		auto data = v->write();
+		return data->set(t, e);
 		return nullptr;
 	}
-	else
-	{
-		return i->second.get();
-	}
 }
-
-template <typename T>
-inline T *me::ecs::registry::set(const entity &e, T t)
-{
-	locker<component_vec> *v = nullptr;
-	auto i = vecs.find(typeid(T));
-	if (i == vecs.end())
-	{
-		vecs.emplace(typeid(T), new locker<component_vec>());
-		v = vecs.find(typeid(T))->second.get();
-	}
-	else
-	{
-		v = i->second.get();
-	}
-	auto [guard, data] = v->write();
-	return data.set(t, e);
-	return nullptr;
-}
-
 #endif // !MATRIX_ENGINE_REGISTRY
