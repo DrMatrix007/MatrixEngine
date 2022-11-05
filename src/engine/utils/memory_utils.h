@@ -1,8 +1,8 @@
 #ifndef MATRIXENGINE_MEMORY_UTILS
 #define MATRIXENGINE_MEMORY_UTILS
-#include <stdio.h>
 
 #include <shared_mutex>
+#include <mutex>
 
 
 // inline void show_memory_leaks()
@@ -42,8 +42,6 @@ public:
 	{
 		return std::pair<std::unique_lock<std::shared_mutex>, T &>(mutex, this->value);
 	}
-
-private:
 	T value;
 	std::shared_mutex mutex;
 };
