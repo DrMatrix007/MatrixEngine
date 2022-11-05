@@ -36,7 +36,7 @@ std::unique_ptr<Application> create_main_app()
     }
     locker<int> values = locker(0);
 
-    app->reg.query_sync<queries::write<ValueComponent<0>>, queries::write<ValueComponent<1>>>(
+    auto t1 = app->reg.query_sync<queries::write<ValueComponent<0>>, queries::write<ValueComponent<1>>>(
         std::function([&values](ValueComponent<0> *p, ValueComponent<1> *p1)
                       {
             auto v = values.write();
@@ -65,14 +65,14 @@ std::unique_ptr<Application> create_main_app()
     //     t.join();
     // }
 
-    app->reg.query_sync<queries::read<ValueComponent<0>>, queries::read<ValueComponent<1>>>(
+    auto t2 = app->reg.query_sync<queries::read<ValueComponent<0>>, queries::read<ValueComponent<1>>>(
         [](const ValueComponent<0> *p, const ValueComponent<1> *p1)
         {
         auto cout = me::meout.get();
         **cout << "yoo: " << p->a << "  " <<p1->a << std::endl; });
 
-    std::cout << "done!"
-              << "\n";
-
+    t1.join();
+    std::cout << "done!" << "\n";
+    t2.join();
     return std::unique_ptr<MyApplication>(app);
 }

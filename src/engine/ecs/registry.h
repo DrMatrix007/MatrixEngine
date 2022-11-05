@@ -133,7 +133,7 @@ namespace me::ecs
 
 			inline void run_query(std::tuple<typename T1::param_type, typename T::param_type...> t)
 			{
-				_run_query(t,std::make_index_sequence<sizeof...(T)+1>());
+				_run_query(t, std::make_index_sequence<sizeof...(T) + 1>());
 			}
 
 			inline query(func fun) : f(fun)
@@ -181,47 +181,8 @@ namespace me::ecs
 		template <typename T>
 		T *set(const entity &, T);
 
-		// template <typename T1, typename T2, typename... Ts>
-		// queries::query<T1, T2, Ts...>::vecs_types get_vecs()
-		// {
-		// 	return std::tuple_cat(get_vec<T1>(), get_vecs<T2, Ts...>());
-		// }
-		// template <typename T1>
-		// queries::query<T1>::vecs_types get_vecs()
-		// {
-		// 	return std::make_tuple(get_vec<T1>());
-		// }
-		// template <typename... Ts, typename... ComponentLocks>
-		// std::tuple<ComponentLocks::type...> get(const entity &e)
-		// {
-		// 	return std::make_tuple(((Ts)locks->get(e))...);
-		// }
-
 		template <typename T1, typename... Ts>
-		void query_sync(queries::query<T1, Ts...>::func f)
-		{
-
-			queries::query<T1, Ts...> q(f);
-			auto guards = std::make_tuple(T1::get_guard(*get<typename T1::type>()), (Ts::get_guard(*get<typename Ts::type>()))...);
-
-			// bool a = is_nulls<std::unique_ptr<queries::query_vec_result<T1>>, std::unique_ptr<queries::query_vec_result<Ts>>...>(vs);
-			// if(!a) {
-			// return;
-			// }
-
-			auto p = get<typename T1::type>();
-			component_vec &v = p->value;
-			//
-
-			for (auto &[e, c] : v)
-			{
-				auto values = std::make_tuple(get<typename T1::type>()->value.template get<typename T1::type>(e), (get<typename Ts::type>()->value.template get<typename Ts::type>(e))...);
-				if (is_not_nulls(values))
-				{
-					q.run_query(values);
-				}
-			}
-		};
+		std::thread query_sync(queries::query<T1, Ts...>::func f);
 	};
 
 	template <typename T>
@@ -373,4 +334,26 @@ namespace me::ecs
 		return nullptr;
 	}
 }
+
+template <typename T1, typename... Ts>
+std::thread me::ecs::registry::query_sync(me::ecs::queries::query<T1, Ts...>::func f)
+{
+	return std::thread([this,&f]()
+					   {
+		
+	queries::query<T1, Ts...> q(f);
+	auto guards = std::make_tuple(T1::get_guard(*this->get<typename T1::type>()), (Ts::get_guard(*this->get<typename Ts::type>()))...);
+
+	auto p = this->get<typename T1::type>();
+	component_vec &v = p->value;
+
+	for (auto &[e, c] : v)
+	{
+		auto values = std::make_tuple(this->get<typename T1::type>()->value.template get<typename T1::type>(e), (this->get<typename Ts::type>()->value.template get<typename Ts::type>(e))...);
+		if (is_not_nulls(values))
+		{
+			q.run_query(values);
+		}
+	} });
+};
 #endif // !MATRIX_ENGINE_REGISTRY
