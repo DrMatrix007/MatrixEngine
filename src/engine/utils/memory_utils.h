@@ -25,20 +25,24 @@ template <typename Guard, typename T>
 class guard
 {
 private:
-	T* val;
+	T val;
 	Guard g;
-	inline guard(std::shared_mutex &m, T* v) : g(m), val(v)
+	inline guard(std::shared_mutex &m, T v) : g(m), val(v)
 	{
 	}
 	template <typename A>
 	friend class locker;
 
 public:
-	T* operator->()
+
+	inline T get() {
+		return val;
+	}
+	T operator->()
 	{
 		return val;
 	}
-	T &operator*()
+	auto &operator*()
 	{
 		return *val;
 	}
@@ -55,25 +59,54 @@ public:
 	{
 	}
 
-	inline T &lock()
+	// inline T &lock()
+	// {
+	// 	mutex.lock();
+	// 	return value;
+	// }
+	// inline void unlock()
+	// {
+	// 	mutex.unlock();
+	// }
+
+	inline guard<std::shared_lock<std::shared_mutex>, const T*> read()
 	{
-		mutex.lock();
-		return value;
+		return guard<std::shared_lock<std::shared_mutex>, const T*>(mutex, &this->value);
 	}
-	inline void unlock()
+	inline guard<std::unique_lock<std::shared_mutex>, T*> write()
 	{
-		mutex.unlock();
-	}
-	inline guard<std::shared_lock<std::shared_mutex>, const T > read()
-	{
-		return guard<std::shared_lock<std::shared_mutex>, const T >(mutex, &this->value);
-	}
-	inline guard<std::unique_lock<std::shared_mutex>, T > write()
-	{
-		return guard<std::unique_lock<std::shared_mutex>, T >(mutex, &this->value);
+		return guard<std::unique_lock<std::shared_mutex>, T*>(mutex, &this->value);
 	}
 	T value;
 	std::shared_mutex mutex;
+};
+template <typename T,typename Other = T>
+class locker_ref
+{
+public:
+	inline locker_ref(locker<Other>& l): mutex(l.mutex),data(l.value) {
+
+	}
+	inline locker_ref(std::shared_mutex &m, T *d) : mutex(m), data(d)
+	{
+	}
+
+	inline locker_ref(std::shared_mutex &m) : mutex(m)
+	{
+	}
+
+	inline guard<std::shared_lock<std::shared_mutex>, const T *> read()
+	{
+		return guard<std::shared_lock<std::shared_mutex>, const T *>(mutex, this->value);
+	}
+	inline guard<std::unique_lock<std::shared_mutex>, T *> write()
+	{
+		return guard<std::unique_lock<std::shared_mutex>, T *>(mutex, this->value);
+	}
+
+private:
+	T *data;
+	std::shared_mutex &mutex;
 };
 
 #endif // !MATRIXENGINE_MEMORY_UTILS
