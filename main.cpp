@@ -28,7 +28,7 @@ std::unique_ptr<Application> create_main_app()
     //
     // v.set(T{}, e);
     auto &reg = app->reg;
-    for (size_t i = 0; i < 100; i++)
+    for (size_t i = 0; i < 10; i++)
     {
         e = entity{};
         reg.set(e, ValueComponent<0>{});
@@ -36,20 +36,25 @@ std::unique_ptr<Application> create_main_app()
     }
     locker<int> values = locker(0);
 
-    auto t1 = app->reg.query_sync<queries::write<ValueComponent<0>>, queries::write<ValueComponent<1>>>(
-        std::function([&values](ValueComponent<0> *p, ValueComponent<1> *p1)
+    auto t1 = app->reg.query_async<queries::write<ValueComponent<0>>, queries::write<ValueComponent<1>>>(
+        std::function([&values](guard<ValueComponent<0> *> p, guard<ValueComponent<1> *> p1)
                       {
             auto v = values.write();
             p->a = *v;
             p1->a = (*v)*(*v);
-            (*v)++; }));
-    auto t4 = app->reg.query_sync<queries::write<ValueComponent<0>>, queries::write<ValueComponent<1>>>(
-        std::function([&values](ValueComponent<0> *p, ValueComponent<1> *p1)
+            (*v)++; 
+            auto cout = me::meout.get();
+            **cout << "set1: " << p->a << " " << p1->a << '\n'; }));
+    auto t2 = app->reg.query_async<queries::write<ValueComponent<0>>, queries::write<ValueComponent<1>>>(
+        std::function([&values](guard<ValueComponent<0> *> p, guard<ValueComponent<1> *> p1)
                       {
             auto v = values.write();
-            p->a = -*v;
-            p1->a = -(*v)*(*v);
-            (*v)++; }));
+            p->a = *v;
+            p1->a = (*v)*(*v);
+            (*v)++; 
+            
+            auto cout = me::meout.get();
+            **cout << "set2: " << p->a << " " << p1->a << '\n'; }));
 
     // auto t1 = app->reg.read_component<ValueComponent>([](const entity &e,
     // const ValueComponent *p)
@@ -72,16 +77,16 @@ std::unique_ptr<Application> create_main_app()
     //     t.join();
     // }
 
-    auto t2 = app->reg.query_sync<queries::read<ValueComponent<0>>, queries::read<ValueComponent<1>>>(
-        [](const ValueComponent<0> *p, const ValueComponent<1> *p1)
-        {
-        auto cout = me::meout.get();
-        **cout << "yoo: " << p->a << "  " <<p1->a << std::endl; });
     auto t3 = app->reg.query_sync<queries::read<ValueComponent<0>>, queries::read<ValueComponent<1>>>(
-        [](const ValueComponent<0> *p, const ValueComponent<1> *p1)
+        [](guard<const ValueComponent<0> *> p, guard<const ValueComponent<1> *> p1)
         {
         auto cout = me::meout.get();
-        **cout << "boo: " << p->a << "  " <<p1->a << std::endl; });
+        **cout << "print1: " << p->a << "  " <<p1->a << std::endl; });
+    auto t4 = app->reg.query_sync<queries::read<ValueComponent<0>>, queries::read<ValueComponent<1>>>(
+        [](guard<const ValueComponent<0> *> p, guard<const ValueComponent<1> *> p1)
+        {
+        auto cout = me::meout.get();
+        **cout << "print2: " << p->a << "  " <<p1->a << std::endl; });
 
     t1.join();
     t2.join();

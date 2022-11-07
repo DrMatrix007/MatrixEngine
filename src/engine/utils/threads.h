@@ -12,6 +12,7 @@ namespace me
 
     public:
         void join();
+        thread_pool() = default;
         thread_pool(std::thread&&);
         thread_pool(std::vector<std::thread>&&);
         void push(std::thread&&);
