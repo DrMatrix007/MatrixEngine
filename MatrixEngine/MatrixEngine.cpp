@@ -1,20 +1,35 @@
-// MatrixEngine.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
+#include "engine/Engine.h"
 #include <iostream>
+#include <chrono>
+#include <thread>
+#include <memory>
 
-int main()
+#define RAND_BOOL (rand()%2)
+
+std::unique_ptr<me::Application> createMainApp()
 {
-    std::cout << "Hello World!\n";
+	srand(time(nullptr));
+
+	using namespace me;
+
+	me::UniqueLocker<int> a;
+	Registry reg;
+
+	for (size_t i = 0; i < 5; i++)
+	{
+		Entity e;
+		if (RAND_BOOL)
+		{
+			//reg.set(e, 10);
+		}
+		reg.set(e, 10.f);
+	}
+	a.write();
+	reg.query<Read<float>, Write<int>>([](ReadGuard<float>& a, WriteGuard<int>& b)
+	{
+		std::cout << "nice.\n";
+	});
+	
+		
+	return nullptr;
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
