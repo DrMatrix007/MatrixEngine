@@ -79,7 +79,7 @@ namespace me
 		{
 			lock();
 		}
-		inline Guard(Guard&& other) : _ref(other._ref), _mutex(other._mutex)
+		inline Guard(Guard&& other) noexcept : _ref(other._ref), _mutex(other._mutex)
 		{
 			other.unlock();
 			other._mutex = nullptr;
@@ -147,7 +147,7 @@ namespace me
 		{
 			lock();
 		}
-		inline Guard(Guard&& other): _ref(other._ref),_mutex(other._mutex)
+		inline Guard(Guard&& other) noexcept : _ref(other._ref),_mutex(other._mutex)
 		{
 			other.unlock();
 			other._mutex = nullptr;

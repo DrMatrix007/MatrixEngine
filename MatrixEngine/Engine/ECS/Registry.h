@@ -5,6 +5,7 @@
 #include <memory>
 #include <typeindex>
 #include <tuple>
+#include <iterator>
 #include <functional>
 #include "Entity.h"
 
@@ -63,8 +64,8 @@ namespace me
 		using Guard = Guard<const T*>;
 		using Type = T;
 
-		template<typename Data,typename Deleter>
-		static inline auto getGuard(const Locker<Data,Deleter>& data)
+		template<typename Data, typename Deleter>
+		static inline auto getGuard(const Locker<Data, Deleter>& data)
 		{
 			return std::move(data.read());
 		}
@@ -76,8 +77,8 @@ namespace me
 		using Guard = Guard<T*>;
 		using Type = T;
 
-		template<typename Data,typename Deleter>
-		static inline auto getGuard(Locker<Data,Deleter>& data)
+		template<typename Data, typename Deleter>
+		static inline auto getGuard(Locker<Data, Deleter>& data)
 		{
 			return data.write();
 		}
@@ -87,6 +88,74 @@ namespace me
 
 	class Registry
 	{
+	private:
+		template<typename ...T>
+		class QueryResult : public IJobPool
+		{
+			using Func = std::function<void(T&...)>;
+		public:
+			inline auto begin() const
+			{
+				return _data.begin();
+			}
+			inline auto end() const
+			{
+				return _data.end();
+			}
+
+
+			inline QueryResult(Func f) : _func(f) {}
+
+			inline void push(std::tuple<T...>& g)
+			{
+				_data.push_back(std::move(g));
+			}
+
+			virtual ThreadPool async_threads() override
+			{
+				ThreadPool ans;
+
+				for (size_t i = 0; i < _data.size(); i++)
+				{
+					auto& t = _data[i];
+					auto f = std::function<void()>([&t, f{ this->_func }]()
+					{
+						me::apply(f, t);
+					});
+					ans.push(f);
+				}
+				return ans;
+			}
+			virtual ThreadPool async_thread() override
+			{
+				ThreadPool ans;
+				std::vector<std::tuple<T...>>& data = _data;
+				ans.getVec().emplace_back([&data, f{this->_func}](){
+
+					for (auto& it : data)
+					{
+
+						me::apply(f, it);
+
+					}
+				});
+				return ans;
+			}
+			virtual void sync() override
+			{
+				for (auto& it : _data)
+				{
+					me::apply(_func, it);
+				}
+			}
+
+
+		private:
+			Func _func;
+			std::vector<std::tuple<T...>> _data;
+
+			// Inherited via IJobPool
+		};
 	public:
 		template<typename T>
 		UniqueLocker<T>* set(const Entity& e, T t);
@@ -99,20 +168,21 @@ namespace me
 		template<typename T>
 		WriteGuard<ComponentVec<T>> write_vec();
 		template<typename ...Ts>
-		inline void query(void(*f)(typename Ts::Guard&...) )
+		inline QueryResult<typename Ts::Guard...> query(std::function<void(typename Ts::Guard&...)> f)
 		{
+			QueryResult<typename Ts::Guard...> ans(f);
 			auto logout = me::logout.write();
 			auto vecsGuards = std::make_tuple((this->read_vec<typename Ts::Type>())...);
 			if (checkNotNulls(vecsGuards))
 			{
 				auto vecs = me::apply([](auto&... data)
 				{
-					return std::make_tuple<const ComponentVec<typename Ts::Type>*...>(( data.getPointer())...);
-				},vecsGuards);
+					return std::make_tuple<const ComponentVec<typename Ts::Type>*...>((data.getPointer())...);
+				}, vecsGuards);
 				auto& first = *std::get<0>(vecs);
 				for (auto& i : first)
 				{
-					const Entity& e= i.first;
+					const Entity& e = i.first;
 
 					auto lockers = me::apply([&e](auto&... data)
 					{
@@ -124,14 +194,14 @@ namespace me
 						{
 							return std::make_tuple(Ts::getGuard(*data)...);
 						}, lockers);
-						me::apply(f,guards);
+
+
+						ans.push(guards);
 
 					}
-
-					//getComponents<Ts...>(a, vecs);
-
 				}
 			}
+			return ans;
 		}
 
 	private:

@@ -8,9 +8,10 @@
 
 std::unique_ptr<me::Application> createMainApp()
 {
-	srand(time(nullptr));
+	srand((unsigned int)time(nullptr));
 
 	using namespace me;
+
 
 	me::UniqueLocker<int> a;
 	Registry reg;
@@ -18,18 +19,14 @@ std::unique_ptr<me::Application> createMainApp()
 	for (size_t i = 0; i < 5; i++)
 	{
 		Entity e;
-		if (RAND_BOOL)
-		{
-			//reg.set(e, 10);
-		}
+		reg.set(e, 10);
 		reg.set(e, 10.f);
 	}
 	a.write();
 	reg.query<Read<float>, Write<int>>([](ReadGuard<float>& a, WriteGuard<int>& b)
 	{
 		std::cout << "nice.\n";
-	});
-	
-		
+	}).async_thread().join();
+
 	return nullptr;
 }
