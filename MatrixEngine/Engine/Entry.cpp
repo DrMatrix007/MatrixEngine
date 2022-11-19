@@ -9,7 +9,7 @@ int main()
     
     if (app.get())
     {
-        //app.run();
+        app->run();
     }
 
     std::cout << "Done!" << std::endl;

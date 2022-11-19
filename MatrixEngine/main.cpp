@@ -4,7 +4,35 @@
 #include <thread>
 #include <memory>
 
-#define RAND_BOOL (rand()%2)
+using me::Read;
+using me::Write;
+
+
+class MyApplication : public me::Application
+{
+
+};
+
+class MySystem : public me::MultiThreadedAsyncSystem<Read<int>, Write<float>>
+{
+public:
+	MySystem(int a) : c(a)
+	{}
+	int c = 0;
+private:
+	// Inherited via System
+	virtual void onUpdate(const me::SystemArgs& args, me::ReadGuard<int> a, me::WriteGuard<float> b) override
+	{
+		*b *= *a;
+		if (*b > 100)
+		{
+			auto cout = me::cout.write();
+			**cout << *a << " " << *b << "  " << c << std::endl;
+			args.getApplication().stop();
+		}
+
+	}
+};
 
 std::unique_ptr<me::Application> createMainApp()
 {
@@ -12,21 +40,26 @@ std::unique_ptr<me::Application> createMainApp()
 
 	using namespace me;
 
+	auto app = std::make_unique<MyApplication>();
 
-	me::UniqueLocker<int> a;
-	Registry reg;
+	Registry& reg = app->getRegistry();
 
-	for (size_t i = 0; i < 5; i++)
+	reg.pushSystem(MySystem{ 1 });
+	reg.pushSystem(MySystem{ 0 });
+
+	for (int i = 0; i <= 5; i++)
 	{
 		Entity e;
-		reg.set(e, 10);
-		reg.set(e, 10.f);
+		reg.set(e, 1.0f);
+		reg.set(e, 5);
 	}
-	a.write();
-	reg.query<Read<float>, Write<int>>([](ReadGuard<float>& a, WriteGuard<int>& b)
-	{
-		std::cout << "nice.\n";
-	}).async_thread().join();
+	//[](ReadGuard<float>& a, WriteGuard<int>& b)
+	//{
+	//	auto cout = me::cout.write();
+	//	**cout << *b << '\n';
+	//}
 
-	return nullptr;
+	reg.query<Read<float>, Write<int>>();
+
+	return app;
 }

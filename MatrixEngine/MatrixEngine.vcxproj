@@ -128,6 +128,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Application.cpp" />
+    <ClCompile Include="Engine\ECS\Entity.cpp" />
+    <ClCompile Include="Engine\ECS\ISystem.cpp" />
+    <ClCompile Include="Engine\ECS\Registry.cpp" />
     <ClCompile Include="Engine\Entry.cpp" />
     <ClCompile Include="Engine\Utils\MemoryUtils.cpp" />
     <ClCompile Include="Engine\Utils\ThreadPool.cpp" />
@@ -137,6 +140,8 @@
     <ClInclude Include="Engine\Application.h" />
     <ClInclude Include="Engine\ECS\ECS.h" />
     <ClInclude Include="Engine\ECS\Entity.h" />
+    <ClInclude Include="Engine\ECS\ISystem.h" />
+    <ClInclude Include="Engine\ECS\System.h" />
     <ClInclude Include="Engine\ECS\Registry.h" />
     <ClInclude Include="Engine\Engine.h" />
     <ClInclude Include="Engine\Entry.h" />

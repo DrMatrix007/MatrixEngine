@@ -3,5 +3,5 @@
 
 namespace me
 {
-	Locker<std::ostream*,NoDelete> logout(&std::cout);
+	Locker<std::ostream*,NoDelete> cout(&std::cout);
 }

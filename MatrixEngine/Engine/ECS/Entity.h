@@ -5,10 +5,7 @@ namespace me
 	class Entity
 	{
 	public:
-		Entity()
-		{
-			id = counter++;
-		}
+		Entity();
 		Entity(const Entity&) = default;
 
 
@@ -17,12 +14,7 @@ namespace me
 		unsigned long long id;
 		static unsigned long long counter;
 	};
-	bool operator<(const Entity& a,const Entity& b)
-	{
-		return a.id < b.id;
-	}
-	unsigned long long Entity::counter = 0;
-}
+}	
 
 
 #define MATRIX_ENGINE_ENTITY

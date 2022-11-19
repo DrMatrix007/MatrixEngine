@@ -25,7 +25,7 @@ namespace me
 		return { dynamic_cast<T>(guard._ref), guard._mutex };
 	}
 
-	extern me::Locker<std::ostream*,NoDelete> logout;
+	extern me::Locker<std::ostream*,NoDelete> cout;
 
 	template<typename T, typename Deleter = std::default_delete<T>>
 	using UniqueLocker = Locker<T, Deleter>;

@@ -12,12 +12,12 @@ namespace me
 	class ThreadPool
 	{
 	public:
+		ThreadPool(ThreadPool&&) = default;
 		ThreadPool() = default;
-		ThreadPool(std::thread a);
-		ThreadPool(std::vector<std::thread>& v);
 		void pushThread(std::thread t);
 		void push(std::function<void()> t);
 		void join();
+		void clear();
 		std::vector<std::thread>& getVec();
 	private:
 		std::vector<std::thread> _threads;
