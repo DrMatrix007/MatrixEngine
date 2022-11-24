@@ -16,14 +16,16 @@ namespace me
 	class System<DataAccess<T>...> : public me::ISystem
 	{
 	protected:
+
+
 		static constexpr auto orders = std::make_index_sequence<sizeof...(T)>{};
 
-		auto getQuery(Registry& reg)
+		virtual inline Registry::QueryResult<UniqueLocker<T>*...> getQuery(Registry& reg)
 		{
 			return reg.query<DataAccess<T>...>();
 		}
 
-		virtual inline void onUpdate(const SystemArgs& args) override
+		virtual inline void onUpdate(SystemArgs& args) override
 		{
 
 			auto result = getQuery(args.getRegistry());
@@ -36,12 +38,12 @@ namespace me
 
 
 		template<size_t... Orders>
-		inline void onUpdateImpl(const SystemArgs& args, std::tuple<UniqueLocker<T>*...> data, std::index_sequence<Orders...>)
+		inline void onUpdateImpl(SystemArgs& args, std::tuple<UniqueLocker<T>*...> data, std::index_sequence<Orders...>)
 		{
 			onUpdate(args, DataAccess<T>::getGuard(*std::get<Orders>(data))...);
 		}
 
-		virtual void onUpdate(const SystemArgs&, typename DataAccess<T>::Guard...) abstract;
+		virtual void onUpdate(SystemArgs&, typename DataAccess<T>::Guard...) abstract;
 
 
 
@@ -54,7 +56,7 @@ namespace me
 	class MultiThreadedSyncSystem<DataAccess<T>...> : public me::System<DataAccess<T>...>
 	{
 	public:
-		virtual inline void onUpdate(const SystemArgs& args) override
+		virtual inline void onUpdate(SystemArgs& args) override
 		{
 
 			auto result = this->getQuery(args.getRegistry());
@@ -67,7 +69,7 @@ namespace me
 			}), std::move(result))));
 
 		}
-		virtual inline void onLateUpdate(const SystemArgs& args) override
+		virtual inline void onLateUpdate(SystemArgs& args) override
 		{
 			_pool.join();
 			_pool.clear();
@@ -85,7 +87,7 @@ namespace me
 	class MultiThreadedAsyncSystem<DataAccess<T>...> : public me::System<DataAccess<T>...>
 	{
 	public:
-		virtual inline void onUpdate(const SystemArgs& args) override
+		virtual inline void onUpdate(SystemArgs& args) override
 		{
 
 			auto result = this->getQuery(args.getRegistry());
@@ -99,7 +101,7 @@ namespace me
 
 			}
 		}
-		virtual inline void onLateUpdate(const SystemArgs& args) override
+		virtual inline void onLateUpdate(SystemArgs& args) override
 		{
 			_pool.join();
 			_pool.clear();

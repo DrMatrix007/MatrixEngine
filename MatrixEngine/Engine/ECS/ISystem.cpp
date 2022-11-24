@@ -1,6 +1,6 @@
 #include "ISystem.h"
 #include "Registry.h"
-void me::ISystem::update(const SystemArgs& args)
+void me::ISystem::update(SystemArgs& args)
 {
 	onUpdate(args);
 }
@@ -14,12 +14,13 @@ me::Registry& me::SystemArgs::getRegistry() const
 	return *_reg;
 }
 
-me::Application& me::SystemArgs::getApplication() const
+me::WriteGuard<me::Application*> me::SystemArgs::getApplication()
 {
-	return *_app;
+	return _app.write();
 }
 
-void me::ISystem::lateUpdate(const SystemArgs& args)
+
+void me::ISystem::lateUpdate(SystemArgs& args)
 {
 	onLateUpdate(args);
 }

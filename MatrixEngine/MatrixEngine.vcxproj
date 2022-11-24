@@ -131,7 +131,10 @@
     <ClCompile Include="Engine\ECS\Entity.cpp" />
     <ClCompile Include="Engine\ECS\ISystem.cpp" />
     <ClCompile Include="Engine\ECS\Registry.cpp" />
+    <ClCompile Include="Engine\ECS\TransformComponent.cpp" />
     <ClCompile Include="Engine\Entry.cpp" />
+    <ClCompile Include="Engine\Renderers\RendererComponent.cpp" />
+    <ClCompile Include="Engine\Renderers\RendererSystem.cpp" />
     <ClCompile Include="Engine\Utils\MemoryUtils.cpp" />
     <ClCompile Include="Engine\Utils\ThreadPool.cpp" />
     <ClCompile Include="main.cpp" />
@@ -143,8 +146,12 @@
     <ClInclude Include="Engine\ECS\ISystem.h" />
     <ClInclude Include="Engine\ECS\System.h" />
     <ClInclude Include="Engine\ECS\Registry.h" />
+    <ClInclude Include="Engine\ECS\TransformComponent.h" />
     <ClInclude Include="Engine\Engine.h" />
     <ClInclude Include="Engine\Entry.h" />
+    <ClInclude Include="Engine\Renderers\RendererComponent.h" />
+    <ClInclude Include="Engine\Renderers\Renderers.h" />
+    <ClInclude Include="Engine\Renderers\RendererSystem.h" />
     <ClInclude Include="Engine\Utils\FunctionUtils.h" />
     <ClInclude Include="Engine\Utils\JobPool.h" />
     <ClInclude Include="Engine\Utils\Locker.h" />

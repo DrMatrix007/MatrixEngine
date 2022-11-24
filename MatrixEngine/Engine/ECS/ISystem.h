@@ -1,6 +1,8 @@
 #ifndef MATRIX_ENGINE_ISYSTEM
 #define MATRIX_ENGINE_ISYSTEM
 
+#include "../Utils/Utils.h"
+
 namespace me
 {
 	class Registry;
@@ -12,23 +14,23 @@ namespace me
 		SystemArgs(Registry*, Application*);
 
 		Registry& getRegistry() const;
-		Application& getApplication() const;
+		me::WriteGuard<me::Application*> getApplication();
 	private:
 		Registry* const _reg;
-		Application* const _app;
+		UniqueLocker<Application*> _app;
 	};
 
 
 	class ISystem
 	{
 	public:
-		void update(const SystemArgs&);
-		void lateUpdate(const SystemArgs&);
+		void update( SystemArgs&);
+		void lateUpdate(SystemArgs&);
 
 		virtual ~ISystem() = default;
 	protected:
-		virtual void onUpdate(const SystemArgs&) abstract;
-		virtual void onLateUpdate(const SystemArgs&) {};
+		virtual void onUpdate( SystemArgs&) abstract;
+		virtual void onLateUpdate(SystemArgs&) {};
 
 
 	private:

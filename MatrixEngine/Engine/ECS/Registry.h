@@ -5,8 +5,10 @@
 #include <memory>
 #include <typeindex>
 #include <tuple>
+#include <vector>
 #include <iterator>
 #include <functional>
+#include <algorithm>
 
 #include "ISystem.h"
 #include "Entity.h"
@@ -93,7 +95,7 @@ namespace me
 
 	class Registry
 	{
-	private:
+	public:
 		template<typename ...T>
 		class QueryResult
 		{
@@ -106,44 +108,11 @@ namespace me
 
 			inline void push(std::tuple<T...>& g);
 
-			/*	virtual ThreadPool async_threads() override
-				{
-					ThreadPool ans;
-
-					for (size_t i = 0; i < _data.size(); i++)
-					{
-						auto& t = _data[i];
-						auto f = std::function<void()>([&t, f{ this->_func }]()
-						{
-							me::apply(f, t);
-						});
-						ans.push(f);
-					}
-					return ans;
-				}
-				virtual ThreadPool async_thread() override
-				{
-					ThreadPool ans;
-					std::vector<std::tuple<T...>>& data = _data;
-					ans.getVec().emplace_back([&data, f{ this->_func }](){
-
-						for (auto& it : data)
-						{
-
-							me::apply(f, it);
-
-						}
-					});
-					return ans;
-				}
-				virtual void sync() override
-				{
-					for (auto& it : _data)
-					{
-						me::apply(_func, it);
-					}
-				}*/
-
+			template<typename F>
+			inline void orderBy(const F& f)
+			{
+				std::sort(_data.begin(), _data.end(), f);
+			}
 
 		private:
 			std::vector<std::tuple<T...>> _data;
@@ -153,7 +122,7 @@ namespace me
 	public:
 		
 		template<typename T>
-		void pushSystem(T t);
+		void pushSystem(T* t);
 		
 		template<typename T>
 		UniqueLocker<T>* set(const Entity& e, T t);
@@ -228,10 +197,19 @@ namespace me
 		_data.erase(e);
 	}
 	template<typename T>
-	inline void Registry::pushSystem(T t)
+	inline void Registry::pushSystem(T* t)
 	{
-		auto lock = new UniqueLocker<ISystem>(dynamic_cast<ISystem*>(new T(std::move(t))));
+		ISystem* ptr = dynamic_cast<ISystem*>(t);
+		if (ptr)
+		{
+
+		auto lock = new UniqueLocker<ISystem>(ptr);
 		_systems.emplace_back(lock);
+		}
+		else
+		{
+			delete t;
+		}
 	}
 	template<typename T>
 	inline UniqueLocker<T>* Registry::set(const Entity& e, T t)

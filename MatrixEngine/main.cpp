@@ -1,4 +1,5 @@
 #include "engine/Engine.h"
+
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -13,24 +14,16 @@ class MyApplication : public me::Application
 
 };
 
-class MySystem : public me::MultiThreadedAsyncSystem<Read<int>, Write<float>>
+class MySystem : public me::MultiThreadedAsyncSystem<Read<int>, Read<float>>
 {
 public:
-	MySystem(int a) : c(a)
-	{}
-	int c = 0;
+
 private:
 	// Inherited via System
-	virtual void onUpdate(const me::SystemArgs& args, me::ReadGuard<int> a, me::WriteGuard<float> b) override
+	virtual void onUpdate(me::SystemArgs& args, me::ReadGuard<int> a, me::ReadGuard<float> b) override
 	{
-		*b *= *a;
-		if (*b > 100)
-		{
-			auto cout = me::cout.write();
-			**cout << *a << " " << *b << "  " << c << std::endl;
-			args.getApplication().stop();
-		}
-
+		auto cout = me::cout.write();
+		**cout << *a << " " << *b << std::endl;
 	}
 };
 
@@ -44,14 +37,13 @@ std::unique_ptr<me::Application> createMainApp()
 
 	Registry& reg = app->getRegistry();
 
-	reg.pushSystem(MySystem{ 1 });
-	reg.pushSystem(MySystem{ 0 });
+	reg.pushSystem(new RendererSystem{800,600,"test"});
 
 	for (int i = 0; i <= 5; i++)
 	{
 		Entity e;
-		reg.set(e, 1.0f);
-		reg.set(e, 5);
+		reg.set(e, TransformComponent{});
+		reg.set(e, RendererComponent{std::make_shared<sf::RectangleShape>(sf::Vector2f{10,10})});
 	}
 	//[](ReadGuard<float>& a, WriteGuard<int>& b)
 	//{
@@ -59,7 +51,6 @@ std::unique_ptr<me::Application> createMainApp()
 	//	**cout << *b << '\n';
 	//}
 
-	reg.query<Read<float>, Write<int>>();
 
 	return app;
 }
