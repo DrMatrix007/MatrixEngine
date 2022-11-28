@@ -10,18 +10,21 @@
 
 namespace me
 {
-	class RendererSystem : public me::System<Read<TransformComponent>, Read<RendererComponent>>
+	class RendererSystem : public me::System<TransformComponent, RendererComponent>
 	{
 	public:
 		RendererSystem(unsigned int, unsigned int,const std::string&);
 
-
 	private:
 		sf::RenderWindow _window;
 
-		virtual inline Registry::QueryResult<UniqueLocker<TransformComponent>*, UniqueLocker<RendererComponent>*> getQuery(Registry& reg);
-		virtual void onUpdate(SystemArgs&,ReadGuard<TransformComponent> t, ReadGuard<RendererComponent> r);
+		me::Entity _cameraEntity;
+
+		virtual inline Registry::QueryResult<TransformComponent*, RendererComponent*> getQuery(Registry& reg);
+		virtual void onUpdate(SystemArgs&,const Entity, TransformComponent& t, RendererComponent& r);
 		virtual void onLateUpdate(SystemArgs&) override;
+
+		void searchCamera(SystemArgs&);
 	};
 }
 

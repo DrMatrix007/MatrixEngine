@@ -14,9 +14,9 @@ me::Registry& me::SystemArgs::getRegistry() const
 	return *_reg;
 }
 
-me::WriteGuard<me::Application*> me::SystemArgs::getApplication()
+me::Application* const me::SystemArgs::getApplication()
 {
-	return _app.write();
+	return _app;
 }
 
 

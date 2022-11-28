@@ -38,8 +38,8 @@ namespace me
 		void remove(const Entity&) override;
 
 
-		UniqueLocker<T>* get(const Entity& e) const;
-		UniqueLocker<T>* set(const Entity& e, T t);
+		T* get(const Entity& e) const;
+		T* set(const Entity& e, T t);
 
 		inline auto begin()
 		{
@@ -59,37 +59,12 @@ namespace me
 		}
 
 	private:
-		std::map<Entity, std::unique_ptr<UniqueLocker<T>>> _data;
+		std::map<Entity, std::unique_ptr<T>> _data;
 
 		friend class Registry;
 
 	};
 
-	template<typename T>
-	struct Read
-	{
-		using Guard = Guard<const T*>;
-		using Type = T;
-
-		template<typename Data, typename Deleter>
-		static inline auto getGuard(const Locker<Data, Deleter>& data)
-		{
-			return std::move(data.read());
-		}
-	};
-
-	template<typename T>
-	struct Write
-	{
-		using Guard = Guard<T*>;
-		using Type = T;
-
-		template<typename Data, typename Deleter>
-		static inline auto getGuard(Locker<Data, Deleter>& data)
-		{
-			return data.write();
-		}
-	};
 
 
 
@@ -99,14 +74,14 @@ namespace me
 		template<typename ...T>
 		class QueryResult
 		{
-			using Func = std::function<void(T&...)>;
+			using Func = std::function<void(const Entity, T&...)>;
 		public:
 
 			inline auto begin();
 
 			inline auto end();
 
-			inline void push(std::tuple<T...>& g);
+			inline void push(std::tuple<const Entity, T...>& g);
 
 			template<typename F>
 			inline void orderBy(const F& f)
@@ -115,38 +90,36 @@ namespace me
 			}
 
 		private:
-			std::vector<std::tuple<T...>> _data;
+			std::vector<std::tuple<Entity, T...>> _data;
 
 			// Inherited via IJobPool
 		};
 	public:
-		
+
 		template<typename T>
-		void pushSystem(T* t);
-		
+		void pushSystem(std::unique_ptr<T>&& t);
+
 		template<typename T>
-		UniqueLocker<T>* set(const Entity& e, T t);
-		
+		T* set(const Entity& e, T t);
+
 		template<typename T>
-		UniqueLocker<T>* get(const Entity& e) const;
-		
+		T* get(const Entity& e) const;
+
 		template<typename T>
-		UniqueLocker<IComponentVec>* get() const;
-		
+		IComponentVec* get() const;
+
 		template<typename T>
-		ReadGuard<ComponentVec<T>> read_vec();
-		
-		template<typename T>
-		WriteGuard<ComponentVec<T>> write_vec();
-		
+		ComponentVec<T>* get_vec();
+
+
 		template<typename ...Ts>
-		inline QueryResult<UniqueLocker<typename Ts::Type>*...> query();
+		inline QueryResult<Ts*...> query();
 
 		void update(Application*);
 
 	private:
-		std::map<std::type_index, std::unique_ptr<UniqueLocker<IComponentVec>>> _data;
-		std::vector<std::unique_ptr<UniqueLocker<ISystem>>> _systems;
+		std::map<std::type_index, std::unique_ptr<IComponentVec>> _data;
+		std::vector<std::unique_ptr<ISystem>> _systems;
 		//template<typename ...Ts>
 		//inline auto getComponents(const Entity& e,const std::tuple<ComponentVec<typename Ts::Type>...>& data)
 		//{
@@ -172,7 +145,7 @@ namespace me
 
 	};
 	template<typename T>
-	inline UniqueLocker<T>* ComponentVec<T>::get(const Entity& e) const
+	inline T* ComponentVec<T>::get(const Entity& e) const
 	{
 		auto it = _data.find(e);
 		if (it == _data.end())
@@ -186,9 +159,9 @@ namespace me
 
 	}
 	template<typename T>
-	inline UniqueLocker<T>* ComponentVec<T>::set(const Entity& e, T t)
+	inline T* ComponentVec<T>::set(const Entity& e, T t)
 	{
-		_data[e] = std::make_unique<UniqueLocker<T>>(t);
+		_data[e] = std::make_unique<T>(t);
 		return _data[e].get();
 	}
 	template<typename T>
@@ -197,30 +170,20 @@ namespace me
 		_data.erase(e);
 	}
 	template<typename T>
-	inline void Registry::pushSystem(T* t)
+	inline void Registry::pushSystem(std::unique_ptr<T>&& t)
 	{
-		ISystem* ptr = dynamic_cast<ISystem*>(t);
-		if (ptr)
-		{
-
-		auto lock = new UniqueLocker<ISystem>(ptr);
-		_systems.emplace_back(lock);
-		}
-		else
-		{
-			delete t;
-		}
+		_systems.emplace_back(std::unique_ptr<ISystem>(t.release()));
 	}
 	template<typename T>
-	inline UniqueLocker<T>* Registry::set(const Entity& e, T t)
+	inline T* Registry::set(const Entity& e, T t)
 	{
 		auto it = _data.find(typeid(T));
 		if (it == _data.end())
 		{
-			_data.emplace(typeid(T), std::make_unique<UniqueLocker<IComponentVec>>(new ComponentVec<T>()));
+			_data.emplace(typeid(T), (new ComponentVec<T>()));
 		}
-		auto guard = _data[typeid(T)].get()->write();
-		auto ptr = dynamic_cast<ComponentVec<T>*>(guard.getPointer());
+
+		auto ptr = dynamic_cast<ComponentVec<T>*>(_data[typeid(T)].get());
 		if (!ptr)
 		{
 			throw std::runtime_error("cannot understand component vec");
@@ -229,7 +192,7 @@ namespace me
 	}
 
 	template<typename T>
-	inline UniqueLocker<T>* Registry::get(const Entity& e) const
+	inline T* Registry::get(const Entity& e) const
 	{
 		auto it = _data.find(typeid(T));
 		if (it != _data.end())
@@ -246,7 +209,7 @@ namespace me
 	}
 
 	template<typename T>
-	inline UniqueLocker<IComponentVec>* Registry::get() const
+	inline IComponentVec* Registry::get() const
 	{
 		auto it = _data.find(typeid(T));
 		if (it == _data.end())
@@ -260,41 +223,40 @@ namespace me
 	}
 
 	template<typename T>
-	inline ReadGuard<ComponentVec<T>> Registry::read_vec()
+	inline ComponentVec<T>* Registry::get_vec()
 	{
-		auto v = get<T>();
+		ComponentVec<T>* v = dynamic_cast<ComponentVec<T>*>(get<T>());
 		if (v)
 		{
-			return castGuard<const ComponentVec<T>*>(v->read());
+			return v;
 		}
 		else
 		{
-			return { nullptr,nullptr };
+			return nullptr;
 		}
 	}
 
 	template<typename ...Ts>
-	inline Registry::QueryResult<UniqueLocker<typename Ts::Type>*...> Registry::query()
+	inline Registry::QueryResult<Ts*...> Registry::query()
 	{
-		QueryResult<UniqueLocker<typename Ts::Type>*...> ans;
+		QueryResult< Ts*...> ans;
 
-		auto vecsGuards = std::make_tuple((this->read_vec<typename Ts::Type>())...);
-		if (checkNotNulls(vecsGuards))
+		auto vecs = std::make_tuple((this->get_vec<Ts>())...);
+		if (checkNotNullTuple(vecs))
 		{
-			auto vecs = me::apply([](auto&... data)
-			{
-				return std::make_tuple<const ComponentVec<typename Ts::Type>*...>((data.getPointer())...);
-			}, vecsGuards);
 			auto& first = *std::get<0>(vecs);
 			for (auto& i : first)
 			{
-				const Entity& e = i.first;
+				const Entity e = i.first;
 
-				auto lockers = me::apply([&e](auto&... data)
+				std::tuple<const Entity, Ts*...> lockers = me::apply([&e](auto&... data)
 				{
-					return std::make_tuple(data->get(e)...);
+					return std::make_tuple<const Entity, Ts*...>(Entity(e), data->get(e)...);
 				}, vecs);
-				if (checkNotNulls(lockers))
+				if (me::apply([](auto&, auto&... data)
+				{
+					return checkNotNulls(data...);
+				}, lockers))
 				{
 					//auto guards = me::apply([](auto&... data)
 					//{
@@ -325,7 +287,7 @@ namespace me
 	}
 
 	template<typename ...T>
-	inline void Registry::QueryResult<T...>::push(std::tuple<T...>& g)
+	inline void Registry::QueryResult<T...>::push(std::tuple<const Entity, T...>& g)
 	{
 		_data.push_back(std::move(g));
 	}

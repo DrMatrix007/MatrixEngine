@@ -10,19 +10,13 @@ namespace me
 
 	template<typename ...T>
 	class System : public me::ISystem
-	{};
-
-	template<template<typename> typename ...DataAccess, typename ...T>
-	class System<DataAccess<T>...> : public me::ISystem
 	{
 	protected:
-
-
 		static constexpr auto orders = std::make_index_sequence<sizeof...(T)>{};
 
-		virtual inline Registry::QueryResult<UniqueLocker<T>*...> getQuery(Registry& reg)
+		virtual inline Registry::QueryResult<T*...> getQuery(Registry& reg)
 		{
-			return reg.query<DataAccess<T>...>();
+			return reg.query<T...>();
 		}
 
 		virtual inline void onUpdate(SystemArgs& args) override
@@ -37,13 +31,21 @@ namespace me
 		}
 
 
-		template<size_t... Orders>
-		inline void onUpdateImpl(SystemArgs& args, std::tuple<UniqueLocker<T>*...> data, std::index_sequence<Orders...>)
+		template<size_t... TsOrders>
+		inline void onUpdateImpl(SystemArgs& args, std::tuple<const Entity, T*...> data, std::index_sequence<TsOrders...>)
 		{
-			onUpdate(args, DataAccess<T>::getGuard(*std::get<Orders>(data))...);
+			onUpdate(args, std::get<0>(data), (*std::get<TsOrders + 1>(data))...);
 		}
 
-		virtual void onUpdate(SystemArgs&, typename DataAccess<T>::Guard...) abstract;
+		virtual void onUpdate(SystemArgs&,const Entity, T&...) abstract;
+
+	};
+
+	/*template<template<typename> typename ...DataAccess, typename ...T>
+	class System<DataAccess<T>...> : public me::ISystem
+	{
+	protected:
+
 
 
 
@@ -109,7 +111,7 @@ namespace me
 
 	private:
 		ThreadPool _pool;
-	};
+	};*/
 
 }
 

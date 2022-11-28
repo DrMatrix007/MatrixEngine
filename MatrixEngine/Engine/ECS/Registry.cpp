@@ -6,13 +6,11 @@ void me::Registry::update(Application* a)
 
 	for (auto& i : _systems)
 	{
-		auto s = i->write();
-		(*s).update(args);
+		i->update(args);
 	}
 
 	for (auto& i : _systems)
 	{
-		auto s = i->write();
-		(*s).lateUpdate(args);
+		i->lateUpdate(args);
 	}
 }

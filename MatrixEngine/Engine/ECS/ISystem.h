@@ -14,10 +14,10 @@ namespace me
 		SystemArgs(Registry*, Application*);
 
 		Registry& getRegistry() const;
-		me::WriteGuard<me::Application*> getApplication();
+		me::Application* const getApplication();
 	private:
 		Registry* const _reg;
-		UniqueLocker<Application*> _app;
+		Application* const _app;
 	};
 
 

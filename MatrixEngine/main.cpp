@@ -5,8 +5,6 @@
 #include <thread>
 #include <memory>
 
-using me::Read;
-using me::Write;
 
 
 class MyApplication : public me::Application
@@ -14,16 +12,15 @@ class MyApplication : public me::Application
 
 };
 
-class MySystem : public me::MultiThreadedAsyncSystem<Read<int>, Read<float>>
+class MySystem : public me::System<int, float>
 {
 public:
 
 private:
 	// Inherited via System
-	virtual void onUpdate(me::SystemArgs& args, me::ReadGuard<int> a, me::ReadGuard<float> b) override
+	virtual void onUpdate(me::SystemArgs& args,const me::Entity e, int& a, float& b) override
 	{
-		auto cout = me::cout.write();
-		**cout << *a << " " << *b << std::endl;
+		std::cout << a << " " << b << std::endl;
 	}
 };
 
@@ -37,7 +34,10 @@ std::unique_ptr<me::Application> createMainApp()
 
 	Registry& reg = app->getRegistry();
 
-	reg.pushSystem(new RendererSystem{800,600,"test"});
+	reg.pushSystem(std::make_unique<RendererSystem>(800,600,"test"));
+
+
+	
 
 	for (int i = 0; i <= 5; i++)
 	{

@@ -133,9 +133,9 @@
     <ClCompile Include="Engine\ECS\Registry.cpp" />
     <ClCompile Include="Engine\ECS\TransformComponent.cpp" />
     <ClCompile Include="Engine\Entry.cpp" />
+    <ClCompile Include="Engine\Renderers\CameraComponent.cpp" />
     <ClCompile Include="Engine\Renderers\RendererComponent.cpp" />
     <ClCompile Include="Engine\Renderers\RendererSystem.cpp" />
-    <ClCompile Include="Engine\Utils\MemoryUtils.cpp" />
     <ClCompile Include="Engine\Utils\ThreadPool.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -149,6 +149,7 @@
     <ClInclude Include="Engine\ECS\TransformComponent.h" />
     <ClInclude Include="Engine\Engine.h" />
     <ClInclude Include="Engine\Entry.h" />
+    <ClInclude Include="Engine\Renderers\CameraComponent.h" />
     <ClInclude Include="Engine\Renderers\RendererComponent.h" />
     <ClInclude Include="Engine\Renderers\Renderers.h" />
     <ClInclude Include="Engine\Renderers\RendererSystem.h" />
