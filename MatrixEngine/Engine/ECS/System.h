@@ -8,36 +8,21 @@ namespace me
 {
 
 
-	template<typename ...T>
+	
 	class System : public me::ISystem
 	{
 	protected:
-		static constexpr auto orders = std::make_index_sequence<sizeof...(T)>{};
 
-		virtual inline Registry::QueryResult<T*...> getQuery(Registry& reg)
-		{
-			return reg.query<T...>();
-		}
 
 		virtual inline void onUpdate(SystemArgs& args) override
 		{
 
-			auto result = getQuery(args.getRegistry());
-			for (auto& i : result)
-			{
-				onUpdateImpl(args, i, orders);
-			}
+			
 
 		}
 
 
-		template<size_t... TsOrders>
-		inline void onUpdateImpl(SystemArgs& args, std::tuple<const Entity, T*...> data, std::index_sequence<TsOrders...>)
-		{
-			onUpdate(args, std::get<0>(data), (*std::get<TsOrders + 1>(data))...);
-		}
 
-		virtual void onUpdate(SystemArgs&,const Entity, T&...) abstract;
 
 	};
 

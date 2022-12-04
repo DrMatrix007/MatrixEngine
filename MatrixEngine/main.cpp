@@ -1,4 +1,4 @@
-#include "engine/Engine.h"
+﻿#include "engine/Engine.h"
 
 #include <iostream>
 #include <chrono>
@@ -7,20 +7,14 @@
 
 
 
-class MyApplication : public me::Application
+class PlayerComponent {};
+
+class PlayerSystem : public me::System
 {
-
-};
-
-class MySystem : public me::System<int, float>
-{
-public:
-
-private:
 	// Inherited via System
-	virtual void onUpdate(me::SystemArgs& args,const me::Entity e, int& a, float& b) override
+	virtual void onUpdate(me::SystemArgs& args) override
 	{
-		std::cout << a << " " << b << std::endl;
+		
 	}
 };
 
@@ -30,14 +24,19 @@ std::unique_ptr<me::Application> createMainApp()
 
 	using namespace me;
 
-	auto app = std::make_unique<MyApplication>();
+	auto app = std::make_unique<me::Application>();
 
 	Registry& reg = app->getRegistry();
 
-	reg.pushSystem(std::make_unique<RendererSystem>(800,600,"test"));
+	reg.setResource<sf::RenderWindow>(std::make_unique<sf::RenderWindow>(sf::VideoMode{ 800,600 }, "dsfsd"));
+
+	reg.pushSystem(std::make_unique<RendererSystem>());
 
 
-	
+	Entity cam;
+
+	reg.set(cam, CameraComponent{1000});
+	reg.set(cam, PlayerComponent{});
 
 	for (int i = 0; i <= 5; i++)
 	{

@@ -44,17 +44,17 @@ namespace me
 	//}
 
 
-	
-	template<size_t I,typename...Ts>
-	inline typename std::enable_if <I>=sizeof...(Ts), bool>::type checkNotNullTuple(const std::tuple<Ts...>& data)
+
+	template<size_t I, typename...Ts>
+	inline typename std::enable_if <I >= sizeof...(Ts), bool>::type checkNotNullTuple(const std::tuple<Ts...>& data)
 	{
 		return true;
 	}
 
-	template<size_t I=0,typename...Ts>
+	template<size_t I = 0, typename...Ts>
 	inline typename std::enable_if < I<sizeof...(Ts), bool>::type checkNotNullTuple(const std::tuple<Ts...>& data)
 	{
-		return checkNotNulls(std::get<I>(data)) && checkNotNullTuple<I+1,Ts...>(data);
+		return checkNotNulls(std::get<I>(data)) && checkNotNullTuple<I + 1, Ts...>(data);
 	}
 
 
@@ -69,7 +69,32 @@ namespace me
 	{
 		return a && checkNotNulls(_data...);
 	}
-	
+
+
+	template<typename T>
+	inline T deref(T t)
+	{
+		return t;
+	}
+	template<typename T>
+	inline T& deref(T* t)
+	{
+		return *t;
+	}
+
+	template<typename ...T>
+	inline auto deref(std::tuple<T...>& t)
+	{
+		return derefImpl(t, std::make_index_sequence<sizeof...(T)>{});
+	}
+	template<typename ...T,size_t... Is>
+	inline auto derefImpl(std::tuple<T...>& t,std::index_sequence<Is...>)
+	{
+		return std::make_tuple(deref(std::get<Is>(t))...);
+	}
+
+
+
 }
 
 #endif // !MATRIX_ENGINE_MEM_UTILS

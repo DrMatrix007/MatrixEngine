@@ -5,29 +5,34 @@
 
 using namespace me;
 
-me::RendererSystem::RendererSystem(unsigned int width, unsigned int height, const std::string& name): _window({width,height},name)
-{}
 
-inline Registry::QueryResult<TransformComponent*, RendererComponent*> me::RendererSystem::getQuery(Registry& reg)
+void me::RendererSystem::onUpdate(SystemArgs& args)
 {
-	auto ans = System<TransformComponent, RendererComponent>::getQuery(reg);
-	ans.orderBy([](std::tuple<Entity, TransformComponent*, RendererComponent*> a,std::tuple<Entity, TransformComponent*, RendererComponent*>& b)
+	auto _window = args.getRegistry().getResource<sf::RenderWindow>();
+	if (_window)
 	{
-		return std::get<1>(a)->getLayer() < std::get<1>(b)->getLayer();
-	});
-	return ans;
-}
+		auto& window = *_window;
+		args.getRegistry().query<RendererComponent, TransformComponent>().forEach([&window](const Entity, RendererComponent& r, TransformComponent& t)
+		{
+			r.draw(window, sf::RenderStates{ t.getTransform() });
 
-void me::RendererSystem::onUpdate(SystemArgs& args, Entity, TransformComponent& t, RendererComponent& r)
-{
-	r.draw(this->_window, sf::RenderStates{t.getTransform()});
+		});
+	}
+
 }
 
 void me::RendererSystem::onLateUpdate(SystemArgs& args)
 {
+	auto window = args.getRegistry().getResource<sf::RenderWindow>();
+	if (!window)
+	{
+		return;
+	}
+	auto& _window = *window;
 	searchCamera(args);
 
-	me::System<TransformComponent, RendererComponent>::onLateUpdate(args);
+
+	me::System::onLateUpdate(args);
 
 	sf::Event e;
 	while (_window.pollEvent(e))
@@ -39,13 +44,44 @@ void me::RendererSystem::onLateUpdate(SystemArgs& args)
 	}
 
 	_window.display();
+	_window.clear(sf::Color{ 0x69696969 });
 }
 
 void me::RendererSystem::searchCamera(SystemArgs& args)
 {
+	auto window = args.getRegistry().getResource<sf::RenderWindow>();
+	if (!window)
+	{
+		return;
+	}
+	auto& _window = *window;
+	auto cam = args.getRegistry().get<CameraComponent>(_cameraEntity);
+	auto trans = args.getRegistry().get<TransformComponent>(_cameraEntity);
+	if (!cam)
+	{
+		auto ans = args.getRegistry().query<CameraComponent>();
+		for (auto& c : ans)
+		{
+			if (std::get<1>(c)->getIsMain())
+			{
+				_cameraEntity = std::get<0>(c);
+			}
+		}
+	}
+	else
+	{
 
-	auto ans = args.getRegistry().query<CameraComponent>();
-	
+		updateView(_window ,*cam, trans ? *trans : TransformComponent::ZERO);
+	}
 
+}
+
+void me::RendererSystem::updateView(sf::RenderWindow& win, const CameraComponent& c, const TransformComponent& t)
+{
+	sf::Vector2f size = (sf::Vector2f)win.getSize();
+	_currentView.setCenter(t.getPosition());
+	_currentView.setSize(size * sqrtf(c.getSize() / (size.x * size.y)));
+
+	win.setView(_currentView);
 }
 

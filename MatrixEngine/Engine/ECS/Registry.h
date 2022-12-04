@@ -65,7 +65,39 @@ namespace me
 
 	};
 
+	class IResource
+	{
+	public:
+		virtual ~IResource() {};
+	};
 
+	template<typename T>
+	class Resource : public IResource
+	{
+	public:
+
+		inline Resource(std::unique_ptr<T> p) : _ptr(std::move(p))
+		{
+
+		}
+
+		inline T* get() const
+		{
+			return _ptr.get();
+		}
+		inline T* get()
+		{
+			return _ptr.get();
+		}
+		inline T* operator->()
+		{
+			return get();
+		}
+
+	private:
+
+		std::unique_ptr<T> _ptr;
+	};
 
 
 	class Registry
@@ -88,16 +120,26 @@ namespace me
 			{
 				std::sort(_data.begin(), _data.end(), f);
 			}
+			template<typename Func>
+			inline void forEach(const Func& f)
+			{
+				for (auto& i : _data)
+				{
+					auto r = me::deref(i);
+					me::apply(f, r);
+				}
+			}
 
 		private:
 			std::vector<std::tuple<Entity, T...>> _data;
-
-			// Inherited via IJobPool
 		};
+
 	public:
 
 		template<typename T>
 		void pushSystem(std::unique_ptr<T>&& t);
+
+
 
 		template<typename T>
 		T* set(const Entity& e, T t);
@@ -115,34 +157,23 @@ namespace me
 		template<typename ...Ts>
 		inline QueryResult<Ts*...> query();
 
+		template<typename T>
+		T* getResource();
+
+		template<typename T>
+		void setResource(std::unique_ptr<T> data);
+
+		template<typename T>
+		void removeResource();
+
+
+
 		void update(Application*);
 
 	private:
 		std::map<std::type_index, std::unique_ptr<IComponentVec>> _data;
+		std::map<std::type_index, std::unique_ptr<IResource>> _resources;
 		std::vector<std::unique_ptr<ISystem>> _systems;
-		//template<typename ...Ts>
-		//inline auto getComponents(const Entity& e,const std::tuple<ComponentVec<typename Ts::Type>...>& data)
-		//{
-		//	return getComponentsHelper(e, data, std::make_index_sequence<sizeof...(Ts)>{});
-		//}
-		//template<typename ...Ts,size_t...Is>
-		//inline auto getComponentsHelper(const Entity& e,const std::tuple<ComponentVec<typename Ts::Type>...>& data,std::index_sequence<Is...>)
-		//{
-		//	return std::make_tuple((std::get<Is>(data).get(e))...);
-		//}
-
-		//template<typename ...Ts>
-		//inline auto getVecFromGuards(std::tuple<Ts...>& data)
-		//{
-		//	return getVecsFromGuardsHelper(data, std::make_index_sequence<sizeof...(Ts)>{});
-		//}
-		//template<typename ...Ts, size_t...Is>
-		//inline auto getVecsFromGuardsHelper(std::tuple<Ts...>& data, std::index_sequence<Is...>)
-		//{
-		//	return std::make_tuple((*std::get<Is>(data))...);
-		//}
-
-
 	};
 	template<typename T>
 	inline T* ComponentVec<T>::get(const Entity& e) const
@@ -197,8 +228,7 @@ namespace me
 		auto it = _data.find(typeid(T));
 		if (it != _data.end())
 		{
-			auto g = (it->second.get()->read());
-			const ComponentVec<T>* ptr = dynamic_cast<const ComponentVec<T>*>(g.getPointer());
+			const ComponentVec<T>* ptr = dynamic_cast<const ComponentVec<T>*>((it->second.get()));
 			if (ptr == nullptr)
 			{
 				throw std::runtime_error("cannot understand component vec");
@@ -272,6 +302,33 @@ namespace me
 		return ans;
 	}
 
+	template<typename T>
+	inline T* Registry::getResource()
+	{
+		Resource<T>* ptr = nullptr;
+		auto it = _resources.find(typeid(T));
+		if (it != _resources.end())
+		{
+			ptr = dynamic_cast<decltype(ptr)>(it->second.get());
+			if (ptr)
+			{
+				return ptr->get();
+			}
+		}
+		return nullptr;
+	}
+	;
+	template<typename T>
+	inline void Registry::setResource(std::unique_ptr<T> data)
+	{
+		_resources.emplace(typeid(T), new Resource<T>(std::move(data)));
+	}
+
+	template<typename T>
+	inline void Registry::removeResource()
+	{
+		_resources.erase(typeid(T));
+	}
 
 
 	template<typename ...T>

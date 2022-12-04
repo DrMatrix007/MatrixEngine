@@ -5,26 +5,26 @@
 #include "SFML/Graphics.hpp"
 
 #include "RendererComponent.h"
+#include "CameraComponent.h"
 
 #include "../ECS/ECS.h"
 
 namespace me
 {
-	class RendererSystem : public me::System<TransformComponent, RendererComponent>
+	class RendererSystem : public me::System
 	{
 	public:
-		RendererSystem(unsigned int, unsigned int,const std::string&);
+		RendererSystem() = default;
 
 	private:
-		sf::RenderWindow _window;
 
 		me::Entity _cameraEntity;
-
-		virtual inline Registry::QueryResult<TransformComponent*, RendererComponent*> getQuery(Registry& reg);
-		virtual void onUpdate(SystemArgs&,const Entity, TransformComponent& t, RendererComponent& r);
+		sf::View _currentView;
+		virtual void onUpdate(SystemArgs&);
 		virtual void onLateUpdate(SystemArgs&) override;
 
 		void searchCamera(SystemArgs&);
+		void updateView(sf::RenderWindow&, const CameraComponent&, const TransformComponent&);
 	};
 }
 

@@ -8,11 +8,16 @@ namespace me
 
 	class CameraComponent
 	{
+	public:
 		CameraComponent(float = 10.0f);
 
 		const float& getSize() const;
 
+		const bool& getIsMain() const;
+		void setIsMain(bool);
+
 	private:
+		bool _isMain;
 		float _size;
 	};
 }

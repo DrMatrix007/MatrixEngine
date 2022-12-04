@@ -8,6 +8,7 @@ namespace me
 	class TransformComponent : public sf::Transformable
 	{
 	public:
+		const static TransformComponent ZERO;
 		void setLayer(const size_t& l);
 		const size_t&	getLayer() const;
 	private:
