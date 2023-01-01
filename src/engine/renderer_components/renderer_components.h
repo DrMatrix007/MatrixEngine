@@ -1,1 +1,0 @@
-#include "window_component.h"
