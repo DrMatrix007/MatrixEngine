@@ -55,6 +55,12 @@ impl<T: Component> ComponentVec<T> {
     pub fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<Entity, T> {
         self.data.iter_mut()
     }
+    pub fn get(&self,e:&Entity) -> Option<&T> {
+        self.data.get(e)
+    }
+    pub fn get_mut(&mut self,e:&Entity) -> Option<&mut T> {
+        self.data.get_mut(e)
+    }
 }
 
 impl<T: Component + 'static> IComponentVec for ComponentVec<T> {

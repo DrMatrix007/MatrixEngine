@@ -2,6 +2,8 @@ use std::sync::{atomic::AtomicBool, RwLockWriteGuard, Arc, RwLock, RwLockReadGua
 
 use super::registry::{ComponentRegistry};
 
+
+
 pub struct SystemArgs {
     running: Arc< AtomicBool>,
     components: Arc<RwLock<ComponentRegistry>>,
@@ -28,6 +30,6 @@ impl SystemArgs {
     }
 }
 
-pub trait System: Send  {
+pub trait System : Send  {
     fn update(&mut self, args: SystemArgs);
 }

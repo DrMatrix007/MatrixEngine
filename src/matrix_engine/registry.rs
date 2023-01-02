@@ -6,6 +6,7 @@ use std::{
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
+
 use super::{
     components::{Component, ComponentVec, Entity},
     systems::System,
@@ -38,19 +39,24 @@ impl<T> Debug for RemoveError<T> {
 pub struct ComponentRegistry {
     data: HashMap<TypeId, Box<dyn Any>>,
 }
-unsafe impl Send for ComponentRegistry{}
-unsafe impl Sync for ComponentRegistry{}
+unsafe impl Send for ComponentRegistry {}
+unsafe impl Sync for ComponentRegistry {}
 
 impl ComponentRegistry {
-    fn get<T: Component + 'static>(&self) -> Option<RwLockReadGuard<ComponentVec<T>>> {
+    pub fn get<T: Component + 'static>(&self) -> Option<RwLockReadGuard<ComponentVec<T>>> {
         let v = self.data.get(&TypeId::of::<T>())?;
         return v.downcast_ref::<SafeVec<T>>()?.read().ok();
     }
-    fn get_mut<T: Component + 'static>(&self) -> Option<RwLockWriteGuard<ComponentVec<T>>> {
+    pub fn get_mut<T: Component + 'static>(&self) -> Option<RwLockWriteGuard<ComponentVec<T>>> {
         let v = self.data.get(&TypeId::of::<T>())?;
         return v.downcast_ref::<SafeVec<T>>()?.write().ok();
     }
-    fn insert<T: Component + 'static>(&mut self, e: Entity, t: T) -> Result<(), InsertError<T>> {
+
+    pub fn insert<T: Component + 'static>(
+        &mut self,
+        e: Entity,
+        t: T,
+    ) -> Result<(), InsertError<T>> {
         let Some(b) = self.data.get_mut(&TypeId::of::<T>()) else {
             self.data.insert(TypeId::of::<T>(), Box::new(Arc::new(RwLock::new(ComponentVec::<T>::new()))));
             return self.insert(e, t);
@@ -64,6 +70,43 @@ impl ComponentRegistry {
         v.insert(e, t);
         Ok(())
     }
+}
+
+#[macro_export]
+//#[warn(non_snake_case)]
+macro_rules! query {
+    ($reg:expr, read $type:ty) =>{
+        $reg.get::<$type>()
+    };
+    ($reg:expr, write $type:ty) =>{
+        $reg.get_mut::<$type>()
+    };
+    ($reg:expr,$pre:tt $type:ty,$($pres:tt $types:ty),*,$func:expr) => {
+        {
+            
+            #[allow(non_snake_case)]
+            let q = ||{
+                let ($(paste::paste!([<_$types >]),)*) = ($(match query!($reg,$pres $types){
+                    Some(a) => a,
+                    None => {
+                       return; 
+                    }
+                },)*);
+
+                if let Some(v) = query!($reg,$pre $type) {
+                    for (e,i) in v.iter() {
+                        use paste::paste;
+                        let ($(paste::paste!([< $types __>]),)*) = ($(match paste!([<_$types>]).get(e){
+                            Some(a) => a,
+                            None => continue,
+                        },)*);
+                        $func(i, $(paste::paste!([< $types __>]),)*);
+                    }
+                }
+            };
+            q();
+        }
+    };
 }
 
 #[derive(Default)]
@@ -100,7 +143,6 @@ impl Registry {
             return None;
         };
         Some(f(v))
-        
     }
     pub fn write<T: Component + 'static, Ans>(
         &self,
