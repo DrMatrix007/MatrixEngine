@@ -11,7 +11,7 @@ use crate::matrix_engine::{application::Application, components::Entity};
 
 pub mod matrix_engine;
 
-struct A;
+struct A(i64);
 impl Component for A {}
 
 struct B;
@@ -25,14 +25,21 @@ impl System for SystemB {
     fn update(&mut self, args: matrix_engine::systems::SystemArgs) {
         if let Some(reg) = args.read_component_registry() {
             println!("hmm?");
-            query!(reg,read A, read B,|_,_|{
-                println!("bruh");
+            query!(reg,|write a:A| {
+                println!("bruh {}",a.0);
+                a.0+=1;
+            });
+
+            query!(reg,|write a:A| {
+               
+                println!("{}",a.0);
             });
             args.stop();
         }
 
     }
 }
+
 
 impl System for SystemC {
     fn update(&mut self, args: matrix_engine::systems::SystemArgs) {
@@ -47,10 +54,10 @@ fn main() {
     let start = Instant::now();
     let mut app = Application::default();
     app.mod_registry(|reg| {
-        for _ in 0..10 {
+        for i in 0..10 {
             let e = Entity::default();
 
-            reg.insert(e, A {}).unwrap();
+            reg.insert(e, A(i)).unwrap();
             reg.insert(e, B {}).unwrap();
         }
 

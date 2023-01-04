@@ -6,7 +6,6 @@ use std::{
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
-
 use super::{
     components::{Component, ComponentVec, Entity},
     systems::System,
@@ -75,32 +74,65 @@ impl ComponentRegistry {
 #[macro_export]
 //#[warn(non_snake_case)]
 macro_rules! query {
+
     ($reg:expr, read $type:ty) =>{
         $reg.get::<$type>()
     };
     ($reg:expr, write $type:ty) =>{
         $reg.get_mut::<$type>()
     };
-    ($reg:expr,$pre:tt $type:ty,$($pres:tt $types:ty),*,$func:expr) => {
+    (read $vec:expr) => {
+        $vec.iter()
+    };
+    (write $vec:expr) => {
+        $vec.iter_mut()
+    };
+    (read $type:ty,$vec:expr, $entity:expr) =>{
+         match $vec.get($entity) {
+            Some(a) => a,
+            None => continue,
+        }
+    };
+    
+    (write $type:ty,$vec:expr,$entity:expr) =>{
+        match $vec.get_mut($entity) {
+            Some(a) => a,
+            None => continue,
+        }
+    };
+    ($reg:expr,|$pre:tt $name:tt:$type:ty| $func:block) => {
         {
-            
+            #[allow(unused_variables)]
+            if let Some(mut vec) = query!($reg,$pre $type) {
+                for (entity,$name) in query!($pre vec) {
+                    $func;
+                    
+                }
+            }
+        }
+    };
+    ($reg:expr,|$pre:tt $name:tt:$type:ty,$($pres:tt $names:tt:$types:ty),+| $func:block) => {
+        {
+
             #[allow(non_snake_case)]
             let q = ||{
-                let ($(paste::paste!([<_$types >]),)*) = ($(match query!($reg,$pres $types){
+                let ($($names,)*) = ($(match query!($reg,$pres $types){
                     Some(a) => a,
                     None => {
-                       return; 
+                       return;
                     }
                 },)*);
 
-                if let Some(v) = query!($reg,$pre $type) {
-                    for (e,i) in v.iter() {
-                        use paste::paste;
-                        let ($(paste::paste!([< $types __>]),)*) = ($(match paste!([<_$types>]).get(e){
-                            Some(a) => a,
-                            None => continue,
-                        },)*);
-                        $func(i, $(paste::paste!([< $types __>]),)*);
+                if let Some(mut v) = query!($reg,$pre $type) {
+                    for (entity,i) in query!($pre v) {
+                        // let ($(paste::paste!([< $types __>]),)*) =  ($(paste!(match paste!([<_$types>]).  query!($pres)(e){
+                        //     Some(a) => a,
+                        //     None => continue,
+                        // },)*);
+                        
+                        let ($name,$($names),*) = (i,$(query!($pres $types,$names,entity )),*);
+                        // $(query!($pres $types,e);)*
+                        $func;
                     }
                 }
             };
