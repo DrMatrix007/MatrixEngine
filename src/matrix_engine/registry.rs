@@ -103,8 +103,8 @@ macro_rules! query {
     ($reg:expr,|$pre:tt $name:tt:$type:ty| $func:block) => {
         {
             #[allow(unused_variables)]
-            if let Some(mut vec) = query!($reg,$pre $type) {
-                for (entity,$name) in query!($pre vec) {
+            if let Some(mut $name) = query!($reg,$pre $type) {
+                for (entity,$name) in query!($pre $name) {
                     $func;
                     
                 }
@@ -116,15 +116,15 @@ macro_rules! query {
 
             #[allow(non_snake_case)]
             let q = ||{
-                let ($($names,)*) = ($(match query!($reg,$pres $types){
+                let ($(mut $names,)*) = ($(match query!($reg,$pres $types){
                     Some(a) => a,
                     None => {
                        return;
                     }
                 },)*);
 
-                if let Some(mut v) = query!($reg,$pre $type) {
-                    for (entity,i) in query!($pre v) {
+                if let Some(mut $name) = query!($reg,$pre $type) {
+                    for (entity,i) in query!($pre $name) {
                         // let ($(paste::paste!([< $types __>]),)*) =  ($(paste!(match paste!([<_$types>]).  query!($pres)(e){
                         //     Some(a) => a,
                         //     None => continue,

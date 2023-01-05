@@ -20,7 +20,7 @@ impl Default for Application {
         Self {
             running: Arc::new(AtomicBool::new(true)),
             registry: Default::default(),
-            target_fps: Arc::new(AtomicU64::new(1000)),
+            target_fps: Arc::new(AtomicU64::new(200)),
         }
     }
 }
