@@ -73,7 +73,7 @@ impl ComponentRegistry {
 
 #[macro_export]
 //#[warn(non_snake_case)]
-macro_rules! query {
+macro_rules!    query {
 
     ($reg:expr, read $type:ty) =>{
         $reg.get::<$type>()
@@ -93,25 +93,33 @@ macro_rules! query {
             None => continue,
         }
     };
-    
+
     (write $type:ty,$vec:expr,$entity:expr) =>{
         match $vec.get_mut($entity) {
             Some(a) => a,
             None => continue,
         }
     };
-    ($reg:expr,|$pre:tt $name:tt:$type:ty| $func:block) => {
+    ($reg:expr,|$pre:tt $name:tt:$type:ty| $func:block, $sorter:expr) => {
         {
             #[allow(unused_variables)]
             if let Some(mut $name) = query!($reg,$pre $type) {
-                for (entity,$name) in query!($pre $name) {
-                    $func;
-                    
+                let mut vec = Vec::new();
+                for (entity,$name) in (query!($pre $name)){
+                    vec.push((entity,$name));
+                }
+                vec.sort_by($sorter);
+                for (entity,$name) in vec.into_iter() {
+                    $func
                 }
             }
         }
     };
-    ($reg:expr,|$pre:tt $name:tt:$type:ty,$($pres:tt $names:tt:$types:ty),+| $func:block) => {
+    ($reg:expr,|$pre:tt $name:tt:$type:ty| $func:block) => {
+        query!($reg,|$pre $name:$type| $func,|_,_|std::cmp::Ordering::Equal)
+    };
+
+    ($reg:expr,|$pre:tt $name:tt:$type:ty,$($pres:tt $names:tt:$types:ty),+| $func:block,$sorter:expr) => {
         {
 
             #[allow(non_snake_case)]
@@ -124,20 +132,22 @@ macro_rules! query {
                 },)*);
 
                 if let Some(mut $name) = query!($reg,$pre $type) {
+                    let mut vec = Vec::new();
                     for (entity,i) in query!($pre $name) {
-                        // let ($(paste::paste!([< $types __>]),)*) =  ($(paste!(match paste!([<_$types>]).  query!($pres)(e){
-                        //     Some(a) => a,
-                        //     None => continue,
-                        // },)*);
-                        
                         let ($name,$($names),*) = (i,$(query!($pres $types,$names,entity )),*);
-                        // $(query!($pres $types,e);)*
-                        $func;
+                        vec.push(($name,$($names),*));
+                    }
+                    vec.sort_by($sorter);
+                    for (($name,$($names),*)) in vec.into_iter() {
+                        $func
                     }
                 }
             };
             q();
         }
+    };
+    ($reg:expr,|$pre:tt $name:tt:$type:ty,$($pres:tt $names:tt:$types:ty),+| $func:block) => {
+        query!($reg,|$pre $name:$type,$($pres $names:$types),+| $func,|_,_|std::cmp::Ordering::Equal)
     };
 }
 
