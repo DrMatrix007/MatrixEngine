@@ -3,12 +3,12 @@ use std::{
     collections::HashMap,
     fmt::Debug,
     marker::PhantomData,
-    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard}, hash::Hash,
 };
 
 use super::{
     components::{Component, ComponentVec, Entity},
-    systems::System,
+    systems::System, resources::IResource,
 };
 
 pub struct InsertError<T>(PhantomData<T>);
@@ -151,16 +151,23 @@ macro_rules!    query {
     };
 }
 
+pub struct ResourceManager {
+    data: HashMap<TypeId,Box<dyn IResource>>
+}
+impl ResourceManager {
+    
+}
+
 #[derive(Default)]
 pub struct Registry {
-    pub(super) data: Arc<RwLock<ComponentRegistry>>,
+    pub(super) components: Arc<RwLock<ComponentRegistry>>,
     pub(super) systems: HashMap<TypeId, Box<dyn System>>,
 }
 type SafeVec<T> = Arc<RwLock<ComponentVec<T>>>;
 impl Registry {
     pub fn new() -> Self {
         Self {
-            data: Default::default(),
+            components: Default::default(),
             systems: Default::default(),
         }
     }
@@ -169,7 +176,7 @@ impl Registry {
         self.systems.insert(TypeId::of::<T>(), Box::new(t));
     }
     pub fn insert<T: Component + 'static>(&self, e: Entity, t: T) -> Result<(), InsertError<T>> {
-        let Ok(mut g) = self.data.write() else {
+        let Ok(mut g) = self.components.write() else {
             return Err(InsertError::new());
         };
         g.insert(e, t)
@@ -178,7 +185,7 @@ impl Registry {
         &self,
         f: impl FnOnce(RwLockReadGuard<ComponentVec<T>>) -> Ans,
     ) -> Option<Ans> {
-        let Some(v) = self.data.read().ok() else {
+        let Some(v) = self.components.read().ok() else {
             return None;
         };
         let Some(v) = v.get::<T>() else {
@@ -190,7 +197,7 @@ impl Registry {
         &self,
         f: impl FnOnce(RwLockWriteGuard<ComponentVec<T>>) -> Ans,
     ) -> Option<Ans> {
-        let Some(v) = self.data.read().ok() else {
+        let Some(v) = self.components.read().ok() else {
             return None;
         };
         let Some(v) = v.get_mut::<T>() else {
