@@ -16,7 +16,7 @@ impl System for A {
     fn update(&mut self, args: matrix_engine::systems::SystemArgs) {
 
         query!(&args,|read a: A| {
-            println!("{:?}",a);
+            println!("a: {:?}",a);
         });
 
         args.stop();
@@ -25,6 +25,16 @@ impl System for A {
 
 #[derive(Debug)]
 struct B;
+impl System for B {
+    fn update(&mut self, args: matrix_engine::systems::SystemArgs) {
+
+        query!(&args,|read a: A| {
+            println!("b: {:?}",a);
+        });
+
+        args.stop();
+    }
+}
 
 impl Component for B{}
 
@@ -43,6 +53,7 @@ fn main() {
     });
 
     runtime.insert(SystemCreator::with_function(|| Box::new(A)));
+    runtime.insert(SystemCreator::with_function(|| Box::new(B)));
 
     runtime.run();
 

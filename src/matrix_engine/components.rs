@@ -1,4 +1,4 @@
-use std::{collections::HashMap};
+use std::{collections::{HashMap, btree_map::Entry}};
 
 use super::entity::Entity;
 
@@ -20,6 +20,13 @@ impl<T: Component> ComponentCollection<T> {
     }
     pub fn remove(&mut self, e: Entity) -> Option<T> {
         self.0.remove(&e)
+    }
+
+    pub fn get(&self,e:&Entity) -> Option<&T> {
+        self.0.get(e)
+    }
+    pub fn get_mut(&mut self,e:&Entity) -> Option<&mut T> {
+        self.0.get_mut(e)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&Entity, &T)> {

@@ -219,8 +219,20 @@ macro_rules! query {
             $l.try_get_vec_mut::<$t>()?
         }
     };
+    (read $e:expr) => {
+        $e.iter()
+    };
+    (write $e:expr) => {
+        $e.iter_mut()
+    };
+    (read $e:expr, $ent:expr) => {
+        $e.get($ent)
+    };
+    (write $e:expr, $ent:expr) => {
+        $e.get_mut($ent)
+    };
 
-    ($args:expr,|$($pres:tt $names:tt:$types:ty),+| $func:block) => {
+    ($args:expr,|$pre:tt $name:tt:$type:ty $(,$pres:tt $names:tt:$types:ty),*| $func:block) => {
         {
 
         use std::sync::{MutexGuard,Mutex,RwLockReadGuard,RwLockWriteGuard,Condvar,Arc};
@@ -232,32 +244,48 @@ macro_rules! query {
                 panic!();
             };
             let (reg_mutex,reg_cv) = registry.get_conditional_mutex();
-
+            #[allow(unused_mut,unused_variables)]
             {
 
-                
-                fn get<'a>(reg:&'a RwLockReadGuard<ComponentRegistry>) -> Result<($(query!($pres, $types,'a),)+),TryReadError> {
-                    Ok(($(query!($pres,reg,$types)),+))
-                }
-                
-                let mut guard = reg_mutex.lock().unwrap();
-                let mut state = get(&registry);
-                while let Err(ref e) = state {
-                    match e{
-                        TryReadError::CantRead |TryReadError::NotExist => break,
-                        _ => {}
-                    } 
+                match {
+                        fn get<'a>(reg:&'a RwLockReadGuard<ComponentRegistry>) -> Result<(query!($pre, $type,'a),$(query!($pres, $types,'a),)*),TryReadError> {
+                            Ok((query!($pre,reg,$type),$(query!($pres,reg,$types)),*))
+                        }
+                        
+                        let mut guard = reg_mutex.lock().unwrap();
+                    let mut state = get(&registry);
+                    while let Err(ref e) = state {
+                        match e{
+                            TryReadError::CantRead |TryReadError::NotExist => break,
+                            _ => {}
+                        } 
 
-                    guard = reg_cv.wait(guard).unwrap();
-                    drop(state);
-                    state = get(&registry);
+                        guard = reg_cv.wait(guard).unwrap();
+                        drop(state);
+                        state = get(&registry);
+                    }
+                    drop(guard);   
+                    state
+                }{
+                    Ok((mut $name,$(mut $names),*))=> {
+                        for (entity,$name) in query!($pre $name) {
+                            let ($($names,)*) = ($(match query!($pres $names,e){
+                                Some(a)=>a,
+                                None=>continue,
+                            }),*);
+                            $func
+                        }
+                    },
+                    Err(r) => {
+                        match r {
+                            TryReadError::CantRead => panic!("cant read data!"),
+                            _=>{}
+                        } 
+                    },
                 }
-                drop(guard);   
-                if let Ok(($($names),+)) = state {
+                
                     
-                    
-                };
-                // ($($names),+)
+                
             };
 
 
