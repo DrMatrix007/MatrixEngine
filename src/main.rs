@@ -1,4 +1,4 @@
-#![allow(dead_code, unused_imports)]
+#![allow(dead_code, unused_imports,unused_variables)]
 
 pub mod matrix_engine;
 use std::{time::Instant, sync::Mutex};
@@ -15,9 +15,11 @@ impl Component for A {}
 impl System for A {
     fn update(&mut self, args: matrix_engine::systems::SystemArgs) {
 
-        query!(&args,|read a: A,write b:B| {
+        query!(&args,|read a: A| {
+            println!("{:?}",a);
         });
-        println!("done!");
+
+        args.stop();
     }
 }
 
