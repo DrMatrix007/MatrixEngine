@@ -1,208 +1,271 @@
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
-    fmt::Debug,
-    marker::PhantomData,
-    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard}, hash::Hash,
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Mutex, Condvar, TryLockError},
 };
 
 use super::{
-    components::{Component, ComponentVec, Entity},
-    systems::System, resources::IResource,
+    components::{Component, ComponentCollection},
+    entity::Entity,
 };
 
-pub struct InsertError<T>(PhantomData<T>);
-pub struct RemoveError<T>(PhantomData<T>);
-impl<T> InsertError<T> {
-    pub(super) fn new() -> Self {
-        Self(PhantomData {})
-    }
+#[derive(Debug)]
+pub struct InsertError();
+
+#[derive(Debug)]
+pub struct RemoveError;
+
+#[derive(Debug)]
+pub enum ReadError {
+    NotExist,
+    CantRead,
 }
-impl<T> Debug for InsertError<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("InsertError").field(&self.0).finish()
-    }
+#[derive(Debug)]
+pub enum TryReadError {
+    NotExist,
+    CantRead,
+    WaitForMutex,
 }
-impl<T> RemoveError<T> {
-    pub(super) fn new() -> Self {
-        Self(PhantomData {})
-    }
-}
-impl<T> Debug for RemoveError<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("RemoveError").field(&self.0).finish()
-    }
+
+pub type SafeCollection<T> = Arc<RwLock<ComponentCollection<T>>>;
+fn create_safe_collection<T:Component>() -> SafeCollection<T> {
+    Arc::new(RwLock::new(ComponentCollection::default()))
 }
 
 #[derive(Default)]
 pub struct ComponentRegistry {
-    data: HashMap<TypeId, Box<dyn Any>>,
+    data: HashMap<TypeId, Arc<dyn Any+Send+Sync>>,
+
+    m:Arc<Mutex<()>>,
+    cv:Arc<Condvar>
+
+
 }
-unsafe impl Send for ComponentRegistry {}
-unsafe impl Sync for ComponentRegistry {}
+
+
 
 impl ComponentRegistry {
-    pub fn get<T: Component + 'static>(&self) -> Option<RwLockReadGuard<ComponentVec<T>>> {
-        let v = self.data.get(&TypeId::of::<T>())?;
-        return v.downcast_ref::<SafeVec<T>>()?.read().ok();
+    pub fn get_vec<T: Component + 'static>(&self) -> Result<RwLockReadGuard<ComponentCollection<T>>,ReadError> {
+        let b = match self.data.get(&TypeId::of::<T>()) {
+            Some(it) => it,
+            None => return Err(ReadError::NotExist),
+        };
+        let v = match b.downcast_ref::<SafeCollection<T>>() {
+            Some(it) => it,
+            None => return Err(ReadError::CantRead),
+        };
+        match v.read() {
+            Ok(it) => Ok(it),
+            Err(_) => Err(ReadError::CantRead),
+        }
     }
-    pub fn get_mut<T: Component + 'static>(&self) -> Option<RwLockWriteGuard<ComponentVec<T>>> {
-        let v = self.data.get(&TypeId::of::<T>())?;
-        return v.downcast_ref::<SafeVec<T>>()?.write().ok();
+    pub fn get_vec_mut<T: Component + 'static>(
+        &self,
+    ) -> Result<RwLockWriteGuard<ComponentCollection<T>>,ReadError> {
+        let b = match self.data.get(&TypeId::of::<T>()) {
+            Some(it) => it,
+            None => return Err(ReadError::NotExist),
+        };
+        let v = match b.downcast_ref::<SafeCollection<T>>() {
+            Some(it) => it,
+            None => return Err(ReadError::CantRead),
+        };
+        match v.write() {
+            Ok(it) => Ok(it),
+            Err(_) => Err(ReadError::CantRead),
+        }
     }
 
-    pub fn insert<T: Component + 'static>(
-        &mut self,
-        e: Entity,
-        t: T,
-    ) -> Result<(), InsertError<T>> {
-        let Some(b) = self.data.get_mut(&TypeId::of::<T>()) else {
-            self.data.insert(TypeId::of::<T>(), Box::new(Arc::new(RwLock::new(ComponentVec::<T>::new()))));
-            return self.insert(e, t);
+    pub fn try_get_vec<T: Component + 'static>(&self) -> Result<RwLockReadGuard<ComponentCollection<T>>,TryReadError> {
+        let b = match self.data.get(&TypeId::of::<T>()) {
+            Some(it) => it,
+            None => return Err(TryReadError::NotExist),
         };
-        let Some(v) = b.downcast_mut::<SafeVec<T>>() else {
-            return Err(InsertError::new());
+        let v = match b.downcast_ref::<SafeCollection<T>>() {
+            Some(it) => it,
+            None => return Err(TryReadError::CantRead),
         };
-        let Ok(mut v) = v.write() else {
-            return  Err(InsertError::new());
+        match v.try_read() {
+            Ok(it) => Ok(it),
+            Err(TryLockError::WouldBlock) => Err(TryReadError::WaitForMutex),
+            Err(_) => Err(TryReadError::CantRead),
+        }
+    }
+    pub fn try_get_vec_mut<T: Component + 'static>(
+        &self,
+    ) -> Result<RwLockWriteGuard<ComponentCollection<T>>,TryReadError> {
+        let b = match self.data.get(&TypeId::of::<T>()) {
+            Some(it) => it,
+            None => return Err(TryReadError::NotExist),
         };
-        v.insert(e, t);
+        let v = match b.downcast_ref::<SafeCollection<T>>() {
+            Some(it) => it,
+            None => return Err(TryReadError::CantRead),
+        };
+        match v.try_write() {
+            Ok(it) => Ok(it),
+            Err(TryLockError::WouldBlock) => Err(TryReadError::WaitForMutex),
+            Err(_) => Err(TryReadError::CantRead),
+        }
+    }
+
+
+    pub fn insert<T: Component + 'static>(&mut self, e: Entity, t: T) -> Result<(),InsertError> {
+        let b = self.data.get(&TypeId::of::<T>());
+        let Some(b) = b else {
+            self.data.insert(TypeId::of::<T>(), Arc::new(create_safe_collection::<T>()));    
+
+            return  self.insert::<T>(e, t);
+        };
+        let Some(v) = b.downcast_ref::<SafeCollection<T>>() else {
+            return Err(InsertError());
+        };
+
+        let Ok(mut g) = v.write() else {
+            return Err(InsertError());
+        };
+
+        g.insert(e, t);
+
         Ok(())
     }
-}
 
-#[macro_export]
-//#[warn(non_snake_case)]
-macro_rules!    query {
-
-    ($reg:expr, read $type:ty) =>{
-        $reg.get::<$type>()
-    };
-    ($reg:expr, write $type:ty) =>{
-        $reg.get_mut::<$type>()
-    };
-    (read $vec:expr) => {
-        $vec.iter()
-    };
-    (write $vec:expr) => {
-        $vec.iter_mut()
-    };
-    (read $type:ty,$vec:expr, $entity:expr) =>{
-         match $vec.get($entity) {
-            Some(a) => a,
-            None => continue,
-        }
-    };
-
-    (write $type:ty,$vec:expr,$entity:expr) =>{
-        match $vec.get_mut($entity) {
-            Some(a) => a,
-            None => continue,
-        }
-    };
-    ($reg:expr,|$pre:tt $name:tt:$type:ty| $func:block, $sorter:expr) => {
-        {
-            #[allow(unused_variables)]
-            if let Some(mut $name) = query!($reg,$pre $type) {
-                let mut vec = Vec::new();
-                for (entity,$name) in (query!($pre $name)){
-                    vec.push((entity,$name));
-                }
-                vec.sort_by($sorter);
-                for (entity,$name) in vec.into_iter() {
-                    $func
-                }
-            }
-        }
-    };
-    ($reg:expr,|$pre:tt $name:tt:$type:ty| $func:block) => {
-        query!($reg,|$pre $name:$type| $func,|_,_|std::cmp::Ordering::Equal)
-    };
-
-    ($reg:expr,|$pre:tt $name:tt:$type:ty,$($pres:tt $names:tt:$types:ty),+| $func:block,$sorter:expr) => {
-        {
-
-            #[allow(non_snake_case)]
-            let q = ||{
-                let ($(mut $names,)*) = ($(match query!($reg,$pres $types){
-                    Some(a) => a,
-                    None => {
-                       return;
-                    }
-                },)*);
-
-                if let Some(mut $name) = query!($reg,$pre $type) {
-                    let mut vec = Vec::new();
-                    for (entity,i) in query!($pre $name) {
-                        let ($name,$($names),*) = (i,$(query!($pres $types,$names,entity )),*);
-                        vec.push(($name,$($names),*));
-                    }
-                    vec.sort_by($sorter);
-                    for (($name,$($names),*)) in vec.into_iter() {
-                        $func
-                    }
-                }
-            };
-            q();
-        }
-    };
-    ($reg:expr,|$pre:tt $name:tt:$type:ty,$($pres:tt $names:tt:$types:ty),+| $func:block) => {
-        query!($reg,|$pre $name:$type,$($pres $names:$types),+| $func,|_,_|std::cmp::Ordering::Equal)
-    };
-}
-
-pub struct ResourceManager {
-    data: HashMap<TypeId,Box<dyn IResource>>
-}
-impl ResourceManager {
+    pub fn get_conditional_mutex(&self) -> (Arc<Mutex<()>>,Arc<Condvar>) {
+        (self.m.clone(),self.cv.clone())
+    }
     
+}
+
+
+#[derive(Default)]
+pub struct RegistryBuilder {
+    pub components:ComponentRegistry
+}
+impl RegistryBuilder {
+    pub fn build(self) -> Registry {
+        Registry { components: Arc::new(RwLock::new(self.components)) }
+    }
 }
 
 #[derive(Default)]
 pub struct Registry {
-    pub(super) components: Arc<RwLock<ComponentRegistry>>,
-    pub(super) systems: HashMap<TypeId, Box<dyn System>>,
+    components: Arc<RwLock<ComponentRegistry>>,
 }
-type SafeVec<T> = Arc<RwLock<ComponentVec<T>>>;
 impl Registry {
-    pub fn new() -> Self {
-        Self {
-            components: Default::default(),
-            systems: Default::default(),
-        }
+    pub fn get_component_registry(&self) -> Arc<RwLock<ComponentRegistry>> {
+        self.components.clone()
     }
 
-    pub fn insert_system<T: System + 'static>(&mut self, t: T) {
-        self.systems.insert(TypeId::of::<T>(), Box::new(t));
+}
+
+mod tests {
+    use crate::matrix_engine::{components::Component, entity::Entity};
+
+    use super::ComponentRegistry;
+
+
+    struct A;
+    impl Component for A {}
+    #[test]
+    fn test_reg() {
+        let mut c = ComponentRegistry::default();
+        let e = Entity::default();
+        c.insert(e, A{}).unwrap();
+        c.insert(e, A{}).unwrap();
+
+        println!("{:?}",c.data);
     }
-    pub fn insert<T: Component + 'static>(&self, e: Entity, t: T) -> Result<(), InsertError<T>> {
-        let Ok(mut g) = self.components.write() else {
-            return Err(InsertError::new());
-        };
-        g.insert(e, t)
+}
+
+
+#[macro_export]
+macro_rules! first {
+    ($e:expr $(,es:expr)*) => {
+        $e
+    };
+}
+
+#[macro_export]
+macro_rules! not_first {
+    ($e:expr $(,es:expr)*) => {
+        $(es,)*
+    };
+}
+
+
+#[macro_export]
+macro_rules! query {
+    (read, $t:ty, $life:lifetime) => {
+        RwLockReadGuard<$life,ComponentCollection<$t>>
+    };
+    (write, $t:ty,$life:lifetime) => {
+        RwLockWriteGuard<$life,ComponentCollection<$t>>
+
+    };
+    (read, $t:ty) => {
+        RwLockReadGuard<ComponentCollection<$t>>
+    };
+    (write, $type:ty) => {
+        RwLockWriteGuard<ComponentCollection<$t>>
+
+    };
+    (read, $l:expr,$t:ty) => {
+        {
+            $l.try_get_vec::<$t>()?
+        }
+    };
+    (write, $l:expr,$t:ty) => {
+        {
+            $l.try_get_vec_mut::<$t>()?
+        }
+    };
+
+    ($args:expr,|$($pres:tt $names:tt:$types:ty),+| $func:block) => {
+        {
+
+        use std::sync::{MutexGuard,Mutex,RwLockReadGuard,RwLockWriteGuard,Condvar,Arc};
+        use matrix_engine::{systems::SystemArgs,registry::{ComponentRegistry,SafeCollection,TryReadError},components::{ComponentCollection}};
+
+            
+
+            let Some(registry) = $args.read_components() else {
+                panic!();
+            };
+            let (reg_mutex,reg_cv) = registry.get_conditional_mutex();
+
+            {
+
+                
+                fn get<'a>(reg:&'a RwLockReadGuard<ComponentRegistry>) -> Result<($(query!($pres, $types,'a),)+),TryReadError> {
+                    Ok(($(query!($pres,reg,$types)),+))
+                }
+                
+                let mut guard = reg_mutex.lock().unwrap();
+                let mut state = get(&registry);
+                while let Err(ref e) = state {
+                    match e{
+                        TryReadError::CantRead |TryReadError::NotExist => break,
+                        _ => {}
+                    } 
+
+                    guard = reg_cv.wait(guard).unwrap();
+                    drop(state);
+                    state = get(&registry);
+                }
+                drop(guard);   
+                if let Ok(($($names),+)) = state {
+                    
+                    
+                };
+                // ($($names),+)
+            };
+
+
+            reg_cv.notify_all();
+        
+            
+
     }
-    pub fn read<T: Component + 'static, Ans>(
-        &self,
-        f: impl FnOnce(RwLockReadGuard<ComponentVec<T>>) -> Ans,
-    ) -> Option<Ans> {
-        let Some(v) = self.components.read().ok() else {
-            return None;
-        };
-        let Some(v) = v.get::<T>() else {
-            return None;
-        };
-        Some(f(v))
-    }
-    pub fn write<T: Component + 'static, Ans>(
-        &self,
-        f: impl FnOnce(RwLockWriteGuard<ComponentVec<T>>) -> Ans,
-    ) -> Option<Ans> {
-        let Some(v) = self.components.read().ok() else {
-            return None;
-        };
-        let Some(v) = v.get_mut::<T>() else {
-            return None;
-        };
-        Some(f(v))
-    }
+
+    };
 }

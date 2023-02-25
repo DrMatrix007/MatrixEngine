@@ -1,5 +1,5 @@
-pub mod application;
+pub mod runtime;
 pub mod registry;
 pub mod components;
+pub mod entity;
 pub mod systems;
-pub mod renderer;

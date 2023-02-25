@@ -1,74 +1,31 @@
-use std::{any::Any, collections::HashMap, sync::atomic::AtomicUsize};
+use std::{collections::HashMap};
 
-static ENTITY_COUNTER: AtomicUsize = AtomicUsize::new(0);
+use super::entity::Entity;
 
-#[derive(Clone, Copy, Eq, Hash, PartialEq)]
-pub struct Entity {
-    id: usize,
-}
-impl Entity {
-    pub fn new() -> Self {
-        Entity {
-            id: ENTITY_COUNTER.fetch_add(1, std::sync::atomic::Ordering::AcqRel),
-        }
-    }
-}
+pub trait Component:Send+Sync {}
 
-impl Default for Entity {
+
+#[derive(Debug)]
+pub struct ComponentCollection<T: Component>(HashMap<Entity, T>);
+
+impl<T: Component> Default for ComponentCollection<T> {
     fn default() -> Self {
-        Self::new()
+        Self(Default::default())
     }
 }
 
-pub trait Component {}
-
-pub trait IComponentVec {
-    fn as_any(&self) -> &dyn Any;
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-}
-
-pub struct ComponentVec<T: Component> {
-    pub data: HashMap<Entity, T>,
-}
-
-impl<T: Component> Default for ComponentVec<T> {
-    fn default() -> Self {
-        Self {
-            data: Default::default(),
-        }
+impl<T: Component> ComponentCollection<T> {
+    pub fn insert(&mut self, e: Entity, t: T) -> Option<T> {
+        self.0.insert(e, t)
     }
-}
-impl<T: Component> ComponentVec<T> {
-    pub(super) fn new() -> Self {
-        Default::default()
-    }
-    pub fn insert(&mut self, e:Entity, t: T) {
-        self.data.insert(e, t);
+    pub fn remove(&mut self, e: Entity) -> Option<T> {
+        self.0.remove(&e)
     }
 
-    pub fn remove(&mut self, e: &Entity) -> Option<T> {
-        self.data.remove(e)
+    pub fn iter(&self) -> impl Iterator<Item = (&Entity, &T)> {
+        self.0.iter()
     }
-    pub fn iter(&self) -> std::collections::hash_map::Iter<Entity, T> {
-        self.data.iter()
-    }
-    pub fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<Entity, T> {
-        self.data.iter_mut()
-    }
-    pub fn get(&self,e:&Entity) -> Option<&T> {
-        self.data.get(e)
-    }
-    pub fn get_mut(&mut self,e:&Entity) -> Option<&mut T> {
-        self.data.get_mut(e)
-    }
-}
-
-impl<T: Component + 'static> IComponentVec for ComponentVec<T> {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Entity, &mut T)> {
+        self.0.iter_mut()
     }
 }

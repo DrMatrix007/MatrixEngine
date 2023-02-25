@@ -1,35 +1,58 @@
-use std::sync::{atomic::AtomicBool, RwLockWriteGuard, Arc, RwLock, RwLockReadGuard};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Condvar, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard,
+};
 
-use super::registry::{ComponentRegistry};
-
-
+use super::{components::Component, registry::ComponentRegistry};
 
 pub struct SystemArgs {
-    running: Arc< AtomicBool>,
+    quit: Arc<AtomicBool>,
     components: Arc<RwLock<ComponentRegistry>>,
 }
 
 impl SystemArgs {
     pub fn new(
-        running: Arc<AtomicBool>,
+        quit: Arc<AtomicBool>,
         components: Arc<RwLock<ComponentRegistry>>,
     ) -> Self {
-        Self {
-            running,
-            components,
-        }
+        
+        Self { quit, components }
     }
+
     pub fn stop(&self) {
-        self.running.store(false, std::sync::atomic::Ordering::Release);
+        self.quit.store(true, Ordering::Relaxed);
     }
-    pub fn read_component_registry(&self) -> Option<RwLockReadGuard<ComponentRegistry>> {
+    pub fn read_components(&self) -> Option<RwLockReadGuard<ComponentRegistry>>{
         self.components.read().ok()
     }
-    pub fn write_component_registry(&self) -> Option<RwLockWriteGuard<ComponentRegistry>> {
+    pub fn write_components(&self) -> Option<RwLockWriteGuard<ComponentRegistry>>{
         self.components.write().ok()
     }
 }
 
-pub trait System : Send  {
+pub trait System {
     fn update(&mut self, args: SystemArgs);
 }
+
+pub struct SystemCreator {
+    creator: Box<dyn FnOnce() -> Box<dyn System> + Send + Sync>,
+}
+
+impl SystemCreator {
+    pub fn default_function<T: System + Default + 'static>() -> Self {
+        Self {
+            creator: Box::new(|| Box::<T>::default()),
+        }
+    }
+    pub fn with_function(f: impl FnOnce() -> Box<dyn System> + Send + Sync + 'static) -> Self {
+        Self {
+            creator: Box::new(f),
+        }
+    }
+
+    pub fn create(self) -> Box<dyn System> {
+        (self.creator)()
+    }
+}
+
+
