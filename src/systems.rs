@@ -1,24 +1,26 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, future::Future};
 
 use winit::event_loop::{ControlFlow, EventLoopWindowTarget};
+
+use crate::{registry::Registry, resources::ResourceManager};
 
 use super::registry::ComponentRegistry;
 
 pub struct SystemArgs<'a> {
     control_flow: &'a mut ControlFlow,
-    components: &'a mut ComponentRegistry,
+    registry: &'a mut Registry,
     event_loop: &'a EventLoopWindowTarget<()>,
 }
 
 impl<'a> SystemArgs<'a> {
     pub fn new(
         control_flow: &'a mut ControlFlow,
-        components: &'a mut ComponentRegistry,
+        registry: &'a mut Registry,
         event_loop: &'a EventLoopWindowTarget<()>,
     ) -> Self {
         Self {
             control_flow,
-            components,
+            registry,
             event_loop,
         }
     }
@@ -27,16 +29,25 @@ impl<'a> SystemArgs<'a> {
         *self.control_flow = ControlFlow::Exit;
     }
     pub fn components(&mut self) -> &mut ComponentRegistry {
-        self.components
+        self.registry.get_component_registry_mut()
     }
     pub fn window_target(&self) -> &EventLoopWindowTarget<()> {
         self.event_loop
+    }
+    pub fn resources(&mut self) -> &mut ResourceManager {
+        self.registry.get_resource_manager_mut()
     }
 }
 
 pub trait System {
     fn update(&mut self, args: &mut SystemArgs);
     fn setup(&mut self, _: &mut SystemArgs) {}
+}
+
+impl<F: FnMut(&mut SystemArgs)> System for F {
+    fn update(&mut self, args: &mut SystemArgs) {
+        self(args);
+    }
 }
 
 #[derive(Default)]

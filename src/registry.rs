@@ -3,6 +3,8 @@ use std::{
     collections::HashMap,
 };
 
+use crate::resources::ResourceManager;
+
 use super::{
     components::{Component, ComponentCollection},
     entity::Entity,
@@ -76,6 +78,7 @@ impl ComponentRegistry {
 #[derive(Default)]
 pub struct Registry {
     components: ComponentRegistry,
+    resources: ResourceManager
 }
 impl Registry {
     pub fn get_component_registry(&self) -> &ComponentRegistry {
@@ -84,6 +87,13 @@ impl Registry {
     
     pub fn get_component_registry_mut(&mut self) -> &mut ComponentRegistry {
         &mut self.components
+    }
+    pub fn get_resource_manager(&self) -> &ResourceManager {
+        &self.resources
+    }
+    
+    pub fn get_resource_manager_mut(&mut self) -> &mut ResourceManager {
+        &mut self.resources
     }
 
 }
@@ -163,46 +173,21 @@ macro_rules! query {
         $e.get_mut($ent)
     };
 
-    ($args:expr,|$pre:tt $name:tt:$type:ty $(,$pres:tt $names:tt:$types:ty),*| $func:block) => {
+    ($registry:expr,  $pre:tt $type:ident $(,$pres:tt $types:ident)*) => {
         {
 
         use std::sync::{MutexGuard,Mutex,RwLockReadGuard,RwLockWriteGuard,Condvar,Arc};
         use matrix_engine::{systems::SystemArgs,registry::{ComponentRegistry,ReadError},components::{ComponentCollection}};
 
-        
+            let mut ans = Vec::new();
 
-            let registry = $args.components();
             #[allow(unused_mut,unused_variables)]
             {
             fn get_components<'a>(reg:&'a ComponentRegistry) -> Result<(query!($pre, $type,'a),$(query!($pres, $types,'a),)*),ReadError> {
                 Ok((query!($pre,reg,$type),$(query!($pres,reg,$types)),*))
             }
-            let mut state = get_components(&registry);
-                match state    
-                {
-                    Ok((mut $name,$(mut $names),*))=> {
-                        for (entity,$name) in query!($pre $name) {
-                            let ($($names,)*) = ($(match query!($pres $names,e){
-                                Some(a)=>a,
-                                None=>continue,
-                            }),*);
-                            $func
-                        }
-                    },
-                    Err(r) => {
-                        match r {
-                            ReadError::CantRead => panic!("cant read data!"),
-                            _=>{}
-                        } 
-                    },
-                }    
-            };
-
-
-        
             
-
+            ans
+       };
     }
-
-    };
 }

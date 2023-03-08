@@ -15,13 +15,13 @@ impl Component for A {}
 
 impl System for A {
     fn update(&mut self, args: &mut SystemArgs) {
-        query!(args,|read a: A| {
-            println!("a: {:?}",a);
-        });
-
+        let data = query!(args.components(),read A);
+        for (e, a) in data.iter() {
+            println!("{:?} {:?}",e,a);
+        }
         args.stop();
     }
-    fn setup(&mut self,args:&mut SystemArgs) {
+    fn setup(&mut self, args: &mut SystemArgs) {
         println!("nice");
     }
 }
@@ -30,9 +30,7 @@ impl System for A {
 struct B;
 impl System for B {
     fn update(&mut self, args: &mut SystemArgs) {
-        query!(args,|read a: A| {
-            println!("b: {:?}",a);
-        });
+        let data = query!(args.components(),read A);
 
         args.stop();
     }
@@ -51,6 +49,7 @@ fn main() {
         }
         reg
     });
+
 
     runtime.insert_system(A {});
     runtime.insert_system(B {});
