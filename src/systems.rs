@@ -3,30 +3,28 @@ use std::sync::{
     Arc, Condvar, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard,
 };
 
+use winit::event_loop::ControlFlow;
+
 use super::{components::Component, registry::ComponentRegistry};
 
-pub struct SystemArgs {
-    quit: Arc<AtomicBool>,
-    components: Arc<RwLock<ComponentRegistry>>,
+pub struct SystemArgs<'a> {
+    control_flow: &'a mut ControlFlow,
+    components: &'a mut ComponentRegistry,
 }
 
-impl SystemArgs {
-    pub fn new(
-        quit: Arc<AtomicBool>,
-        components: Arc<RwLock<ComponentRegistry>>,
-    ) -> Self {
-        
-        Self { quit, components }
+impl<'a> SystemArgs<'a> {
+    pub fn new(control_flow: &'a mut ControlFlow, components: &'a mut ComponentRegistry) -> Self {
+        Self {
+            control_flow,
+            components,
+        }
     }
 
-    pub fn stop(&self) {
-        self.quit.store(true, Ordering::Relaxed);
+    pub fn stop(&mut self) {
+        *self.control_flow = ControlFlow::Exit;
     }
-    pub fn read_components(&self) -> Option<RwLockReadGuard<ComponentRegistry>>{
-        self.components.read().ok()
-    }
-    pub fn write_components(&self) -> Option<RwLockWriteGuard<ComponentRegistry>>{
-        self.components.write().ok()
+    pub fn components(&mut self) -> &mut ComponentRegistry {
+        self.components
     }
 }
 
@@ -54,5 +52,3 @@ impl SystemCreator {
         (self.creator)()
     }
 }
-
-
