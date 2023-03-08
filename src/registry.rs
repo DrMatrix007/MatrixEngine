@@ -1,7 +1,6 @@
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
-    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Mutex, Condvar, TryLockError}, default,
 };
 
 use super::{
@@ -89,10 +88,11 @@ impl Registry {
 
 }
 
+#[allow(unused_imports)]
 mod tests {
-    use crate::{components::Component, entity::Entity};
 
-    use super::ComponentRegistry;
+    use crate::{components::Component, registry::ComponentRegistry, entity::Entity};
+
 
 
     struct A;

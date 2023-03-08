@@ -1,9 +1,8 @@
-use std::{collections::{HashMap, btree_map::Entry}};
+use std::collections::HashMap;
 
 use super::entity::Entity;
 
-pub trait Component:Send+Sync {}
-
+pub trait Component: Send + Sync {}
 
 #[derive(Debug)]
 pub struct ComponentCollection<T: Component>(HashMap<Entity, T>);
@@ -22,10 +21,10 @@ impl<T: Component> ComponentCollection<T> {
         self.0.remove(&e)
     }
 
-    pub fn get(&self,e:&Entity) -> Option<&T> {
+    pub fn get(&self, e: &Entity) -> Option<&T> {
         self.0.get(e)
     }
-    pub fn get_mut(&mut self,e:&Entity) -> Option<&mut T> {
+    pub fn get_mut(&mut self, e: &Entity) -> Option<&mut T> {
         self.0.get_mut(e)
     }
 
