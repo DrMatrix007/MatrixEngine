@@ -1,7 +1,6 @@
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
-    default,
 };
 
 use crate::registry::ReadError;

@@ -6,9 +6,9 @@ use std::{
 use crate::components::IComponentCollection;
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
-pub enum Action<T> {
-    Read(T),
-    Write(T),
+pub enum Action<A> {
+    Read(A),
+    Write(A),
 }
 
 impl<T> Action<T> {
@@ -17,14 +17,16 @@ impl<T> Action<T> {
             Action::Read(data) | Action::Write(data) => data,
         }
     }
-    pub fn unpack_ref(&self) -> &T {
+    pub fn read(&self) -> &T {
         match self {
             Action::Read(data) | Action::Write(data) => data,
         }
     }
-    pub fn unpack_mut(&mut self) -> &mut T {
-        match self {
-            Action::Read(data) | Action::Write(data) => data,
+    pub fn write(&mut self) -> Option<&mut T> {
+        if let Self::Write(data) = self {
+            Some(data)
+        } else {
+            None
         }
     }
 }

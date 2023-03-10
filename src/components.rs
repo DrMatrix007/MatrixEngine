@@ -1,14 +1,3 @@
-<<<<<<< HEAD
-use std::collections::HashMap;
-
-use super::entity::Entity;
-
-pub trait Component: Send + Sync {}
-
-#[derive(Debug)]
-pub struct ComponentCollection<T: Component>(HashMap<Entity, T>);
-
-=======
 use std::{any::Any, collections::HashMap, fmt::Debug};
 
 use super::entity::Entity;
@@ -40,7 +29,6 @@ impl<T: Component + Clone + 'static> IComponentCollection for ComponentCollectio
     }
 }
 
->>>>>>> temp
 impl<T: Component> Default for ComponentCollection<T> {
     fn default() -> Self {
         Self(Default::default())
