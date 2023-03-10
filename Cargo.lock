@@ -3,6 +3,7 @@
 version = 3
 
 [[package]]
+<<<<<<< HEAD
 name = "ab_glyph"
 version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -286,12 +287,15 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> temp
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
+<<<<<<< HEAD
 name = "libc"
 version = "0.2.139"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -317,17 +321,23 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> temp
 name = "matrix_engine"
 version = "0.1.0"
 dependencies = [
  "lazy_static",
+<<<<<<< HEAD
  "paste",
+=======
+>>>>>>> temp
  "spin_sleep",
  "tokio",
  "winit",
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -490,12 +500,15 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> temp
 name = "once_cell"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
 
 [[package]]
+<<<<<<< HEAD
 name = "orbclient"
 version = "0.3.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -658,6 +671,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> temp
 name = "spin_sleep"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -668,6 +683,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "strict-num"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -925,6 +941,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> temp
 name = "winapi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
