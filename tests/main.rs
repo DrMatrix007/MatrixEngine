@@ -12,22 +12,24 @@ use matrix_engine::{
 };
 
 #[derive(Debug, Clone)]
-struct A;
+struct A(pub i32);
 
 impl Component for A {}
 
 impl System for A {
     fn update(&mut self, args: &mut SystemArgs) {
-        let ans = args
+        let mut ans = args
             .query([Action::Write(TypeId::of::<A>())].into_iter())
             .unwrap();
 
+        for (e, i) in ans.iter_mut::<A>().unwrap() {
+            i.0 = self.0;
+            println!("changed!");
+        }
 
         ans.finish().unwrap();
 
         args.stop();
-
-        
     }
 }
 
@@ -36,12 +38,14 @@ struct B;
 impl System for B {
     fn update(&mut self, args: &mut SystemArgs) {
         let ans = args
-        .query([Action::Write(TypeId::of::<A>())].into_iter())
-        .unwrap();
+            .query([Action::Read(TypeId::of::<A>())].into_iter())
+            .unwrap();
+        for (e, i) in ans.iter_ref::<A>().unwrap() {
+            println!("{}", i.0);
+        }
 
-    args.stop();
-    ans.finish().unwrap();
-
+        args.stop();
+        ans.finish().unwrap();
     }
 }
 
@@ -52,14 +56,14 @@ fn main() {
 
     let mut runtime = Runtime::with_registry({
         let mut r = RegistryBuilder::default();
-        r.insert(Entity::default(), A).unwrap();
-        r.insert(Entity::default(), A).unwrap();
-        r.insert(Entity::default(), A).unwrap();
+        r.insert(Entity::default(), A(5)).unwrap();
+        r.insert(Entity::default(), A(7)).unwrap();
+        r.insert(Entity::default(), A(8)).unwrap();
 
         r.build()
     });
 
-    runtime.insert_system(SystemCreator::with_function(|| Box::new(A)));
+    runtime.insert_system(SystemCreator::with_function(|| Box::new(A(6))));
     runtime.insert_system(SystemCreator::with_function(|| Box::new(B)));
 
     runtime.run();

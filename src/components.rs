@@ -14,7 +14,7 @@ pub trait IComponentCollection: Send + Sync {
 #[derive(Debug, Clone)]
 pub struct ComponentCollection<T: Component>(HashMap<Entity, T>);
 
-impl<T: Component + Clone + 'static> IComponentCollection for ComponentCollection<T> {
+impl<T: Component + 'static> IComponentCollection for ComponentCollection<T> {
     fn remove(&mut self, e: &Entity) {
         self.0.remove(e);
     }
@@ -57,3 +57,5 @@ impl<T: Component> ComponentCollection<T> {
         self.0.iter_mut()
     }
 }
+
+pub struct ComponentCollectionReference<'a, T: Component + 'static>(HashMap<Entity, &'a T>);

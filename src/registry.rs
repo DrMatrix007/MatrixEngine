@@ -132,7 +132,7 @@ impl ComponentRegistry {
                         match data {
                             ComponentCollectionState::Available(a) => {
                                 self.data.insert(*id, ComponentCollectionState::Taken);
-                                Action::Write(a.clone_vec())
+                                Action::Write(a)
                             }
                             _ => {
                                 panic!("should not be here!");
@@ -147,12 +147,19 @@ impl ComponentRegistry {
     }
     pub fn update_query_result(&mut self, r: QueryData) {
         for (k, v) in r.data.into_iter() {
-            match self.data.get_mut(&k) {
+            match self.data.remove(&k) {
                 Some(data) => match data {
                     ComponentCollectionState::Available(_) => {
                         panic!("this value should not be available if we get it from a query data.")
                     }
-                    ComponentCollectionState::ReadOnly(_, i) => *i = (*i - 1).max(0),
+                    ComponentCollectionState::ReadOnly(data,mut i) => {
+                        i = (i - 1).max(0);
+                        if i == 0 {
+                            self.data.insert(k, ComponentCollectionState::Available(data));
+                        }else {
+                            self.data.insert(k, ComponentCollectionState::ReadOnly(data, i));
+                        }
+                    },
                     ComponentCollectionState::Taken => {
                         self.data.insert(k, ComponentCollectionState::Available(v.unpack()));
                     }

@@ -6,19 +6,18 @@ use std::{
 use crate::components::IComponentCollection;
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
-pub enum Action<A, B = A> {
+pub enum Action<A> {
     Read(A),
-    Write(B),
+    Write(A),
 }
 
-impl<A, B> Action<A, B> {
-    pub fn read(&self) -> Option<&A> {
+impl<T> Action<T> {
+    pub fn read(&self) -> Option<&T> {
         match self {
-            Action::Read(data) => Some(data),
-            Action::Write(_) => None,
+            Action::Read(data) | Action::Write(data) => Some(data),
         }
     }
-    pub fn write(&mut self) -> Option<&mut B> {
+    pub fn write(&mut self) -> Option<&mut T> {
         if let Self::Write(data) = self {
             Some(data)
         } else {
@@ -64,7 +63,7 @@ pub struct Query {
 // unsafe impl Sync for Query {}
 
 #[derive(Default)]
-pub struct  QueryData {
+pub struct QueryData {
     pub data: HashMap<TypeId, Action<Box<dyn IComponentCollection>>>,
 }
 impl QueryData {

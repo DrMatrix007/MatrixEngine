@@ -61,24 +61,10 @@ impl Runtime {
                 Ok(res) => match res {
                     HandleDone::Data(data) => {
                         response.send(data).unwrap();
+                        self.try_clear(&mut queries);
                     }
                     HandleDone::HandledQueryData => {
-                        for _ in 0..queries.len() {
-                            let (query, sender) = queries.pop_front().unwrap();
-                            match self.handle_query(QueryRequest::Query(query)) {
-                                Ok(data) => {
-                                    match data {
-                                        HandleDone::Data(data) => sender.send(data).unwrap(),
-                                        HandleDone::HandledQueryData => {
-                                            panic!("should not be here")
-                                        }
-                                    };
-                                }
-                                Err((_, q)) => {
-                                    queries.push_back((q, sender));
-                                }
-                            };
-                        }
+                        self.try_clear(&mut queries);
                     }
                 },
                 Err((err, q)) => {
@@ -113,10 +99,28 @@ impl Runtime {
                 },
             },
             QueryRequest::QueryDone(data) => {
-                println!("got it");
                 self.registry.components.update_query_result(data);
                 HandleDone::HandledQueryData
             }
         })
+    }
+
+    fn try_clear(&mut self, queries: &mut VecDeque<(Query, RequestSender<QueryResult>)>) {
+        for _ in 0..queries.len() {
+            let (query, sender) = queries.pop_front().unwrap();
+            match self.handle_query(QueryRequest::Query(query)) {
+                Ok(data) => {
+                    match data {
+                        HandleDone::Data(data) => sender.send(data).unwrap(),
+                        HandleDone::HandledQueryData => {
+                            panic!("should not be here")
+                        }
+                    };
+                }
+                Err((_, q)) => {
+                    queries.push_back((q, sender));
+                }
+            };
+        }
     }
 }

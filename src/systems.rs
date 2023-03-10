@@ -8,9 +8,12 @@ use std::{
     },
     thread::{self, JoinHandle},
     time::{Duration, Instant},
+    vec,
 };
 
 use crate::{
+    components::{Component, ComponentCollection},
+    entity::Entity,
     queries::query::{Action, Query, QueryData, QueryRequest, QueryResult},
     server_client::{Client, Request, Response},
 };
@@ -35,6 +38,33 @@ impl QueryCollection {
         } else {
             Ok(())
         }
+    }
+    pub fn iter_ref<T: Component + 'static>(&self) -> Option<Vec<(&Entity, &T)>> {
+        Some(match &self.data {
+            QueryResult::Ok { data } => data
+                .data
+                .get(&TypeId::of::<T>())?
+                .read()?
+                .as_any()
+                .downcast_ref::<ComponentCollection<T>>()?
+                .iter()
+                .collect::<Vec<_>>(),
+            _ => vec![],
+        })
+    }
+    pub fn iter_mut<T: Component + 'static>(&mut self) -> Option<vec::IntoIter<(&Entity, &mut T)>> {
+        Some(match &mut self.data {
+            QueryResult::Ok { data } => data
+                .data
+                .get_mut(&TypeId::of::<T>())?
+                .write()?
+                .as_any_mut()
+                .downcast_mut::<ComponentCollection<T>>()?
+                .iter_mut()
+                .collect::<Vec<_>>()
+                .into_iter(),
+            _ => vec![].into_iter(),
+        })
     }
 }
 
