@@ -6,9 +6,25 @@ use std::{
 use crate::components::IComponentCollection;
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
-pub enum Action<A> {
+pub enum Action<A, B = A> {
     Read(A),
-    Write(A),
+    Write(B),
+}
+
+impl<A, B> Action<A, B> {
+    pub fn read(&self) -> Option<&A> {
+        match self {
+            Action::Read(data) => Some(data),
+            Action::Write(_) => None,
+        }
+    }
+    pub fn write(&mut self) -> Option<&mut B> {
+        if let Self::Write(data) = self {
+            Some(data)
+        } else {
+            None
+        }
+    }
 }
 
 impl<T> Action<T> {
@@ -17,18 +33,18 @@ impl<T> Action<T> {
             Action::Read(data) | Action::Write(data) => data,
         }
     }
-    pub fn read(&self) -> &T {
-        match self {
-            Action::Read(data) | Action::Write(data) => data,
-        }
-    }
-    pub fn write(&mut self) -> Option<&mut T> {
-        if let Self::Write(data) = self {
-            Some(data)
-        } else {
-            None
-        }
-    }
+    // pub fn read(&self) -> &T {
+    //     match self {
+    //         Action::Read(data) | Action::Write(data) => data,
+    //     }
+    // }
+    // pub fn write(&mut self) -> Option<&mut T> {
+    //     if let Self::Write(data) = self {
+    //         Some(data)
+    //     } else {
+    //         None
+    //     }
+    // }
 }
 
 impl Action<TypeId> {
@@ -48,7 +64,7 @@ pub struct Query {
 // unsafe impl Sync for Query {}
 
 #[derive(Default)]
-pub struct QueryData {
+pub struct  QueryData {
     pub data: HashMap<TypeId, Action<Box<dyn IComponentCollection>>>,
 }
 impl QueryData {
