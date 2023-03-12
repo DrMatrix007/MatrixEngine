@@ -1,4 +1,8 @@
-use std::{any::Any, collections::HashMap, fmt::Debug};
+use std::{
+    any::Any,
+    collections::{hash_map, HashMap},
+    fmt::Debug,
+};
 
 use super::entity::Entity;
 
@@ -50,10 +54,10 @@ impl<T: Component> ComponentCollection<T> {
         self.0.get_mut(e)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&Entity, &T)> {
+    pub fn iter(&self) -> hash_map::Iter<Entity, T> {
         self.0.iter()
     }
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Entity, &mut T)> {
+    pub fn iter_mut(&mut self) -> hash_map::IterMut<Entity, T> {
         self.0.iter_mut()
     }
 }

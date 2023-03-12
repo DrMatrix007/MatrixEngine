@@ -2,7 +2,7 @@ use crate::{
     components::{IComponentCollection, Component, ComponentCollection},
     queries::query::{Query, QueryData, Action}, entity::Entity,
 };
-use std::{any::TypeId, collections::HashMap};
+use std::{any::TypeId, collections::HashMap, cell::{RefCell, Cell}};
 
 #[derive(Debug)]
 pub struct InsertError;
@@ -110,14 +110,14 @@ impl ComponentRegistry {
                                     *id,
                                     ComponentCollectionState::ReadOnly(a.clone_vec(), 1),
                                 );
-                                Action::Read(a)
+                                Action::Read(Cell::new(a))
                             }
                             ComponentCollectionState::ReadOnly(a, count) => {
                                 self.data.insert(
                                     *id,
                                     ComponentCollectionState::ReadOnly(a.clone_vec(), count + 1),
                                 );
-                                Action::Read(a)
+                                Action::Read(Cell::new(a))
                             }
                             _ => {
                                 panic!("should not be here!");
@@ -132,7 +132,7 @@ impl ComponentRegistry {
                         match data {
                             ComponentCollectionState::Available(a) => {
                                 self.data.insert(*id, ComponentCollectionState::Taken);
-                                Action::Write(a)
+                                Action::Write(RefCell::new(a))
                             }
                             _ => {
                                 panic!("should not be here!");
@@ -161,11 +161,17 @@ impl ComponentRegistry {
                         }
                     },
                     ComponentCollectionState::Taken => {
-                        self.data.insert(k, ComponentCollectionState::Available(v.unpack()));
+                        self.data.insert(k, ComponentCollectionState::Available(match v {
+                            Action::Read(a) => a.into_inner(),
+                            Action::Write(a) => a.into_inner(),
+                        }));
                     }
                 },
                 None => {
-                    self.data.insert(k, ComponentCollectionState::Available(v.unpack()));
+                    self.data.insert(k, ComponentCollectionState::Available(match v {
+                        Action::Read(a) => a.into_inner(),
+                        Action::Write(a) => a.into_inner(),
+                    }));
                 }
             }
         }

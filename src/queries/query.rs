@@ -1,49 +1,67 @@
 use std::{
     any::TypeId,
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet}, cell::{Ref, RefCell},
 };
 
 use crate::components::IComponentCollection;
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
-pub enum Action<A> {
-    Read(A),
-    Write(A),
+pub enum Action<Read, Write = Read> {
+    Read(Read),
+    Write(Write),
 }
 
-impl<T> Action<T> {
-    pub fn read(&self) -> Option<&T> {
-        match self {
-            Action::Read(data) | Action::Write(data) => Some(data),
-        }
-    }
-    pub fn write(&mut self) -> Option<&mut T> {
-        if let Self::Write(data) = self {
-            Some(data)
-        } else {
-            None
-        }
-    }
-}
+// impl<T> Action<T> {
+//     pub fn read(&self) -> Option<&T> {
+//         if let Action::Read(data) = self {
+//             Some(data)
+//         } else {
+//             None
+//         }
+//     }
+//     pub fn write(&mut self) -> Option<&mut T> {
+//         if let Self::Write(data) = self {
+//             Some(data)
+//         } else {
+//             None
+//         }
+//     }
+// }
 
-impl<T> Action<T> {
-    pub fn unpack(self) -> T {
-        match self {
-            Action::Read(data) | Action::Write(data) => data,
+impl<Read,Write> Action<Read,Write> {
+        // pub fn unpack(self) -> T {
+        //     match self {
+        //         Action::Read(data) | Action::Write(data) => data,
+        //     }
+        // }
+        pub fn into_read(self) -> Option<Read> {
+            if let Action::Read(data) = self {
+                Some(data)
+            } else {
+                None
+            }
         }
-    }
-    // pub fn read(&self) -> &T {
-    //     match self {
-    //         Action::Read(data) | Action::Write(data) => data,
-    //     }
-    // }
-    // pub fn write(&mut self) -> Option<&mut T> {
-    //     if let Self::Write(data) = self {
-    //         Some(data)
-    //     } else {
-    //         None
-    //     }
-    // }
+        pub fn into_write(self) -> Option<Write> {
+            if let Self::Write(data) = self {
+                Some(data)
+            } else {
+                None
+            }
+        }
+        pub fn read(&self) -> Option<&Read> {
+            if let Action::Read(data) = self {
+                Some(data)
+            } else {
+                None
+            }
+        }
+        pub fn write(&self) -> Option<&Write> {
+            if let Self::Write(data) = self {
+                Some(data)
+            } else {
+                None
+            }
+        }
 }
 
 impl Action<TypeId> {
@@ -64,10 +82,10 @@ pub struct Query {
 
 #[derive(Default)]
 pub struct QueryData {
-    pub data: HashMap<TypeId, Action<Box<dyn IComponentCollection>>>,
+    pub data: HashMap<TypeId, Action<Box<dyn IComponentCollection>,RefCell<Box<dyn IComponentCollection>>>>,
 }
 impl QueryData {
-    pub fn with(data: HashMap<TypeId, Action<Box<dyn IComponentCollection>>>) -> QueryData {
+    pub fn with(data: HashMap<TypeId, Action<Box<dyn IComponentCollection>,RefCell<Box<dyn IComponentCollection>>>>) -> QueryData {
         Self { data }
     }
 }

@@ -22,10 +22,10 @@ impl System for A {
             .query([Action::Write(TypeId::of::<A>())].into_iter())
             .unwrap();
 
-        for (e, i) in ans.iter_mut::<A>().unwrap() {
-            i.0 = self.0;
-            println!("changed!");
-        }
+        // for (e, i) in ans.iter_mut::<A>().unwrap() {
+        //     i.0 = self.0;
+        //     println!("changed!");
+        // }
 
         ans.finish().unwrap();
 
@@ -40,9 +40,9 @@ impl System for B {
         let ans = args
             .query([Action::Read(TypeId::of::<A>())].into_iter())
             .unwrap();
-        for (e, i) in ans.iter_ref::<A>().unwrap() {
-            println!("{}", i.0);
-        }
+        // for (e, i) in ans.iter_ref::<A>().unwrap() {
+        //     println!("{}", i.0);
+        // }
 
         args.stop();
         ans.finish().unwrap();
