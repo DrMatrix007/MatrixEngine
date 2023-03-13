@@ -14,6 +14,10 @@ pub struct Request<T, M> {
     sender: Sender<Response<M>>,
 }
 impl<T, M> Request<T, M> {
+    pub fn new(data: T, sender: Sender<Response<M>>) -> Self {
+        Self { data, sender }
+    }
+
     pub fn unpack(self) -> (T, RequestSender<M>) {
         (self.data, RequestSender::<M>(self.sender))
     }
@@ -57,10 +61,11 @@ impl<T, M> Server<T, M> {
     }
 }
 
-pub struct Client<T, M> {
-    server: Sender<Request<T, M>>,
-    receiver: Receiver<Response<M>>,
-    sender: Sender<Response<M>>,
+#[derive(Debug)]
+pub struct Client<Req, Res> {
+    server: Sender<Request<Req, Res>>,
+    receiver: Receiver<Response<Res>>,
+    sender: Sender<Response<Res>>,
 }
 
 impl<T, M> Client<T, M> {
@@ -75,6 +80,9 @@ impl<T, M> Client<T, M> {
 
     pub fn sender(&self) -> Sender<Response<M>> {
         self.sender.clone()
+    }
+    pub fn server_sender(&self) -> Sender<Request<T, M>> {
+        self.server.clone()
     }
     pub fn send(&self, data: T) -> Result<(), SendError<Request<T, M>>> {
         self.server.send(Request {

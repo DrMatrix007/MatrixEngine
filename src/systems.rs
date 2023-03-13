@@ -11,36 +11,54 @@ use std::{
 };
 
 use crate::{
-    queries::query::{Action, Query, QueryRequest, QueryResult},
+    query::{Action, QueryData, QueryRequest},
     server_client::{Client, Request},
 };
 
+#[derive(Debug)]
+pub struct QueryResult<'a> {
+    data: QueryData,
+    sender: &'a mut Client<QueryRequest, QueryData>,
+}
+
+impl<'a> QueryResult<'a> {
+    pub fn new(data: QueryData, sender: &'a mut Client<QueryRequest, QueryData>) -> Self {
+        Self { data, sender }
+    }
+    pub fn data_mut(&mut self) -> &mut QueryData {
+        &mut self.data
+    }
+    pub fn finish(self) {
+        self.sender.send(QueryRequest::Done(self.data)).unwrap();
+    }
+}
+
 pub struct SystemArgs {
     quit: Arc<AtomicBool>,
-    conn: Client<QueryRequest, QueryResult>,
+    client: Client<QueryRequest, QueryData>,
 }
 
 impl SystemArgs {
-    pub fn new(quit: Arc<AtomicBool>, sender: Sender<Request<QueryRequest, QueryResult>>) -> Self {
+    pub fn new(quit: Arc<AtomicBool>, server: Sender<Request<QueryRequest, QueryData>>) -> Self {
         Self {
             quit,
-            conn: Client::new(sender),
+            client: Client::new(server),
         }
     }
 
+    pub fn query<T>(&mut self, actions: T) -> QueryResult<'_>
+    where
+        T: Iterator<Item = Action<TypeId>>,
+    {
+        let set = actions.collect::<HashSet<Action<TypeId>>>();
+        self.client.send(QueryRequest::Request(set)).unwrap();
+        QueryResult {
+            data: self.client.recv().unwrap().unpack(),
+            sender: &mut self.client,
+        }
+    }
     pub fn stop(&self) {
         self.quit.store(true, Ordering::Relaxed);
-    }
-    pub fn query<T>(&self, m: impl Iterator<Item = T>) -> Option<QueryResult>
-    where
-        HashSet<Action<TypeId>>: FromIterator<T>,
-    {
-        let map = m.collect();
-        self.conn
-            .send(QueryRequest::Query(Query { data: map }))
-            .ok()?;
-
-        self.conn.recv().ok().map(|x| x.unpack())
     }
 }
 
@@ -48,11 +66,24 @@ pub trait System {
     fn update(&mut self, args: &mut SystemArgs);
 }
 
+pub struct SystemCreator {
+    f: Box<dyn FnOnce() -> Box<dyn System> + Send>,
+}
+
+impl SystemCreator {
+    pub fn new(f: Box<dyn FnOnce() -> Box<dyn System> + Send>) -> Self {
+        Self { f }
+    }
+    pub fn create(self) -> Box<dyn System> {
+        (self.f)()
+    }
+}
+
 pub(crate) fn spawn_system(
     sys: SystemCreator,
     target_fps: Arc<AtomicU64>,
     quit: Arc<AtomicBool>,
-    sender: Sender<Request<QueryRequest, QueryResult>>,
+    sender: Sender<Request<QueryRequest, QueryData>>,
 ) -> JoinHandle<()> {
     thread::spawn(move || {
         let mut sys = sys.create();
@@ -75,25 +106,4 @@ pub(crate) fn spawn_system(
             }
         }
     })
-}
-
-pub struct SystemCreator {
-    creator: Box<dyn FnOnce() -> Box<dyn System> + Send + Sync>,
-}
-
-impl SystemCreator {
-    pub fn default_function<T: System + Default + 'static>() -> Self {
-        Self {
-            creator: Box::new(|| Box::<T>::default()),
-        }
-    }
-    pub fn with_function(f: impl FnOnce() -> Box<dyn System> + Send + Sync + 'static) -> Self {
-        Self {
-            creator: Box::new(f),
-        }
-    }
-
-    pub fn create(self) -> Box<dyn System> {
-        (self.creator)()
-    }
 }

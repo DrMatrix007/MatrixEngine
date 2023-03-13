@@ -1,76 +1,56 @@
-#![allow(dead_code, unused_imports, unused_variables)]
-
-use std::{any::TypeId, sync::Mutex, time::Instant};
+use std::any::TypeId;
 
 use matrix_engine::{
-    components::{Component, ComponentCollection},
+    components::{Component, ComponentRegistryBuilder},
+    engine::Engine,
     entity::Entity,
-    queries::query::Action,
-    registry::{Registry, RegistryBuilder},
-    runtime::Runtime,
-    systems::{System, SystemArgs, SystemCreator},
+    query::{Action, QueryIterable},
+    systems::System,
 };
-
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct A;
 
 impl Component for A {}
 
 impl System for A {
-    fn update(&mut self, args: &mut SystemArgs) {
-        let ans = args
-            .query([Action::Read(TypeId::of::<A>())].into_iter())
-            .unwrap();
+    fn update(&mut self, args: &mut matrix_engine::systems::SystemArgs) {
+        let mut data = args.query(
+            [
+                Action::Read(TypeId::of::<A>()),
+                Action::Read(TypeId::of::<B>()),
+            ]
+            .into_iter(),
+        );
+        println!("started:");
+        for (e, data) in data.data_mut().create_iter() {
+            println!("{e:?} {:?}", data.len());
+        }
+
+        data.finish();
 
         args.stop();
-
-        println!(
-            "nice! {}",
-            match ans {
-                matrix_engine::queries::query::QueryResult::Ok { data } => format!(
-                    "{}",
-                    data.data
-                        .iter()
-                        .next()
-                        .unwrap()
-                        .1
-                        .unpack_ref()
-                        .as_any()
-                        .downcast_ref::<ComponentCollection<A>>()
-                        .unwrap()
-                        .iter()
-                        .count()
-                ),
-                matrix_engine::queries::query::QueryResult::Empty => "empty".to_owned(),
-            }
-        );
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 struct B;
-impl System for B {
-    fn update(&mut self, args: &mut SystemArgs) {}
-}
 
 impl Component for B {}
 
 fn main() {
-    let start = Instant::now();
+    let mut engine = Engine::with_registry({
+        let mut r = ComponentRegistryBuilder::default();
 
-    let mut runtime = Runtime::with_registry({
-        let mut r = RegistryBuilder::default();
-        r.insert(Entity::default(), A).unwrap();
-        r.insert(Entity::default(), A).unwrap();
-        r.insert(Entity::default(), A).unwrap();
+        for _ in 0..2 {
+            let e = Entity::default();
+            r.insert(e, A {}).unwrap();
+            r.insert(e, B {}).unwrap();
+        }
 
         r.build()
     });
 
-    runtime.insert_system(SystemCreator::with_function(|| Box::new(A)));
-    runtime.insert_system(SystemCreator::with_function(|| Box::new(B)));
+    engine.insert_system(|| Box::new(A));
 
-    runtime.run();
-
-    println!("Hello, world!, {:?}", Instant::now() - start);
+    engine.run();
 }
