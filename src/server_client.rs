@@ -61,10 +61,11 @@ impl<T, M> Server<T, M> {
     }
 }
 
-pub struct Client<T, M> {
-    server: Sender<Request<T, M>>,
-    receiver: Receiver<Response<M>>,
-    sender: Sender<Response<M>>,
+#[derive(Debug)]
+pub struct Client<Req, Res> {
+    server: Sender<Request<Req, Res>>,
+    receiver: Receiver<Response<Res>>,
+    sender: Sender<Response<Res>>,
 }
 
 impl<T, M> Client<T, M> {

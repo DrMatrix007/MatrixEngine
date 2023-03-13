@@ -1,72 +1,56 @@
-#![allow(dead_code, unused_imports, unused_variables)]
-
-use std::{any::TypeId, sync::Mutex, time::Instant};
+use std::any::TypeId;
 
 use matrix_engine::{
-    components::{Component, ComponentCollection},
+    components::{Component, ComponentRegistryBuilder},
+    engine::Engine,
     entity::Entity,
-    queries::query::Action,
-    registry::{Registry, RegistryBuilder},
-    runtime::Runtime,
-    systems::{System, SystemArgs, SystemCreator},
+    query::{Action, QueryIterable},
+    systems::System,
 };
-
-#[derive(Debug, Clone)]
-struct A(pub i32);
+#[derive(Debug)]
+struct A;
 
 impl Component for A {}
 
 impl System for A {
-    fn update(&mut self, args: &mut SystemArgs) {
-        let mut ans = args
-            .query([Action::Write(TypeId::of::<A>())].into_iter())
-            .unwrap();
+    fn update(&mut self, args: &mut matrix_engine::systems::SystemArgs) {
+        let mut data = args.query(
+            [
+                Action::Read(TypeId::of::<A>()),
+                Action::Read(TypeId::of::<B>()),
+            ]
+            .into_iter(),
+        );
+        println!("started:");
+        for (e, data) in data.data_mut().create_iter() {
+            println!("{e:?} {:?}", data.len());
+        }
 
-        // for (e, i) in ans.iter_mut::<A>().unwrap() {
-        //     i.0 = self.0;
-        //     println!("changed!");
-        // }
-
-        ans.finish().unwrap();
+        data.finish();
 
         args.stop();
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 struct B;
-impl System for B {
-    fn update(&mut self, args: &mut SystemArgs) {
-        let ans = args
-            .query([Action::Read(TypeId::of::<A>())].into_iter())
-            .unwrap();
-        // for (e, i) in ans.iter_ref::<A>().unwrap() {
-        //     println!("{}", i.0);
-        // }
-
-        args.stop();
-        ans.finish().unwrap();
-    }
-}
 
 impl Component for B {}
 
 fn main() {
-    let start = Instant::now();
+    let mut engine = Engine::with_registry({
+        let mut r = ComponentRegistryBuilder::default();
 
-    let mut runtime = Runtime::with_registry({
-        let mut r = RegistryBuilder::default();
-        r.insert(Entity::default(), A(5)).unwrap();
-        r.insert(Entity::default(), A(7)).unwrap();
-        r.insert(Entity::default(), A(8)).unwrap();
+        for _ in 0..2 {
+            let e = Entity::default();
+            r.insert(e, A {}).unwrap();
+            r.insert(e, B {}).unwrap();
+        }
 
         r.build()
     });
 
-    runtime.insert_system(SystemCreator::with_function(|| Box::new(A(6))));
-    runtime.insert_system(SystemCreator::with_function(|| Box::new(B)));
+    engine.insert_system(|| Box::new(A));
 
-    runtime.run();
-
-    println!("Hello, world!, {:?}", Instant::now() - start);
+    engine.run();
 }
