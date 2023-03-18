@@ -4,8 +4,8 @@ use matrix_engine::{
     components::{Component, ComponentRegistryBuilder},
     engine::Engine,
     entity::Entity,
-    query::{Action},
-    systems::System,
+    query::{Action, QueryData},
+    systems::{QueryResultData, System},
 };
 #[derive(Debug)]
 struct A;
@@ -21,8 +21,14 @@ impl System for A {
             ]
             .into_iter(),
         );
+        // {
+        let mut i = QueryResultData::<(&A, &B)>::from(&mut data);
 
-        
+        for it in i.iter_mut() {
+            println!("{:?}", it);
+        }
+        // }
+        // drop(i);
         // println!("started:");
         // for (e, data) in data.iter() {
         //     println!("{e:?} {:?}", data.len());

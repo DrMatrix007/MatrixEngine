@@ -1,18 +1,21 @@
 use std::{
     any::TypeId,
-    cell::{RefCell, RefMut, Ref},
-    collections::{HashSet, hash_map},
+    borrow::{Borrow, BorrowMut},
+    cell::{Ref, RefCell, RefMut},
+    collections::{hash_map, HashMap, HashSet},
+    marker::PhantomData,
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
         mpsc::{SendError, Sender},
         Arc, Mutex,
     },
     thread::{self, JoinHandle},
-    time::{Duration, Instant}, borrow::{BorrowMut, Borrow},
+    time::{Duration, Instant},
 };
 
 use crate::{
-    query::{Action, QueryRawData, QueryRequest},
+    entity::Entity,
+    query::{Action, QueryData, QueryRawData, QueryRequest},
     server_client::{Client, Request},
 };
 
@@ -20,6 +23,28 @@ use crate::{
 pub struct QueryResult<'a> {
     data: QueryRawData,
     sender: &'a mut Client<QueryRequest, QueryRawData>,
+}
+pub struct QueryResultData<'b, Data: QueryData<'b>> {
+    maker: PhantomData<&'b Data>,
+    data: HashMap<&'b Entity, Data::SingleResult>,
+}
+
+impl<'b, Data: QueryData<'b>> QueryResultData<'b, Data> {
+    pub fn iter(&'b self) -> hash_map::Iter<&'b Entity, <Data as QueryData>::SingleResult> {
+        self.data.iter()
+    }
+    pub fn iter_mut(&'b mut self) -> hash_map::IterMut<&'b Entity, <Data as QueryData>::SingleResult> {
+        self.data.iter_mut()
+    }
+}
+
+impl<'a, 'b, Data: QueryData<'b>> From<&'b mut QueryResult<'a>> for QueryResultData<'b, Data> {
+    fn from(value: &'b mut QueryResult<'a>) -> Self {
+        Self {
+            data: Data::from_raw(value.data.iter_mut().collect::<HashMap<_, _>>()).0,
+            maker: PhantomData,
+        }
+    }
 }
 
 impl<'a> QueryResult<'a> {

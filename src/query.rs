@@ -80,7 +80,7 @@ pub type QueryCollectionData = Action<Arc<Box<dyn Any + Send + Sync>>, Box<dyn A
 
 // #[derive(Default,Debug)]
 pub type QueryRawData = HashMap<TypeId, QueryCollectionData>;
-pub type QueryRawDataRefMut<'a> = HashMap<TypeId, &'a mut QueryCollectionData>;
+pub type QueryRawDataRefMut<'a> = HashMap<&'a TypeId, &'a mut QueryCollectionData>;
 pub trait QueryData<'a> {
     type SingleResult;
 
@@ -146,7 +146,7 @@ macro_rules! impl_query_data {
         impl<'a, $t:QueryData<'a>,$($ts:QueryData<'a>,)*> QueryData<'a> for ($t,$($ts,)*) {
             type SingleResult = ($t::SingleResult, $($ts::SingleResult,)*);
 
-            fn from_raw(mut vec: HashMap<TypeId,&'a mut QueryCollectionData>) -> (HashMap<&'a Entity,Self::SingleResult>,HashMap<TypeId,&'a mut QueryCollectionData>) {
+            fn from_raw(vec: QueryRawDataRefMut<'a>) -> (HashMap<&'a Entity,Self::SingleResult>,QueryRawDataRefMut<'a>) {
                 // let mut map = vec.iter_mut().collect::<HashMap::<_,_>>();
 
                 let (mut $n,vec) = $t::from_raw(vec);
