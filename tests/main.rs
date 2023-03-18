@@ -28,7 +28,7 @@ impl System for A {
             println!("{:?}", it);
         }
         // }
-        // drop(i);
+        drop(i);
         // println!("started:");
         // for (e, data) in data.iter() {
         //     println!("{e:?} {:?}", data.len());

@@ -24,19 +24,32 @@ pub struct QueryResult<'a> {
     data: QueryRawData,
     sender: &'a mut Client<QueryRequest, QueryRawData>,
 }
+
 pub struct QueryResultData<'b, Data: QueryData<'b>> {
     maker: PhantomData<&'b Data>,
-    data: HashMap<&'b Entity, Data::SingleResult>,
+    data: HashMap<&'b Entity, Data::Single<'b>>,
+}
+
+impl<'b, Data: QueryData<'b>> IntoIterator for QueryResultData<'b, Data> {
+    fn into_iter(self) -> hash_map::IntoIter<&'b Entity, Data::Single<'b>> {
+        self.data.into_iter()
+    }
+
+    type Item = (&'b Entity, Data::Single<'b>);
+
+    type IntoIter = hash_map::IntoIter<&'b Entity, Data::Single<'b>>;
 }
 
 impl<'b, Data: QueryData<'b>> QueryResultData<'b, Data> {
-    pub fn iter(&'b self) -> hash_map::Iter<&'b Entity, <Data as QueryData>::SingleResult> {
+    pub fn iter<'a>(&'a self) -> hash_map::Iter<'a, &'b Entity, Data::Single<'b>> {
         self.data.iter()
     }
-    pub fn iter_mut(&'b mut self) -> hash_map::IterMut<&'b Entity, <Data as QueryData>::SingleResult> {
+    pub fn iter_mut<'a>(&'a mut self) -> hash_map::IterMut<'a, &'b Entity, Data::Single<'b>> {
         self.data.iter_mut()
     }
 }
+
+impl<'b, Data: QueryData<'b>> QueryResultData<'b, Data> {}
 
 impl<'a, 'b, Data: QueryData<'b>> From<&'b mut QueryResult<'a>> for QueryResultData<'b, Data> {
     fn from(value: &'b mut QueryResult<'a>) -> Self {

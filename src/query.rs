@@ -82,23 +82,23 @@ pub type QueryCollectionData = Action<Arc<Box<dyn Any + Send + Sync>>, Box<dyn A
 pub type QueryRawData = HashMap<TypeId, QueryCollectionData>;
 pub type QueryRawDataRefMut<'a> = HashMap<&'a TypeId, &'a mut QueryCollectionData>;
 pub trait QueryData<'a> {
-    type SingleResult;
+    type Single<'b>;
 
     fn from_raw(
         vec: QueryRawDataRefMut<'a>,
     ) -> (
-        HashMap<&'a Entity, Self::SingleResult>,
+        HashMap<&'a Entity, Self::Single<'a>>,
         QueryRawDataRefMut<'a>,
     );
 }
 
 impl<'a, T: Component + 'static> QueryData<'a> for &'a T {
-    type SingleResult = &'a T;
+    type Single<'b> = &'b T;
 
     fn from_raw(
         mut vec: QueryRawDataRefMut<'a>,
     ) -> (
-        HashMap<&'a Entity, Self::SingleResult>,
+        HashMap<&'a Entity, Self::Single<'a>>,
         QueryRawDataRefMut<'a>,
     ) {
         (
@@ -119,12 +119,12 @@ impl<'a, T: Component + 'static> QueryData<'a> for &'a T {
     }
 }
 impl<'a, T: Component + 'static> QueryData<'a> for &'a mut T {
-    type SingleResult = &'a mut T;
+    type Single<'b> = &'b mut T;
 
     fn from_raw(
         mut vec: QueryRawDataRefMut<'a>,
     ) -> (
-        HashMap<&'a Entity, Self::SingleResult>,
+        HashMap<&'a Entity, Self::Single<'a>>,
         QueryRawDataRefMut<'a>,
     ) {
         (
@@ -144,9 +144,9 @@ impl<'a, T: Component + 'static> QueryData<'a> for &'a mut T {
 macro_rules! impl_query_data {
     ($n:tt $t:tt $(,$ns:tt $ts:tt)* $(,)?) => {
         impl<'a, $t:QueryData<'a>,$($ts:QueryData<'a>,)*> QueryData<'a> for ($t,$($ts,)*) {
-            type SingleResult = ($t::SingleResult, $($ts::SingleResult,)*);
+            type Single<'b> = ($t::Single<'b>, $($ts::Single<'b>,)*);
 
-            fn from_raw(vec: QueryRawDataRefMut<'a>) -> (HashMap<&'a Entity,Self::SingleResult>,QueryRawDataRefMut<'a>) {
+            fn from_raw(vec: QueryRawDataRefMut<'a>) -> (HashMap<&'a Entity,Self::Single<'a>>,QueryRawDataRefMut<'a>) {
                 // let mut map = vec.iter_mut().collect::<HashMap::<_,_>>();
 
                 let (mut $n,vec) = $t::from_raw(vec);
