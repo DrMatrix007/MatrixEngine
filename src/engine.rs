@@ -1,6 +1,5 @@
 use std::{
-    any::{TypeId, Any},
-    cell::RefCell,
+    any::{Any, TypeId},
     collections::{HashMap, HashSet, VecDeque},
     sync::{
         atomic::{AtomicBool, AtomicU64},
@@ -9,11 +8,17 @@ use std::{
 };
 
 use crate::{
-    components::{ComponentCollectionState, ComponentRegistry},
+    components::{ComponentCollectionState, ComponentRegistry, ComponentRegistryBuilder},
     query::{Action, QueryRawData},
     server_client::ServerBuilder,
     systems::{spawn_system, System, SystemCreator},
 };
+
+pub struct EngineArgs {
+    pub component_registry: ComponentRegistry,
+    pub target_fps: u64,
+    pub systems: Vec<SystemCreator>,
+}
 
 pub struct Engine {
     components: ComponentRegistry,
@@ -23,12 +28,12 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub fn with_registry(components: ComponentRegistry) -> Self {
+    pub fn new(args: EngineArgs) -> Self {
         Self {
-            components,
+            components: args.component_registry,
             quit: Arc::new(AtomicBool::new(false)),
-            systems: Vec::new(),
-            target_fps: Arc::new(AtomicU64::new(144)),
+            systems: args.systems,
+            target_fps: Arc::new(AtomicU64::new(args.target_fps)),
         }
     }
 
@@ -81,10 +86,6 @@ impl Engine {
         }
     }
 
-    pub fn insert_system<F: FnOnce() -> Box<dyn System> + Send + 'static>(&mut self, f: F) {
-        self.systems.push(SystemCreator::new(Box::new(f)));
-    }
-
     fn query(
         &mut self,
         req: HashSet<Action<TypeId>>,
@@ -109,7 +110,10 @@ impl Engine {
                 }
             }
         }
-        let mut ans = HashMap::<TypeId,Action<Arc<Box<dyn Any+Send+Sync>>,Box<dyn Any+Send+Sync>>>::default();
+        let mut ans = HashMap::<
+            TypeId,
+            Action<Arc<Box<dyn Any + Send + Sync>>, Box<dyn Any + Send + Sync>>,
+        >::default();
         for action in req.iter() {
             match action {
                 Action::Read(id) => {
@@ -200,5 +204,55 @@ impl Engine {
                 }
             }
         }
+    }
+}
+
+pub struct EngineBuilder {
+    component_registry: ComponentRegistry,
+    systems: Vec<SystemCreator>,
+    target_fps: u64,
+}
+
+impl EngineBuilder {
+    pub fn new() -> Self {
+        Self {
+            component_registry: Default::default(),
+            systems: Default::default(),
+            target_fps: 60,
+        }
+    }
+    pub fn with_fps(mut self, fps: u64) -> Self {
+        self.target_fps = fps;
+        self
+    }
+    pub fn with_system<T: System + Send + 'static>(mut self, t: T) -> Self {
+        self.systems
+            .push(SystemCreator::new(Box::new(move || Box::new(t))));
+        self
+    }
+
+    pub fn with_registry(mut self, r: ComponentRegistry) -> Self {
+        self.component_registry = r;
+        self
+    }
+    pub fn with_registry_builder<F: FnOnce(&mut ComponentRegistryBuilder)>(mut self, f: F) -> Self {
+        let mut b = Default::default();
+        f(&mut b);
+        self.component_registry = b.build();
+        self
+    }
+
+    pub fn build(self) -> Engine {
+        Engine::new(EngineArgs {
+            component_registry: self.component_registry,
+            target_fps: self.target_fps,
+            systems: self.systems,
+        })
+    }
+}
+
+impl Default for EngineBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }

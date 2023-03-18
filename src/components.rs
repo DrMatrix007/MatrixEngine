@@ -132,6 +132,7 @@ pub enum ComponentCollectionState {
     Taken,
 }
 
+#[derive(Default)]
 pub struct ComponentRegistry {
     components: HashMap<TypeId, ComponentCollectionState>,
 }
