@@ -1,5 +1,5 @@
 use std::{
-    any::TypeId,
+    any::{Any, TypeId},
     cell::RefCell,
     collections::{hash_map, HashMap, HashSet, VecDeque},
     io::Read,
@@ -8,7 +8,7 @@ use std::{
 };
 
 use crate::{
-    components::{Component, IComponentCollection},
+    components::{Component, ComponentCollection},
     entity::Entity,
 };
 #[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
@@ -76,43 +76,96 @@ impl Action<TypeId> {
     }
 }
 
-pub type QueryCollectionData =
-    Action<Arc<Box<dyn IComponentCollection>>, Box<dyn IComponentCollection>>;
+pub type QueryCollectionData = Action<Arc<Box<dyn Any + Send + Sync>>, Box<dyn Any + Send + Sync>>;
 
 // #[derive(Default,Debug)]
-pub type QueryData = HashMap<TypeId, QueryCollectionData>;
+pub type QueryRawData = HashMap<TypeId, QueryCollectionData>;
+pub type QueryRawDataRefMut<'a> = HashMap<TypeId, &'a mut QueryCollectionData>;
+pub trait QueryData<'a> {
+    type SingleResult;
 
-pub trait QueryIterable {
-    fn create_iter(&mut self) -> QueryIterableCollection;
+    fn from_raw(
+        vec: QueryRawDataRefMut<'a>,
+    ) -> (
+        HashMap<&'a Entity, Self::SingleResult>,
+        QueryRawDataRefMut<'a>,
+    );
 }
-impl QueryIterable for QueryData {
-    fn create_iter(&mut self) -> QueryIterableCollection {
-        let mut data = HashMap::<Entity, HashMap<TypeId, ComponentRef>>::default();
 
-        for (id, vec) in self.iter_mut() {
-            match vec {
-                Action::Read(vec) => {
-                    for (e, comp) in vec.iter() {
-                        data.entry(*e).or_default().insert(*id, Action::Read(comp));
-                    }
-                }
-                Action::Write(vec) => {
-                    for (e, comp) in vec.iter_mut() {
-                        data.entry(*e).or_default().insert(*id, Action::Write(comp));
-                    }
-                }
-            }
-        }
+impl<'a, T: Component + 'static> QueryData<'a> for &'a T {
+    type SingleResult = &'a T;
 
-        QueryIterableCollection {
-            data: data.into_iter(),
-        }
+    fn from_raw(
+        mut vec: QueryRawDataRefMut<'a>,
+    ) -> (
+        HashMap<&'a Entity, Self::SingleResult>,
+        QueryRawDataRefMut<'a>,
+    ) {
+        (
+            match vec.remove(&TypeId::of::<T>()).unwrap() {
+                Action::Read(data) => data
+                    .downcast_ref::<ComponentCollection<T>>()
+                    .unwrap()
+                    .iter()
+                    .collect::<HashMap<&'a Entity, &'a T>>(),
+                Action::Write(data) => data
+                    .downcast_ref::<ComponentCollection<T>>()
+                    .unwrap()
+                    .iter()
+                    .collect::<HashMap<&'a Entity, &'a T>>(),
+            },
+            vec,
+        )
+    }
+}
+impl<'a, T: Component + 'static> QueryData<'a> for &'a mut T {
+    type SingleResult = &'a mut T;
+
+    fn from_raw(
+        mut vec: QueryRawDataRefMut<'a>,
+    ) -> (
+        HashMap<&'a Entity, Self::SingleResult>,
+        QueryRawDataRefMut<'a>,
+    ) {
+        (
+            match vec.remove(&TypeId::of::<T>()).unwrap() {
+                Action::Read(data) => panic!(""),
+                Action::Write(data) => data
+                    .downcast_mut::<ComponentCollection<T>>()
+                    .unwrap()
+                    .iter_mut()
+                    .collect::<HashMap<&'a Entity, &'a mut T>>(),
+            },
+            vec,
+        )
     }
 }
 
-trait QueryGroup {
-    // fn from_vec(vec:Vec<>)
+macro_rules! impl_query_data {
+    ($n:tt $t:tt $(,$ns:tt $ts:tt)* $(,)?) => {
+        impl<'a, $t:QueryData<'a>,$($ts:QueryData<'a>,)*> QueryData<'a> for ($t,$($ts,)*) {
+            type SingleResult = ($t::SingleResult, $($ts::SingleResult,)*);
+
+            fn from_raw(mut vec: HashMap<TypeId,&'a mut QueryCollectionData>) -> (HashMap<&'a Entity,Self::SingleResult>,HashMap<TypeId,&'a mut QueryCollectionData>) {
+                // let mut map = vec.iter_mut().collect::<HashMap::<_,_>>();
+
+                let (mut $n,vec) = $t::from_raw(vec);
+                $(let (mut $ns,vec) = $ts::from_raw(vec);)*
+                let mut ans = HashMap::default();
+                for (e,x) in $n.into_iter() {
+                    if let ($(Some($ns),)*) = ($($ns.remove(e),)*) {
+                        ans.insert(e,(x,$($ns),*));
+                    }
+                }
+
+                (ans,vec)
+            }
+        }
+
+    };
 }
+
+impl_query_data!(a A,b B);
 
 type ComponentRef<'a> = Action<&'a dyn Component, &'a mut dyn Component>;
 
@@ -132,5 +185,5 @@ pub type Query = HashSet<Action<TypeId>>;
 #[derive(Debug)]
 pub enum QueryRequest {
     Request(Query),
-    Done(QueryData),
+    Done(QueryRawData),
 }

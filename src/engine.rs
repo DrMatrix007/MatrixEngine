@@ -1,5 +1,5 @@
 use std::{
-    any::TypeId,
+    any::{TypeId, Any},
     cell::RefCell,
     collections::{HashMap, HashSet, VecDeque},
     sync::{
@@ -10,7 +10,7 @@ use std::{
 
 use crate::{
     components::{ComponentCollectionState, ComponentRegistry},
-    query::{Action, QueryData},
+    query::{Action, QueryRawData},
     server_client::ServerBuilder,
     systems::{spawn_system, System, SystemCreator},
 };
@@ -88,12 +88,12 @@ impl Engine {
     fn query(
         &mut self,
         req: HashSet<Action<TypeId>>,
-    ) -> Result<QueryData, HashSet<Action<TypeId>>> {
+    ) -> Result<QueryRawData, HashSet<Action<TypeId>>> {
         for i in req.iter() {
             match i {
                 Action::Read(id) => {
                     let Some(vec) = self.components.read_vec(id) else {
-                        return Ok(QueryData::default());
+                        return Ok(QueryRawData::default());
                     };
                     if let ComponentCollectionState::Taken = vec {
                         return Err(req);
@@ -101,7 +101,7 @@ impl Engine {
                 }
                 Action::Write(id) => {
                     let Some(vec) = self.components.read_vec(id) else {
-                        return Ok(QueryData::default());
+                        return Ok(QueryRawData::default());
                     };
                     let ComponentCollectionState::Available(_) = vec else {
                         return Err(req);
@@ -109,12 +109,12 @@ impl Engine {
                 }
             }
         }
-        let mut ans = HashMap::default();
+        let mut ans = HashMap::<TypeId,Action<Arc<Box<dyn Any+Send+Sync>>,Box<dyn Any+Send+Sync>>>::default();
         for action in req.iter() {
             match action {
                 Action::Read(id) => {
                     let Some(vec) = self.components.pop_vec(id) else {
-                        return Ok(QueryData::default());
+                        return Ok(QueryRawData::default());
                     };
                     ans.insert(
                         *id,
@@ -142,7 +142,7 @@ impl Engine {
                 }
                 Action::Write(id) => {
                     let Some(vec) = self.components.pop_vec(id) else {
-                        return Ok(QueryData::default());
+                        return Ok(QueryRawData::default());
                     };
                     ans.insert(
                         *id,
@@ -161,7 +161,7 @@ impl Engine {
 
         Ok(ans)
     }
-    fn handle(&mut self, data: QueryData) {
+    fn handle(&mut self, data: QueryRawData) {
         for (id, query_vec) in data.into_iter() {
             let Some(registry_vec) = self.components.pop_vec(&id) else {continue;};
             match query_vec {

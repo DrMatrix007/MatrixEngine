@@ -4,7 +4,7 @@ use matrix_engine::{
     components::{Component, ComponentRegistryBuilder},
     engine::Engine,
     entity::Entity,
-    query::{Action, QueryIterable},
+    query::{Action},
     systems::System,
 };
 #[derive(Debug)]
@@ -21,10 +21,12 @@ impl System for A {
             ]
             .into_iter(),
         );
-        println!("started:");
-        for (e, data) in data.data_mut().create_iter() {
-            println!("{e:?} {:?}", data.len());
-        }
+
+        
+        // println!("started:");
+        // for (e, data) in data.iter() {
+        //     println!("{e:?} {:?}", data.len());
+        // }
 
         data.finish();
 

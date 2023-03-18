@@ -15,24 +15,24 @@ pub trait Component: Send + Sync {
     }
 }
 
-pub trait IComponentCollection: Send+Sync+Debug {
-    fn as_any(&self) -> &dyn Any;
-    fn as_any_mut(&mut self) -> &mut dyn Any;
+// pub trait IComponentCollection: Send+Sync+Debug {
+//     fn as_any(&self) -> &dyn Any;
+//     fn as_any_mut(&mut self) -> &mut dyn Any;
 
-    fn iter<'a>(&'a self) ->  vec::IntoIter<(&'a Entity,&'a dyn Component)>;
-    fn iter_mut<'a>(&'a mut self) -> vec::IntoIter<(&'a Entity,&'a mut dyn Component)>;
+//     fn iter<'a>(&'a self) ->  vec::IntoIter<(&'a Entity,&'a dyn Component)>;
+//     fn iter_mut<'a>(&'a mut self) -> vec::IntoIter<(&'a Entity,&'a mut dyn Component)>;
 
-    fn get(&self,e:&Entity) -> Option<&dyn Component>; 
-    fn get_mut(&mut self,e:&Entity) -> Option<&mut dyn Component>; 
+//     fn get(&self,e:&Entity) -> Option<&dyn Component>; 
+//     fn get_mut(&mut self,e:&Entity) -> Option<&mut dyn Component>; 
 
-}
+// }
 
 #[derive(Debug)]
 pub struct InsertError;
 
 #[derive(Debug)]
 pub struct ComponentCollection<T> {
-    components: HashMap<Entity, Box<T>>,
+    components: HashMap<Entity, T>,
 }
 
 impl<T> Default for ComponentCollection<T> {
@@ -42,61 +42,62 @@ impl<T> Default for ComponentCollection<T> {
 }
 
 impl<T> ComponentCollection<T> {
-    pub fn insert(&mut self, e: Entity, t: T) -> Option<Box<T>> {
-        self.components.insert(e, Box::new(t))
+    pub fn insert(&mut self, e: Entity, t: T) -> Option<T> {
+        self.components.insert(e, t)
     }
-    pub fn remove(&mut self, e: Entity) -> Option<Box<T>> {
+    pub fn remove(&mut self, e: Entity) -> Option<T> {
         self.components.remove(&e)
     }
 
-    pub fn get(&self, e: &Entity) -> Option<&Box<T>> {
+    pub fn get(&self, e: &Entity) -> Option<&T> {
         self.components.get(e)
     }
-    pub fn get_mut(&mut self, e: &Entity) -> Option<&mut Box<T>> {
+    pub fn get_mut(&mut self, e: &Entity) -> Option<&mut T> {
         self.components.get_mut(e)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&Entity, &Box<T>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&Entity, &T)> {
         self.components.iter()
     }
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Entity, &mut Box<T>)> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Entity, &mut T)> {
         self.components.iter_mut()
     }
 }
 
 
-impl<T:Component+Debug+'static>  IComponentCollection for ComponentCollection<T> {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
+// impl<T:Component+Debug+'static>  IComponentCollection for ComponentCollection<T> {
+//     fn as_any(&self) -> &dyn Any {
+//         self
+//     }
 
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
+//     fn as_any_mut(&mut self) -> &mut dyn Any {
+//         self
+//     }
 
-    fn iter<'a>(&'a self) ->  vec::IntoIter<(&'a Entity,&'a dyn Component)>
-    {
-        self.components.iter().map(|(x,y)|(x, Box::as_ref(y).to_ref())).collect::<Vec<(&Entity,&dyn Component)>>().into_iter()
-    }
+//     fn iter<'a>(&'a self) ->  vec::IntoIter<(&'a Entity,&'a dyn Component)>
+//     {
+//         self.components.iter().map(|(x,y)|(x, Box::as_ref(y).to_ref())).collect::<Vec<(&Entity,&dyn Component)>>().into_iter()
+//     }
 
-    fn iter_mut<'a>(&'a mut self) -> vec::IntoIter<(&'a Entity,&'a mut dyn Component)> {
-        self.components.iter_mut().map(|(x,y)|(x, Box::as_mut(y).to_ref_mut())).collect::<Vec<(&Entity,&mut dyn Component)>>().into_iter()
+//     fn iter_mut<'a>(&'a mut self) -> vec::IntoIter<(&'a Entity,&'a mut dyn Component)> {
+//         self.components.iter_mut().map(|(x,y)|(x, Box::as_mut(y).to_ref_mut())).collect::<Vec<(&Entity,&mut dyn Component)>>().into_iter()
 
-    }
+//     }
 
-    fn get(&self,e:&Entity) -> Option<&dyn Component> {
-        Some(Component::to_ref(Box::as_ref(self.components.get(e)?)))
-    }
+//     fn get(&self,e:&Entity) -> Option<&dyn Component> {
+//         Some(Component::to_ref(Box::as_ref(self.components.get(e)?)))
+//     }
 
-    fn get_mut(&mut self,e:&Entity) -> Option<&mut dyn Component> {
-        Some(Component::to_ref_mut(Box::as_mut(self.components.get_mut(e)?)))
+//     fn get_mut(&mut self,e:&Entity) -> Option<&mut dyn Component> {
+//         Some(Component::to_ref_mut(Box::as_mut(self.components.get_mut(e)?)))
         
-    }
+//     }
 
-}
+// }
+
 #[derive(Default)]
 pub struct ComponentRegistryBuilder {
-    components: HashMap<TypeId, Box<dyn IComponentCollection>>,
+    components: HashMap<TypeId, Box<dyn Any+Send+Sync>>,
 }
 
 impl ComponentRegistryBuilder {
@@ -116,7 +117,7 @@ impl ComponentRegistryBuilder {
 
             return self.insert::<T>(e, t);
         };
-        let Some(v) = b.as_any_mut().downcast_mut::<ComponentCollection<T>>() else {
+        let Some(v) = b.downcast_mut::<ComponentCollection<T>>() else {
             return Err(InsertError);
         };
         v.insert(e, t);
@@ -126,8 +127,8 @@ impl ComponentRegistryBuilder {
 }
 
 pub enum ComponentCollectionState {
-    Available(Box<dyn IComponentCollection>),
-    ReadOnly(Arc<Box<dyn IComponentCollection>>,i32),
+    Available(Box<dyn Any+Send+Sync>),
+    ReadOnly(Arc<Box<dyn Any+Send+Sync>>,i32),
     Taken,
 }
 

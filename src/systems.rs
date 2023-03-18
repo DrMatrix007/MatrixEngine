@@ -12,21 +12,21 @@ use std::{
 };
 
 use crate::{
-    query::{Action, QueryData, QueryRequest},
+    query::{Action, QueryRawData, QueryRequest},
     server_client::{Client, Request},
 };
 
 #[derive(Debug)]
 pub struct QueryResult<'a> {
-    data: QueryData,
-    sender: &'a mut Client<QueryRequest, QueryData>,
+    data: QueryRawData,
+    sender: &'a mut Client<QueryRequest, QueryRawData>,
 }
 
 impl<'a> QueryResult<'a> {
-    pub fn new(data: QueryData, sender: &'a mut Client<QueryRequest, QueryData>) -> Self {
+    pub fn new(data: QueryRawData, sender: &'a mut Client<QueryRequest, QueryRawData>) -> Self {
         Self { data, sender }
     }
-    pub fn data_mut(&mut self) -> &mut QueryData {
+    pub fn data_mut(&mut self) -> &mut QueryRawData {
         &mut self.data
     }
     pub fn finish(self) {
@@ -36,11 +36,11 @@ impl<'a> QueryResult<'a> {
 
 pub struct SystemArgs {
     quit: Arc<AtomicBool>,
-    client: Client<QueryRequest, QueryData>,
+    client: Client<QueryRequest, QueryRawData>,
 }
 
 impl SystemArgs {
-    pub fn new(quit: Arc<AtomicBool>, server: Sender<Request<QueryRequest, QueryData>>) -> Self {
+    pub fn new(quit: Arc<AtomicBool>, server: Sender<Request<QueryRequest, QueryRawData>>) -> Self {
         Self {
             quit,
             client: Client::new(server),
@@ -84,7 +84,7 @@ pub(crate) fn spawn_system(
     sys: SystemCreator,
     target_fps: Arc<AtomicU64>,
     quit: Arc<AtomicBool>,
-    sender: Sender<Request<QueryRequest, QueryData>>,
+    sender: Sender<Request<QueryRequest, QueryRawData>>,
 ) -> JoinHandle<()> {
     thread::spawn(move || {
         let mut sys = sys.create();
