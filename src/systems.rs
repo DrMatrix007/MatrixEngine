@@ -1,15 +1,12 @@
 use std::{
     any::TypeId,
-    borrow::{Borrow, BorrowMut},
-    cell::{Ref, RefCell, RefMut},
     collections::{hash_map, HashMap, HashSet},
     marker::PhantomData,
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
-        mpsc::{SendError, Sender},
-        Arc, Mutex,
+        mpsc::Sender,
+        Arc,
     },
-    thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
 
@@ -20,17 +17,18 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct QueryResult<'a> {
+pub struct QueryResult<T: QueryData> {
     data: QueryRawData,
-    sender: &'a mut Client<QueryRequest, QueryRawData>,
+    marker: PhantomData<T>,
+    // sender: &'a mut Client<QueryRequest, QueryRawData>,
 }
 
-pub struct QueryResultData<'b, Data: QueryData<'b>> {
+pub struct QueryResultData<'b, Data: QueryData> {
     maker: PhantomData<&'b Data>,
     data: HashMap<&'b Entity, Data::Single<'b>>,
 }
 
-impl<'b, Data: QueryData<'b>> IntoIterator for QueryResultData<'b, Data> {
+impl<'b, Data: QueryData> IntoIterator for QueryResultData<'b, Data> {
     fn into_iter(self) -> hash_map::IntoIter<&'b Entity, Data::Single<'b>> {
         self.data.into_iter()
     }
@@ -40,7 +38,7 @@ impl<'b, Data: QueryData<'b>> IntoIterator for QueryResultData<'b, Data> {
     type IntoIter = hash_map::IntoIter<&'b Entity, Data::Single<'b>>;
 }
 
-impl<'b, Data: QueryData<'b>> QueryResultData<'b, Data> {
+impl<'b, Data: QueryData> QueryResultData<'b, Data> {
     pub fn iter<'a>(&'a self) -> hash_map::Iter<'a, &'b Entity, Data::Single<'b>> {
         self.data.iter()
     }
@@ -49,10 +47,10 @@ impl<'b, Data: QueryData<'b>> QueryResultData<'b, Data> {
     }
 }
 
-impl<'b, Data: QueryData<'b>> QueryResultData<'b, Data> {}
+impl<'b, Data: QueryData> QueryResultData<'b, Data> {}
 
-impl<'a, 'b, Data: QueryData<'b>> From<&'b mut QueryResult<'a>> for QueryResultData<'b, Data> {
-    fn from(value: &'b mut QueryResult<'a>) -> Self {
+impl<'a: 'b, 'b, Data: QueryData> From<&'a mut QueryResult<Data>> for QueryResultData<'b, Data> {
+    fn from(value: &'a mut QueryResult<Data>) -> Self {
         Self {
             data: Data::from_raw(value.data.iter_mut().collect::<HashMap<_, _>>()).0,
             maker: PhantomData,
@@ -60,15 +58,19 @@ impl<'a, 'b, Data: QueryData<'b>> From<&'b mut QueryResult<'a>> for QueryResultD
     }
 }
 
-impl<'a> QueryResult<'a> {
-    pub fn new(data: QueryRawData, sender: &'a mut Client<QueryRequest, QueryRawData>) -> Self {
-        Self { data, sender }
+impl<T: QueryData> QueryResult<T> {
+    pub fn new(data: QueryRawData) -> Self {
+        Self {
+            data,
+            marker: PhantomData,
+        }
     }
     pub fn data_mut(&mut self) -> &mut QueryRawData {
         &mut self.data
     }
-    pub fn finish(self) {
-        self.sender.send(QueryRequest::Done(self.data)).unwrap();
+
+    pub fn iter_mut(&mut self) -> QueryResultData<'_, T> {
+        QueryResultData::from(self)
     }
 }
 
@@ -84,20 +86,22 @@ impl SystemArgs {
             client: Client::new(server),
         }
     }
-
-    pub fn query<T>(&mut self, actions: T) -> QueryResult<'_>
+    pub fn submit<T: QueryData>(&self, data: QueryResult<T>) {
+        self.client.send(QueryRequest::Done(data.data)).unwrap();
+    }
+    pub fn query<T>(&mut self) -> QueryResult<T>
     where
-        T: Iterator<Item = Action<TypeId>>,
+        T: QueryData, // T: IntoIterator<Item = Action<TypeId>>,
     {
-        let set = actions.collect::<HashSet<Action<TypeId>>>();
+        let set = T::ids().collect::<HashSet<Action<TypeId>>>();
         self.client.send(QueryRequest::Request(set)).unwrap();
-        QueryResult {
-            data: self.client.recv().unwrap().unpack(),
-            sender: &mut self.client,
-        }
+        QueryResult::new(self.client.recv().unwrap().unpack())
     }
     pub fn stop(&self) {
         self.quit.store(true, Ordering::Relaxed);
+    }
+    pub fn clone_quit(&self) -> Arc<AtomicBool> {
+        self.quit.clone()
     }
 }
 
@@ -105,44 +109,110 @@ pub trait System {
     fn update(&mut self, args: &mut SystemArgs);
 }
 
-pub struct SystemCreator {
+pub struct SystemBuilder {
     f: Box<dyn FnOnce() -> Box<dyn System> + Send>,
 }
 
-impl SystemCreator {
+impl SystemBuilder {
     pub fn new(f: Box<dyn FnOnce() -> Box<dyn System> + Send>) -> Self {
         Self { f }
     }
-    pub fn create(self) -> Box<dyn System> {
+    pub fn build(self) -> Box<dyn System> {
         (self.f)()
     }
 }
 
-pub(crate) fn spawn_system(
-    sys: SystemCreator,
+pub trait SystemRunner: Send {
+    fn run(self, args: SystemRunnerArgs);
+}
+pub struct SystemRunnerArgs {
+    system_args: SystemArgs,
     target_fps: Arc<AtomicU64>,
-    quit: Arc<AtomicBool>,
-    sender: Sender<Request<QueryRequest, QueryRawData>>,
-) -> JoinHandle<()> {
-    thread::spawn(move || {
-        let mut sys = sys.create();
-        let mut target;
-        let mut fps;
-        let mut start = Instant::now();
-        let mut len;
-        let quit = quit.clone();
-        let mut args = SystemArgs::new(quit.clone(), sender);
-        while !quit.load(std::sync::atomic::Ordering::Relaxed) {
-            sys.update(&mut args);
-            fps = 1.0 / target_fps.load(Ordering::Relaxed) as f64;
-            if fps.is_finite() {
-                target = Duration::from_secs_f64(fps);
-                len = Instant::now() - start;
-                if len < target {
-                    spin_sleep::sleep(target - len);
-                }
-                start = Instant::now();
-            }
+}
+
+impl SystemRunnerArgs {
+    pub fn new(system_args: SystemArgs, target_fps: Arc<AtomicU64>) -> Self {
+        Self {
+            system_args,
+            target_fps,
         }
-    })
+    }
+    pub fn unpack(self) -> (SystemArgs, Arc<AtomicU64>) {
+        (self.system_args, self.target_fps)
+    }
+}
+
+pub struct SystemGroupRunner {
+    systems: Vec<SystemBuilder>,
+}
+
+impl SystemRunner for SystemGroupRunner {
+    fn run(mut self, args: SystemRunnerArgs) {
+        let target_fps = args.target_fps;
+        let mut args = args.system_args;
+        let mut systems = Vec::new();
+        while let Some(sys) = self.systems.pop() {
+            systems.push(sys.build());
+        }
+        let quit = args.quit.clone();
+
+        let mut loop_handler = LoopHandler::new(target_fps);
+
+        while !quit.load(std::sync::atomic::Ordering::Relaxed) {
+            for sys in systems.iter_mut() {
+                sys.update(&mut args);
+            }
+            loop_handler.wait();
+        }
+    }
+}
+
+impl SystemGroupRunner {
+    pub fn new<T: IntoIterator<Item = SystemBuilder>>(data: T) -> Self {
+        Self {
+            systems: data.into_iter().collect(),
+        }
+    }
+}
+
+pub trait ToSystemBuilder {
+    fn to_builder(self) -> SystemBuilder;
+}
+
+impl<T: System + Send + 'static> ToSystemBuilder for T {
+    fn to_builder(self) -> SystemBuilder {
+        SystemBuilder {
+            f: Box::new(move || Box::new(self)),
+        }
+    }
+}
+pub struct LoopHandler {
+    target: Duration,
+    fps: f64,
+    start: Instant,
+    len: Duration,
+    target_fps: Arc<AtomicU64>,
+}
+
+impl LoopHandler {
+    pub fn new(target_fps: Arc<AtomicU64>) -> Self {
+        Self {
+            target: Duration::ZERO,
+            fps: 0.0,
+            start: Instant::now(),
+            len: Duration::ZERO,
+            target_fps,
+        }
+    }
+    pub fn wait(&mut self) {
+        self.fps = 1.0 / self.target_fps.load(Ordering::Relaxed) as f64;
+        if self.fps.is_finite() {
+            self.target = Duration::from_secs_f64(self.fps);
+            self.len = Instant::now() - self.start;
+            if self.len < self.target {
+                spin_sleep::sleep(self.target - self.len);
+            }
+            self.start = Instant::now();
+        }
+    }
 }

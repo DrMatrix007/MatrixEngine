@@ -1,10 +1,10 @@
 use std::{
     any::{Any, TypeId},
-    collections::{HashMap, hash_map},
-    sync::Arc, fmt::Debug, vec,
+    collections::{HashMap},
+    sync::Arc, fmt::Debug,
 };
 
-use crate::entity::{Entity, self};
+use crate::entity::Entity;
 
 pub trait Component: Send + Sync {
     fn to_ref(&self) -> &dyn Component where Self:Sized {
