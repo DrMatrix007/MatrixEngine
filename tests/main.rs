@@ -1,41 +1,23 @@
-use std::any::TypeId;
-
 use matrix_engine::{
-    components::{Component, ComponentRegistryBuilder},
-    engine::{Engine, EngineArgs, EngineBuilder},
-    entity::Entity,
-    query::Action,
-    systems::{QueryResultData, System},
+    components::Component, engine::EngineBuilder, entity::Entity, systems::System,
 };
 #[derive(Debug)]
-struct A;
+struct A(pub i32);
 
 impl Component for A {}
 
-impl System for A {
+struct C;
+
+impl System for C {
     fn update(&mut self, args: &mut matrix_engine::systems::SystemArgs) {
-        let mut data = args.query(
-            [
-                Action::Write(TypeId::of::<A>()),
-                Action::Read(TypeId::of::<B>()),
-            ]
-            .into_iter(),
-        );
-        
-        // {
-        let mut i = QueryResultData::<(&A, &B)>::from(&mut data);
+        let mut data = args.query::<(&A, &B)>();
 
-        for it in i.iter_mut() {
-            println!("{:?}", it);
+        for (_, (a, _)) in data.iter_mut() {
+            println!("{:?}", a);
         }
-        // }
-        // println!("started:");
-        // for (e, data) in data.iter() {
-        //     println!("{e:?} {:?}", data.len());
-        // }
+        println!();
 
-        data.finish();
-
+        args.submit(data);
         args.stop();
     }
 }
@@ -47,13 +29,14 @@ impl Component for B {}
 
 fn main() {
     let engine = EngineBuilder::new()
-        .with_fps(144)
-        .with_system(A)
-        .with_system(A)
+        .with_fps(2)
+        // .with_group([C.to_builder(), C.to_builder()])
+        .with_single(C)
+        .with_single(C)
         .with_registry_builder(|reg| {
-            for _ in 0..5 {
+            for i in 0..10 {
                 let e = Entity::default();
-                reg.insert(e, A {}).unwrap();
+                reg.insert(e, A(i)).unwrap();
                 reg.insert(e, B {}).unwrap();
             }
         })
