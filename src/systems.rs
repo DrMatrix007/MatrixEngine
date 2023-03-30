@@ -1,15 +1,12 @@
-use std::marker::PhantomData;
-
 use crate::{
-    components::ComponentRegistry,
-    dispatchers::{DispatchData, Dispatcher, IntoDispatcher}, scene::Scene,
+    dispatchers::{DispatchData, Dispatcher},
+    scene::Scene,
 };
 
-pub trait StartupSystem : Dispatcher<DispatchArgs = Scene> {
-    type Query: DispatchData;
-    fn startup(&mut self, comps: <Self::Query as DispatchData>::Target<'_>);
+pub trait StartupSystem: Dispatcher<DispatchArgs = Scene> {
+    type Query<'a>: DispatchData;
+    fn startup<'a>(&mut self, comps: Self::Query<'a>);
 }
-
 pub struct BoxedFunction<Q: DispatchData> {
     f: Box<dyn FnMut(Q)>,
 }
@@ -19,17 +16,8 @@ impl<Q: DispatchData> BoxedFunction<Q> {
         (self.f)(q);
     }
 }
+pub trait System: Dispatcher<DispatchArgs = Scene> {
+    type Query<'a>: DispatchData;
 
-trait StartupSystemFunction : StartupSystem<Query = <Self as StartupSystemFunction>::Q> {
-    type Q;
-}
-
-// impl<T,Data:DispatchData> StartupSystemFunction for T where T:FnMut(Data) {
-
-// }
-
-impl<Data: DispatchData, T: FnMut(Data) + 'static> From<T> for BoxedFunction<Data> {
-    fn from(value: T) -> Self {
-        BoxedFunction { f: Box::new(value) }
-    }
+    fn update<'a>(&mut self, comps: Self::Query<'a>);
 }

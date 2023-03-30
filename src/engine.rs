@@ -3,36 +3,41 @@ use std::sync::{
     Arc,
 };
 
-use crate::{scene::{Scene, SceneUpdateArgs}, thread_pool::ThreadPool};
+use crate::{
+    scene::{SceneUpdateArgs},
+    schedulers::Scheduler,
+    world::World,
+};
 
-pub struct EngineArgs {
-    pub scene:Scene,
-    pub thread_count: Option<usize>,
+pub struct EngineArgs<S: Scheduler> {
+    pub world: World,
+    pub scheduler: S,
 }
 
 pub struct Engine {
-    scene: Scene,
+    world: World,
     quit: Arc<AtomicBool>,
-    thread_pool: ThreadPool<()>,
+    scheduler: Box<dyn Scheduler>,
 }
 
 impl Engine {
-    pub fn new(args:EngineArgs) -> Self {
+    pub fn new<S: Scheduler + 'static>(args: EngineArgs<S>) -> Self {
         Self {
-            scene:args.scene,
+            world: args.world,
             quit: Arc::new(AtomicBool::new(false)),
-            thread_pool: ThreadPool::new(args.thread_count.unwrap_or(8)), 
+            scheduler: Box::new(args.scheduler),
         }
     }
 
     pub fn run(&mut self) {
-        self.scene.setup();
         let args = SceneUpdateArgs {
             quit: self.quit.clone(),
-            pool: &self.thread_pool
         };
+        let (scene, startups, systems) = self.world.unpack();
+        self.scheduler.run(startups, scene, &args);
+
         while !self.quit.load(Ordering::Acquire) {
-            self.scene.update(&args);
+            self.scheduler.run(systems, scene, &args);
         }
     }
 }

@@ -1,7 +1,6 @@
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
-    sync::{atomic::AtomicI32, Arc},
 };
 
 use crate::entity::Entity;
