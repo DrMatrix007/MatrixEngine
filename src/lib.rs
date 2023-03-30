@@ -1,6 +1,9 @@
-pub mod components;
+#![allow(dead_code)]
+
 pub mod engine;
+pub mod components;
 pub mod entity;
-pub mod server_client;
+pub mod scene;
+pub mod thread_pool;
+pub mod dispatchers;
 pub mod systems;
-pub mod query;

@@ -1,46 +1,42 @@
-use matrix_engine::{
-    components::Component, engine::EngineBuilder, entity::Entity, systems::System,
-};
-#[derive(Debug)]
-struct A(pub i32);
+use std::sync::Arc;
 
+use matrix_engine::{
+    components::{Component, ComponentCollection, ComponentCollectionRef, ComponentRegistry},
+    dispatchers::ReadColl,
+    engine::{Engine, EngineArgs},
+    scene::Scene,
+    systems::StartupSystem, entity::Entity,
+};
+
+struct A(pub i128);
 impl Component for A {}
 
-struct C;
+struct B {}
+impl StartupSystem for B {
+    type Query = ReadColl<A>;
 
-impl System for C {
-    fn update(&mut self, args: &mut matrix_engine::systems::SystemArgs) {
-        let mut data = args.query::<(&A, &B)>();
-
-        for (_, (a, _)) in data.iter_mut() {
-            println!("{:?}", a);
-        }
-        println!();
-
-        args.submit(data);
-        args.stop();
+    fn startup(
+        &mut self,
+        comps: <Self::Query as matrix_engine::dispatchers::DispatchData>::Target<'_>,
+    ) {
+        println!("{}",comps.iter().count());
     }
 }
 
-#[derive(Debug)]
-struct B;
-
-impl Component for B {}
-
 fn main() {
-    let engine = EngineBuilder::new()
-        .with_fps(2)
-        // .with_group([C.to_builder(), C.to_builder()])
-        .with_single(C)
-        .with_single(C)
-        .with_registry_builder(|reg| {
-            for i in 0..10 {
-                let e = Entity::default();
-                reg.insert(e, A(i)).unwrap();
-                reg.insert(e, B {}).unwrap();
-            }
-        })
-        .build();
+    let mut scene = Scene::default();
+    let reg = scene.get_component_registry();
+
+    for i in 0..100 {
+        reg.insert(Entity::default(), A(i));
+    }
+
+    scene.add_startup(B {});
+
+    let mut engine = Engine::new(EngineArgs {
+        scene,
+        thread_count: None,
+    });
 
     engine.run();
 }
