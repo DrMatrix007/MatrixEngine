@@ -1,9 +1,11 @@
+use std::time::Duration;
+
 use matrix_engine::{
     components::{Component, ComponentCollection},
     engine::{Engine, EngineArgs},
     entity::Entity,
-    schedulers::SingleThreadScheduler,
-    systems::{StartupSystem, System},
+    schedulers::MultiThreadedScheduler,
+    systems::System,
     world::World,
 };
 
@@ -13,24 +15,27 @@ impl Component for A {}
 
 #[derive(Debug)]
 struct B;
-impl Component for B{}
+impl Component for B {}
 
 struct D;
-impl StartupSystem for D {
+impl System for D {
     type Query<'a> = &'a mut ComponentCollection<A>;
 
-    fn startup(&mut self, comps: &mut ComponentCollection<A>) {
-        println!("{}", comps.iter().count());
+    fn run(&mut self, _comps: &mut ComponentCollection<A>) {
+        println!("start D");
+        spin_sleep::sleep(Duration::new(2, 0));
+        println!("end D");
     }
 }
 
 struct C;
 impl System for C {
-    type Query<'a> = (&'a mut ComponentCollection<A>,&'a ComponentCollection<B>) ;
+    type Query<'a> = (&'a mut ComponentCollection<A>,&'a ComponentCollection<B>,);
 
-    fn update<'a>(&mut self,(a,b):Self::Query<'a>) {
-        println!("{:?}",a.iter().next());
-        println!("{:?}",b.iter().next());
+    fn run<'a>(&mut self, (_a,_b,): Self::Query<'a>) {
+        println!("start C");
+        spin_sleep::sleep(Duration::new(2, 0));
+        println!("end C");
     }
 }
 
@@ -39,16 +44,16 @@ fn main() {
 
     let scene = world.scene_mut();
     let reg = scene.component_registry_mut();
-    
+
     for i in 0..100 {
         reg.insert(Entity::default(), A(i));
     }
 
-    world.add_startup(D {}).add_startup(D {});
-    world.add_system(C {}).add_system(C {});
+    // world.add_startup(D {}).add_startup(D {});
+    world.add_system(C {}).add_system(D {});
     let mut engine = Engine::new(EngineArgs {
         world,
-        scheduler: SingleThreadScheduler,
+        scheduler: MultiThreadedScheduler::new(2),
     });
 
     engine.run();

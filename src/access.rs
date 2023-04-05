@@ -1,14 +1,17 @@
-use std::{any::TypeId, collections::{HashMap, hash_map}};
+use std::{
+    any::TypeId,
+    collections::{hash_map, HashMap},
+};
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum AccessType {
-    Read,
+    Read(usize),
     Write,
 }
 
 impl AccessType {
     pub fn is_compatible(&self, other: &Self) -> bool {
-        if let (AccessType::Read, AccessType::Read) = (self, other) {
+        if let (AccessType::Read(_), AccessType::Read(_)) = (self, other) {
             true
         } else {
             false
@@ -16,18 +19,18 @@ impl AccessType {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Access {
     data: HashMap<TypeId, AccessType>,
 }
 
 impl IntoIterator for Access {
-    type Item = (TypeId,AccessType);
+    type Item = (TypeId, AccessType);
 
-    type IntoIter = hash_map::IntoIter<TypeId,AccessType>;
+    type IntoIter = hash_map::IntoIter<TypeId, AccessType>;
 
     fn into_iter(self) -> Self::IntoIter {
-        todo!()
+        self.data.into_iter()
     }
 }
 
@@ -40,12 +43,19 @@ impl FromIterator<(TypeId, AccessType)> for Access {
 }
 
 impl Access {
+    /// returns the iter of the accessed values
     pub fn iter(&self) -> std::collections::hash_map::Iter<TypeId, AccessType> {
         self.data.iter()
     }
+    /// returns the state of a single field
     pub fn at(&self, ty: &TypeId) -> Option<&AccessType> {
         self.data.get(ty)
     }
+    pub fn at_mut(&mut self, ty: &TypeId) -> Option<&mut AccessType> {
+        self.data.get_mut(ty)
+    }
+
+    /// checks whether other access value is compatible with current
     pub fn is_compatible(&self, other: &Self) -> bool {
         for (ty, a) in self.iter() {
             if let Some(b) = other.at(ty) {
@@ -56,15 +66,47 @@ impl Access {
         }
         true
     }
-    pub fn try_combine(&mut self, other: &Self) -> Result<(),()> {
-        if self.is_compatible(other) {
-            for (ty, a) in other.iter() {
-                self.data.entry(ty.to_owned()).or_insert(a.to_owned());
-            }
 
-            Ok(())
-        } else {
-            Err(())
+    /// trys to combine 2 access value to save the current state.
+    pub fn try_combine(&mut self, other: &Self) -> Result<(), ()> {
+        let mut candidate = self.clone();
+        for (id, other) in other.iter() {
+            if let Some(curr) = candidate.at_mut(id) {
+                match (other, curr) {
+                    (AccessType::Read(a), AccessType::Read(b)) => {
+                        *b += a;
+                    }
+                    _ => {
+                        return Err(());
+                    }
+                }
+            } else {
+                candidate.insert(*id, *other);
+            }
+        }
+        *self = candidate;
+        Ok(())
+    }
+    fn insert(&mut self, id: TypeId, other: AccessType) -> Option<AccessType> {
+        self.data.insert(id, other)
+    }
+
+    pub fn clear(&mut self) {
+        self.data.clear();
+    }
+
+    pub fn remove(&mut self, other: &Access) {
+        for (i, t) in other.iter() {
+            if let (Some(AccessType::Read(a)), AccessType::Read(b)) = (self.at_mut(i), t) {
+                if *a >= *b {
+                    *a -= b;
+                }
+                if *a == 0 {
+                    self.data.remove(i);
+                }
+            } else if let AccessType::Write = t {
+                self.data.remove(i);
+            }
         }
     }
 }
@@ -83,7 +125,7 @@ mod tests {
 
         impl<T: 'static> AccessAccessor for T {
             fn read() -> (TypeId, AccessType) {
-                (TypeId::of::<T>(), AccessType::Read)
+                (TypeId::of::<T>(), AccessType::Read(1))
             }
 
             fn write() -> (TypeId, AccessType) {

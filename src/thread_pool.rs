@@ -8,7 +8,7 @@ use std::{
     thread::JoinHandle,
 };
 
-enum Job<T> {
+pub enum Job<T> {
     Work(Box<dyn FnOnce() -> T + Send>),
     Close,
 }
@@ -107,48 +107,53 @@ impl<T: Send + 'static> ThreadPool<T> {
             t._handle.join().unwrap();
         }
     }
-    pub fn iter(&self) -> ThreadPoolIter<'_, T> {
-        ThreadPoolIter {
+    pub fn try_recv_iter(&self) -> ThreadPoolTryRecvIter<'_, T> {
+        ThreadPoolTryRecvIter {
             recv: &self.data_receiver,
             job_counter: self.job_counter.clone(),
         }
     }
-    pub fn iter_all(&self) -> ThreadPoolAllIter<'_, T> {
-        ThreadPoolAllIter {
+    pub fn recv_iter(&self) -> ThreadPoolRecvIter<'_, T> {
+        ThreadPoolRecvIter {
             recv: &self.data_receiver,
             job_counter: self.job_counter.clone(),
         }
     }
+
     pub fn wait_for_all(&self) {
-        for _ in self.iter_all() {}
+        for _ in self.recv_iter() {}
+    }
+    pub fn sender(&self) -> ThreadPoolSender<T> {
+        ThreadPoolSender {
+            sender: self.job_sender.clone(),
+            counter: self.job_counter.clone(),
+        }
     }
 }
-pub struct ThreadPoolIter<'a, T> {
+pub struct ThreadPoolTryRecvIter<'a, T> {
     recv: &'a Receiver<T>,
     job_counter: Arc<AtomicIsize>,
 }
 
-impl<'a, T> Iterator for ThreadPoolIter<'a, T> {
+impl<'a, T> Iterator for ThreadPoolTryRecvIter<'a, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let c = self.job_counter.fetch_sub(1, Ordering::SeqCst);
-        if c == 0 {
-            assert!(self.job_counter.fetch_add(1, Ordering::SeqCst) == -1);
-            return None;
-        }
         match self.recv.try_recv().ok() {
-            Some(data) => Some(data),
+            Some(data) => {
+                self.job_counter.fetch_sub(1, Ordering::SeqCst);
+                Some(data)
+            }
             None => None,
         }
     }
 }
-pub struct ThreadPoolAllIter<'a, T> {
+pub struct ThreadPoolRecvIter<'a, T> {
     recv: &'a Receiver<T>,
     job_counter: Arc<AtomicIsize>,
 }
 
-impl<'a, T> Iterator for ThreadPoolAllIter<'a, T> {
+impl<'a, T> Iterator for ThreadPoolRecvIter<'a, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -163,6 +168,21 @@ impl<'a, T> Iterator for ThreadPoolAllIter<'a, T> {
         }
     }
 }
+
+pub struct ThreadPoolSender<T> {
+    pub(self) sender: Sender<Job<T>>,
+    pub(self) counter: Arc<AtomicIsize>,
+}
+
+impl<T> ThreadPoolSender<T> {
+    pub fn send(&self, job: Job<T>) -> Result<(), SendError<Job<T>>> {
+        self.sender.send(job).map(|x| {
+            self.counter.fetch_add(1, Ordering::Acquire);
+            x
+        })
+    }
+}
+
 mod tests {
 
     #[test]
@@ -181,7 +201,7 @@ mod tests {
         for i in data.iter().copied() {
             pool.add(move || i).unwrap();
         }
-        for i in pool.iter_all() {
+        for i in pool.recv_iter() {
             data.remove(&i);
         }
         println!("{:?}", data);

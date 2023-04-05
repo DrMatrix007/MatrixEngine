@@ -1,32 +1,35 @@
-use crate::{dispatchers::Dispatcher, scene::Scene, systems::{StartupSystem, System}};
+use crate::{
+    scene::Scene,
+    systems::{System, UnsafeBoxedDispatcher},
+};
 
 #[derive(Default)]
 pub struct World {
     scene: Scene,
-    startups: Vec<Box<dyn Dispatcher<DispatchArgs = Scene>>>,
-    systems: Vec<Box<dyn Dispatcher<DispatchArgs = Scene>>>,
+    startups: Vec<UnsafeBoxedDispatcher>,
+    systems: Vec<UnsafeBoxedDispatcher>,
 }
 
 impl World {
     pub fn add_startup(
         &mut self,
-        sys: impl for<'a> StartupSystem<DispatchArgs = Scene> + 'static,
+        sys: impl for<'a> System<DispatchArgs = Scene> + 'static,
     ) -> &mut Self
 where {
-        self.startups.push(Box::new(sys));
+        self.startups.push(sys.into());
         self
     }
 
     pub fn add_system(
         &mut self,
-        sys: impl for<'a> System<DispatchArgs= Scene> + 'static,
+        sys: impl for<'a> System<DispatchArgs = Scene> + 'static,
     ) -> &mut Self
 where {
-        self.systems.push(Box::new(sys));
+        self.systems.push(sys.into());
         self
     }
 
-    pub(crate) fn startups_mut(&mut self) -> &mut Vec<Box<dyn Dispatcher<DispatchArgs = Scene>>> {
+    pub(crate) fn startups_mut(&mut self) -> &mut Vec<UnsafeBoxedDispatcher> {
         &mut self.startups
     }
 
@@ -40,8 +43,8 @@ where {
         &mut self,
     ) -> (
         &mut Scene,
-        &mut Vec<Box<dyn Dispatcher<DispatchArgs = Scene>>>,
-        &mut Vec<Box<dyn Dispatcher<DispatchArgs = Scene>>>,
+        &mut Vec<UnsafeBoxedDispatcher>,
+        &mut Vec<UnsafeBoxedDispatcher>,
     ) {
         let World {
             scene,
@@ -50,5 +53,4 @@ where {
         } = self;
         (scene, startups, systems)
     }
-
 }
