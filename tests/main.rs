@@ -12,10 +12,10 @@ struct B;
 impl Component for B {}
 
 struct D;
-impl System for D {
-    type Query<'a> = (&'a ComponentCollection<A>,);
+impl<'a> System<'a> for D {
+    type Query = (&'a ComponentCollection<A>,);
 
-    fn run(&mut self, (_a,): Self::Query<'_>) {
+    fn run(&mut self, (_a,): Self::Query) {
         println!("start D");
         spin_sleep::sleep(Duration::new(2, 0));
         println!("end D");
@@ -23,20 +23,20 @@ impl System for D {
 }
 
 struct C;
-impl System for C {
-    type Query<'a> = (&'a ComponentCollection<A>,);
+impl<'a> System<'a> for C {
+    type Query = (&'a ComponentCollection<A>,);
 
-    fn run<'a>(&mut self, (_a,): Self::Query<'a>) {
+    fn run(&mut self, (_a,): Self::Query) {
         println!("start C");
         spin_sleep::sleep(Duration::new(2, 0));
         println!("end C");
     }
 }
 struct E;
-impl System for E {
-    type Query<'a> = (&'a mut ComponentCollection<A>,);
+impl<'a> System<'a> for E {
+    type Query = (&'a mut ComponentCollection<A>,);
 
-    fn run<'a>(&mut self, (_a,): Self::Query<'a>) {
+    fn run(&mut self, (_a,): Self::Query) {
         println!("start E");
         spin_sleep::sleep(Duration::new(2, 0));
         println!("end E");

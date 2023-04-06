@@ -11,37 +11,42 @@ use crate::{
 
 use super::systems::System;
 
-
-pub struct DispatcherArgs<'a>{
+pub struct DispatcherArgs<'a> {
     components: &'a mut ComponentRegistry,
 }
 
 impl<'a> DispatcherArgs<'a> {
-    pub unsafe fn get_components_ptr<T:Component+'static>(&mut self) -> *const ComponentCollection<T> {
+    pub unsafe fn get_components_ptr<T: Component + 'static>(
+        &mut self,
+    ) -> *const ComponentCollection<T> {
         self.components.get_ptr::<T>()
     }
-    pub unsafe fn get_components_ptr_mut <T:Component+'static>(&mut self) -> *mut ComponentCollection<T> {
+    pub unsafe fn get_components_ptr_mut<T: Component + 'static>(
+        &mut self,
+    ) -> *mut ComponentCollection<T> {
         self.components.get_ptr_mut::<T>()
     }
 }
-
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct DispatchError;
 
 pub trait Dispatcher<'a> {
-    type DispatchArgs:'a;
+    type DispatchArgs: 'a;
 
-    unsafe fn dispatch(&mut self, args: &mut Self::DispatchArgs) -> BoxedData where Self:Sized ;
+    unsafe fn dispatch(&mut self, args: &mut Self::DispatchArgs) -> BoxedData
+    where;
 
-    fn try_run(&mut self, b: BoxedData) -> Result<(), BoxedData>  where Self:Sized;
+    fn try_run(&mut self, b: BoxedData) -> Result<(), BoxedData>
+    where;
 
-    fn access() -> Access where Self:Sized;
+    fn access() -> Access
+    where
+        Self: Sized;
 }
 
 pub trait DispatchData<'a> {
-
-    type DispatcherArgs:'a;
+    type DispatcherArgs: 'a;
     type Target: 'static;
 
     unsafe fn dispatch(args: &mut DispatcherArgs<'a>) -> Self::Target
@@ -49,6 +54,9 @@ pub trait DispatchData<'a> {
         Self: Sized;
 
     fn access() -> Access
+    where
+        Self: Sized;
+    unsafe fn from_target_to_data(data: Self::Target) -> Self
     where
         Self: Sized;
 }
@@ -75,7 +83,7 @@ unsafe impl Send for BoxedData {}
 
 impl<'a, S: System<'a> + 'static> Dispatcher<'a> for S
 where
-S::Query: DispatchData<'a,DispatcherArgs = DispatcherArgs<'a>>,
+    S::Query: DispatchData<'a, DispatcherArgs = DispatcherArgs<'a>>,
 {
     unsafe fn dispatch(&mut self, args: &mut Self::DispatchArgs) -> BoxedData {
         BoxedData::new(<<S as System<'a>>::Query as DispatchData<'a>>::dispatch(
@@ -84,7 +92,8 @@ S::Query: DispatchData<'a,DispatcherArgs = DispatcherArgs<'a>>,
     }
 
     fn try_run(&mut self, b: BoxedData) -> Result<(), BoxedData> {
-        self.run(*(b.downcast()?));
+        let data = *(b.downcast::<<S::Query as DispatchData<'a>>::Target>()?);
+        self.run(unsafe { <S::Query as DispatchData<'a>>::from_target_to_data(data) });
         Ok(())
     }
     fn access() -> Access
@@ -112,6 +121,13 @@ impl<'a, T: Component + 'static> DispatchData<'a> for &'a ComponentCollection<T>
     {
         Access::from_iter([(AccessType::component::<T>(), AccessAction::Read(1))])
     }
+
+    unsafe fn from_target_to_data(data: Self::Target) -> Self
+    where
+        Self: Sized,
+    {
+        &*data as Self
+    }
 }
 
 impl<'a, T: Component + 'static> DispatchData<'a> for &'a mut ComponentCollection<T> {
@@ -127,6 +143,13 @@ impl<'a, T: Component + 'static> DispatchData<'a> for &'a mut ComponentCollectio
         Self: Sized,
     {
         Access::from_iter([(AccessType::component::<T>(), AccessAction::Write)])
+    }
+
+    unsafe fn from_target_to_data(mut data: Self::Target) -> Self
+    where
+        Self: Sized,
+    {
+        &mut *data as Self
     }
 }
 
@@ -152,6 +175,13 @@ macro_rules! impl_tuple_dispatch_data {
                 let mut ans = Access::default();
                 $(ans.try_combine(&$t::access()).expect("the access should not overlap");)*
                 ans
+            }
+            unsafe fn from_target_to_data(data: Self::Target) -> Self
+            where
+                Self: Sized,
+            {
+                let ($($t,)*) = data;
+                ($($t::from_target_to_data($t),)*)
             }
         }
     };
@@ -188,7 +218,7 @@ macro_rules! impl_tuple_dispatch_data {
 //     Z
 // );
 // impl_tuple_dispatch_data!(A,B,C);
-impl_all!(impl_tuple_dispatch_data,A,B,C);
+impl_all!(impl_tuple_dispatch_data, A, B, C);
 mod tests {
 
     #[test]

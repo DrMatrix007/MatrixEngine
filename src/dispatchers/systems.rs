@@ -54,7 +54,7 @@ impl UnsafeBoxedDispatcher {
 pub trait System<'a>: Dispatcher<'a, DispatchArgs = DispatcherArgs<'a>> {
     type Query: DispatchData<'a>;
 
-    fn run(&mut self, comps: <Self::Query as DispatchData<'a>>::Target);
+    fn run(&mut self, comps: Self::Query);
 }
 
 #[derive(Default)]
