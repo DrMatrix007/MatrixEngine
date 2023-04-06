@@ -22,7 +22,7 @@ impl<T> ResourceHolder<T> {
             None => None,
         }
     }
-    pub fn get(&mut self) -> Option<&T> {
+    pub fn get(&self) -> Option<&T> {
         match &self.data {
             Some(data) => Some(data),
             None => None,

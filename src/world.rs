@@ -55,8 +55,15 @@ where {
         } = sys.unpack();
         WorldRefMut {
             args: DispatcherArgs::new(reg, resources),
-            startups: runtime_systems,
-            systems: startup_systems,
+            startups: startup_systems,
+            systems: runtime_systems,
         }
+    }
+
+    pub fn resource_registry_mut(&mut self) -> &mut ResourceRegistry {
+        &mut self.resources
+    }
+    pub fn resource_registry(&self) -> &ResourceRegistry {
+        &self.resources
     }
 }

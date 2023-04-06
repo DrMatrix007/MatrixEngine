@@ -3,7 +3,7 @@ use std::{any::Any, marker::PhantomData};
 use crate::{
     components::{
         components::{Component, ComponentCollection, ComponentRegistry},
-        resources::ResourceRegistry,
+        resources::{Resource, ResourceHolder, ResourceRegistry},
     },
     schedulers::access::{Access, AccessAction, AccessType},
 };
@@ -13,7 +13,6 @@ use super::systems::System;
 pub struct DispatcherArgs<'a> {
     components: &'a mut ComponentRegistry,
     resources: &'a mut ResourceRegistry,
-    
 }
 
 impl<'a> DispatcherArgs<'a> {
@@ -33,6 +32,13 @@ impl<'a> DispatcherArgs<'a> {
         &mut self,
     ) -> *mut ComponentCollection<T> {
         self.components.get_ptr_mut::<T>()
+    }
+
+    pub unsafe fn get_resource_ptr<T: Resource + 'static>(&mut self) -> *const ResourceHolder<T> {
+        self.resources.get_ptr::<T>()
+    }
+    pub unsafe fn get_resource_ptr_mut<T: Resource + 'static>(&mut self) -> *mut ResourceHolder<T> {
+        self.resources.get_ptr_mut::<T>()
     }
 }
 
@@ -151,6 +157,53 @@ impl<'a, T: Component + 'static> DispatchData<'a> for &'a mut ComponentCollectio
         Self: Sized,
     {
         Access::from_iter([(AccessType::component::<T>(), AccessAction::Write)])
+    }
+
+    unsafe fn from_target_to_data(data: Self::Target) -> Self
+    where
+        Self: Sized,
+    {
+        &mut *data as Self
+    }
+}
+
+impl<'a, T: Resource + 'static> DispatchData<'a> for &'a ResourceHolder<T> {
+    type DispatcherArgs = DispatcherArgs<'a>;
+
+    type Target = *const ResourceHolder<T>;
+
+    unsafe fn dispatch<'b>(args: &mut Self::DispatcherArgs) -> Self::Target {
+        args.get_resource_ptr::<T>()
+    }
+
+    fn access() -> Access
+    where
+        Self: Sized,
+    {
+        Access::from_iter([(AccessType::resource::<T>(), AccessAction::Read(1))])
+    }
+
+    unsafe fn from_target_to_data(data: Self::Target) -> Self
+    where
+        Self: Sized,
+    {
+        &*data as Self
+    }
+}
+
+impl<'a, T: Resource + 'static> DispatchData<'a> for &'a mut ResourceHolder<T> {
+    type DispatcherArgs = DispatcherArgs<'a>;
+    type Target = *mut ResourceHolder<T>;
+
+    unsafe fn dispatch<'b>(args: &mut Self::DispatcherArgs) -> Self::Target {
+        args.get_resource_ptr_mut::<T>()
+    }
+
+    fn access() -> Access
+    where
+        Self: Sized,
+    {
+        Access::from_iter([(AccessType::resource::<T>(), AccessAction::Write)])
     }
 
     unsafe fn from_target_to_data(data: Self::Target) -> Self

@@ -65,11 +65,11 @@ impl MultiThreadedScheduler {
 }
 
 impl Scheduler for MultiThreadedScheduler {
-    fn run<'a>(&mut self, dis: &mut Vec<UnsafeBoxedDispatcher>, args: &mut DispatcherArgs<'a>) {
+    fn run<'a>(&mut self, dispatchers: &mut Vec<UnsafeBoxedDispatcher>, args: &mut DispatcherArgs<'a>) {
         self.access_state.clear();
         let sender = self.pool.sender();
 
-        while let Some(dis) = dis.pop() {
+        while let Some(dis) = dispatchers.pop() {
             match self.access_state.try_combine(dis.as_access()) {
                 Ok(_) => {
                     unsafe { Self::send_dispatcher(&sender, dis, args) };
@@ -79,6 +79,16 @@ impl Scheduler for MultiThreadedScheduler {
             for dis in self.pool.try_recv_iter() {
                 self.access_state.remove(dis.as_access());
                 self.done.push_back(dis);
+
+                for _ in 0..self.pending.len() {
+                    let dis = self.pending.pop_back().expect("this should work");
+                    match self.access_state.try_combine(dis.as_access()) {
+                        Ok(_) => {
+                            unsafe { Self::send_dispatcher(&sender, dis, args) };
+                        }
+                        Err(_) => self.pending.push_front(dis),
+                    }
+                }
             }
         }
         for i in self.pool.recv_iter() {
@@ -93,6 +103,9 @@ impl Scheduler for MultiThreadedScheduler {
                     Err(_) => self.pending.push_front(dis),
                 }
             }
+        }
+        while let Some(dis) = self.done.pop_back() {
+            dispatchers.push(dis);
         }
     }
 }

@@ -30,6 +30,7 @@ impl Engine {
         let mut args = self.world.unpack();
         self.scheduler.run(args.startups, &mut args.args);
 
+
         while !self.quit.load(Ordering::Acquire) {
             self.scheduler.run(args.systems, &mut args.args);
         }
