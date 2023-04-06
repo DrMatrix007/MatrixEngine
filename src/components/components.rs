@@ -119,12 +119,12 @@ impl ComponentRegistry {
             .downcast_ref::<ComponentCollection<T>>()
             .expect("this value should be of this type") as *const ComponentCollection<T>
     }
-    pub fn insert<T: Component + 'static>(&mut self, e: Entity, comp: T) {
+    pub fn insert<T: Component + 'static>(&mut self, e: Entity, c: T) {
         self.data
             .entry(TypeId::of::<T>())
             .or_insert(Box::new(ComponentCollection::<T>::default()))
             .downcast_mut::<ComponentCollection<T>>()
             .expect("this value should be this type")
-            .insert(e, comp);
+            .insert(e, c);
     }
 }

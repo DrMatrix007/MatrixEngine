@@ -5,8 +5,7 @@ use std::sync::{
 
 use crate::{
     scene::{SceneUpdateArgs},
-    schedulers::Scheduler,
-    world::World,
+    world::World, schedulers::schedulers::Scheduler,
 };
 
 pub struct EngineArgs<S: Scheduler> {
@@ -33,11 +32,11 @@ impl Engine {
         let args = SceneUpdateArgs {
             quit: self.quit.clone(),
         };
-        let (scene, startups, systems) = self.world.unpack();
-        self.scheduler.run(startups, scene, &args);
+        let (scene, resources) = self.world.unpack();
+        self.scheduler.run(scene, &args);
 
         while !self.quit.load(Ordering::Acquire) {
-            self.scheduler.run(systems, scene, &args);
+            self.scheduler.run(scene, &args);
         }
     }
 }

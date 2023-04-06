@@ -187,7 +187,7 @@ mod tests {
 
     #[test]
     pub fn thread_pool_test() {
-        use crate::thread_pool::ThreadPool;
+        use crate::schedulers::thread_pool::ThreadPool;
         use std::collections::HashSet;
 
         let pool = ThreadPool::new(10);

@@ -1,36 +1,33 @@
 use crate::{
-    scene::Scene,
-    systems::{System, UnsafeBoxedDispatcher},
+    scene::Scene, dispatchers::{systems::{UnsafeBoxedDispatcher, System, SystemRegistry}, dispatchers::DispatcherArgs}, components::{resources::ResourceRegistry, components::ComponentRegistry},
 };
+
 
 #[derive(Default)]
 pub struct World {
     scene: Scene,
-    startups: Vec<UnsafeBoxedDispatcher>,
-    systems: Vec<UnsafeBoxedDispatcher>,
+    resources:ResourceRegistry,
+    
 }
 
+
 impl World {
-    pub fn add_startup(
+    pub fn add_startup_system(
         &mut self,
-        sys: impl for<'a> System<DispatchArgs = Scene> + 'static,
+        sys: impl for<'a> System<'a,DispatchArgs = DispatcherArgs<'a>> + 'static,
     ) -> &mut Self
 where {
-        self.startups.push(sys.into());
+        self.scene.system_registry_mut().add_startup_system(sys.into());
         self
     }
 
     pub fn add_system(
         &mut self,
-        sys: impl for<'a> System<DispatchArgs = Scene> + 'static,
+        sys: impl for<'a> System<'a,DispatchArgs = DispatcherArgs<'a>> + 'static,
     ) -> &mut Self
 where {
-        self.systems.push(sys.into());
+        self.scene.system_registry_mut().add_system(sys.into());
         self
-    }
-
-    pub(crate) fn startups_mut(&mut self) -> &mut Vec<UnsafeBoxedDispatcher> {
-        &mut self.startups
     }
 
     pub fn scene(&self) -> &Scene {
@@ -43,14 +40,13 @@ where {
         &mut self,
     ) -> (
         &mut Scene,
-        &mut Vec<UnsafeBoxedDispatcher>,
-        &mut Vec<UnsafeBoxedDispatcher>,
+        &mut ResourceRegistry,
+        
     ) {
         let World {
             scene,
-            startups,
-            systems,
+            resources,
         } = self;
-        (scene, startups, systems)
+        (scene, resources)
     }
 }

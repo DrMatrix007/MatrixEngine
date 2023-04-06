@@ -3,15 +3,33 @@ use std::{
     collections::{hash_map, HashMap},
 };
 
+use crate::components::{components::Component, resources::Resource};
+
 #[derive(Debug, Clone, Copy)]
-pub enum AccessType {
+pub enum AccessAction {
     Read(usize),
     Write,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum AccessType {
+    Component(TypeId),
+    Resource(TypeId),
+}
+
 impl AccessType {
+    pub fn component<T: Component + 'static>() -> Self {
+        Self::Component(TypeId::of::<T>())
+    }
+
+    pub fn resource<T: Resource + 'static>() -> Self {
+        Self::Resource(TypeId::of::<T>())
+    }
+}
+
+impl AccessAction {
     pub fn is_compatible(&self, other: &Self) -> bool {
-        if let (AccessType::Read(_), AccessType::Read(_)) = (self, other) {
+        if let (AccessAction::Read(_), AccessAction::Read(_)) = (self, other) {
             true
         } else {
             false
@@ -21,21 +39,21 @@ impl AccessType {
 
 #[derive(Debug, Default, Clone)]
 pub struct Access {
-    data: HashMap<TypeId, AccessType>,
+    data: HashMap<AccessType, AccessAction>,
 }
 
 impl IntoIterator for Access {
-    type Item = (TypeId, AccessType);
+    type Item = (AccessType, AccessAction);
 
-    type IntoIter = hash_map::IntoIter<TypeId, AccessType>;
+    type IntoIter = hash_map::IntoIter<AccessType, AccessAction>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.data.into_iter()
     }
 }
 
-impl FromIterator<(TypeId, AccessType)> for Access {
-    fn from_iter<T: IntoIterator<Item = (TypeId, AccessType)>>(iter: T) -> Self {
+impl FromIterator<(AccessType, AccessAction)> for Access {
+    fn from_iter<T: IntoIterator<Item = (AccessType, AccessAction)>>(iter: T) -> Self {
         Self {
             data: iter.into_iter().collect(),
         }
@@ -44,14 +62,14 @@ impl FromIterator<(TypeId, AccessType)> for Access {
 
 impl Access {
     /// returns the iter of the accessed values
-    pub fn iter(&self) -> std::collections::hash_map::Iter<TypeId, AccessType> {
+    pub fn iter(&self) -> std::collections::hash_map::Iter<AccessType, AccessAction> {
         self.data.iter()
     }
     /// returns the state of a single field
-    pub fn at(&self, ty: &TypeId) -> Option<&AccessType> {
+    pub fn at(&self, ty: &AccessType) -> Option<&AccessAction> {
         self.data.get(ty)
     }
-    pub fn at_mut(&mut self, ty: &TypeId) -> Option<&mut AccessType> {
+    pub fn at_mut(&mut self, ty: &AccessType) -> Option<&mut AccessAction> {
         self.data.get_mut(ty)
     }
 
@@ -73,7 +91,7 @@ impl Access {
         for (id, other) in other.iter() {
             if let Some(curr) = candidate.at_mut(id) {
                 match (other, curr) {
-                    (AccessType::Read(a), AccessType::Read(b)) => {
+                    (AccessAction::Read(a), AccessAction::Read(b)) => {
                         *b += a;
                     }
                     _ => {
@@ -87,7 +105,7 @@ impl Access {
         *self = candidate;
         Ok(())
     }
-    fn insert(&mut self, id: TypeId, other: AccessType) -> Option<AccessType> {
+    fn insert(&mut self, id: AccessType, other: AccessAction) -> Option<AccessAction> {
         self.data.insert(id, other)
     }
 
@@ -97,14 +115,14 @@ impl Access {
 
     pub fn remove(&mut self, other: &Access) {
         for (i, t) in other.iter() {
-            if let (Some(AccessType::Read(a)), AccessType::Read(b)) = (self.at_mut(i), t) {
+            if let (Some(AccessAction::Read(a)), AccessAction::Read(b)) = (self.at_mut(i), t) {
                 if *a >= *b {
                     *a -= b;
                 }
                 if *a == 0 {
                     self.data.remove(i);
                 }
-            } else if let AccessType::Write = t {
+            } else if let AccessAction::Write = t {
                 self.data.remove(i);
             }
         }
@@ -115,27 +133,30 @@ mod tests {
 
     #[test]
     fn test_access() {
-        use std::any::TypeId;
+        use crate::schedulers::access::{Access, AccessAction};
+        use crate::{components::components::Component, schedulers::access::AccessType};
 
-        use crate::access::{Access, AccessType};
         trait AccessAccessor {
-            fn read() -> (TypeId, AccessType);
-            fn write() -> (TypeId, AccessType);
+            fn read() -> (AccessType, AccessAction);
+            fn write() -> (AccessType, AccessAction);
         }
 
-        impl<T: 'static> AccessAccessor for T {
-            fn read() -> (TypeId, AccessType) {
-                (TypeId::of::<T>(), AccessType::Read(1))
+        impl<T: Component + 'static> AccessAccessor for T {
+            fn read() -> (AccessType, AccessAction) {
+                (AccessType::component::<T>(), AccessAction::Read(1))
             }
 
-            fn write() -> (TypeId, AccessType) {
-                (TypeId::of::<T>(), AccessType::Write)
+            fn write() -> (AccessType, AccessAction) {
+                (AccessType::component::<T>(), AccessAction::Write)
             }
         }
 
         struct A;
+        impl Component for A {}
         struct B;
+        impl Component for B {}
         struct C;
+        impl Component for C {}
 
         let access1 = [A::read(), B::write(), C::read()]
             .into_iter()

@@ -1,12 +1,6 @@
 use std::time::Duration;
 
-use matrix_engine::{
-    components::{Component, ComponentCollection},
-    engine::{Engine, EngineArgs},
-    entity::Entity,
-    schedulers::MultiThreadedScheduler,
-    systems::System,
-    world::World,
+use matrix_engine::{components::components::{Component, ComponentCollection}, dispatchers::systems::System, world::World, entity::Entity, engine::{Engine, EngineArgs}, schedulers::schedulers::MultiThreadedScheduler
 };
 
 #[derive(Debug)]
@@ -62,7 +56,7 @@ fn main() {
     world.add_system(C {}).add_system(E {}).add_system(D {});
     let mut engine = Engine::new(EngineArgs {
         world,
-        scheduler: MultiThreadedScheduler::new(2),
+        scheduler: MultiThreadedScheduler::with_amount_of_cores().unwrap(),
     });
 
     engine.run();
