@@ -1,11 +1,10 @@
-use std::{
-    any::{Any, TypeId},
-    marker::PhantomData,
-};
+use std::{any::Any, marker::PhantomData};
 
 use crate::{
-    components::components::{Component, ComponentCollection, ComponentRegistry},
-    scene::Scene,
+    components::{
+        components::{Component, ComponentCollection, ComponentRegistry},
+        resources::ResourceRegistry,
+    },
     schedulers::access::{Access, AccessAction, AccessType},
 };
 
@@ -13,9 +12,18 @@ use super::systems::System;
 
 pub struct DispatcherArgs<'a> {
     components: &'a mut ComponentRegistry,
+    resources: &'a mut ResourceRegistry,
+    
 }
 
 impl<'a> DispatcherArgs<'a> {
+    pub fn new(components: &'a mut ComponentRegistry, resources: &'a mut ResourceRegistry) -> Self {
+        Self {
+            components,
+            resources,
+        }
+    }
+
     pub unsafe fn get_components_ptr<T: Component + 'static>(
         &mut self,
     ) -> *const ComponentCollection<T> {
@@ -35,10 +43,10 @@ pub trait Dispatcher<'a> {
     type DispatchArgs: 'a;
 
     unsafe fn dispatch(&mut self, args: &mut Self::DispatchArgs) -> BoxedData
-    where;
+where;
 
     fn try_run(&mut self, b: BoxedData) -> Result<(), BoxedData>
-    where;
+where;
 
     fn access() -> Access
     where
@@ -111,7 +119,7 @@ impl<'a, T: Component + 'static> DispatchData<'a> for &'a ComponentCollection<T>
 
     type Target = *const ComponentCollection<T>;
 
-    unsafe fn dispatch<'b>(mut args: &mut Self::DispatcherArgs) -> Self::Target {
+    unsafe fn dispatch<'b>(args: &mut Self::DispatcherArgs) -> Self::Target {
         args.get_components_ptr::<T>()
     }
 
@@ -134,7 +142,7 @@ impl<'a, T: Component + 'static> DispatchData<'a> for &'a mut ComponentCollectio
     type DispatcherArgs = DispatcherArgs<'a>;
     type Target = *mut ComponentCollection<T>;
 
-    unsafe fn dispatch<'b>(mut args: &mut Self::DispatcherArgs) -> Self::Target {
+    unsafe fn dispatch<'b>(args: &mut Self::DispatcherArgs) -> Self::Target {
         args.get_components_ptr_mut::<T>()
     }
 
@@ -145,7 +153,7 @@ impl<'a, T: Component + 'static> DispatchData<'a> for &'a mut ComponentCollectio
         Access::from_iter([(AccessType::component::<T>(), AccessAction::Write)])
     }
 
-    unsafe fn from_target_to_data(mut data: Self::Target) -> Self
+    unsafe fn from_target_to_data(data: Self::Target) -> Self
     where
         Self: Sized,
     {
@@ -165,6 +173,8 @@ macro_rules! impl_all {
 
 macro_rules! impl_tuple_dispatch_data {
     ($($t:ident),*) => {
+
+        #[allow(non_snake_case)]
         impl<'a,$($t: DispatchData<'a,DispatcherArgs=DispatcherArgs<'a>>,)*> DispatchData<'a> for ($($t,)*) {
             type Target = ($($t::Target,)*);
             type DispatcherArgs = DispatcherArgs<'a>;
@@ -188,45 +198,42 @@ macro_rules! impl_tuple_dispatch_data {
 }
 
 // impl_tuple_dispatch_data!(A,);
-// impl_all!(
-//     impl_tuple_dispatch_data,
-//     A,
-//     B,
-//     C,
-//     D,
-//     E,
-//     F,
-//     G,
-//     H,
-//     I,
-//     J,
-//     K,
-//     L,
-//     M,
-//     N,
-//     O,
-//     P,
-//     Q,
-//     R,
-//     S,
-//     T,
-//     U,
-//     V,
-//     W,
-//     X,
-//     Y,
-//     Z
-// );
+impl_all!(
+    impl_tuple_dispatch_data,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+    Y,
+    Z
+);
 // impl_tuple_dispatch_data!(A,B,C);
-impl_all!(impl_tuple_dispatch_data, A, B, C);
+// impl_all!(impl_tuple_dispatch_data, A, B, C);
 mod tests {
 
     #[test]
     fn test_dispatchers() {
-        use crate::{
-            components::components::{Component, ComponentCollection},
-            dispatchers::dispatchers::DispatchData,
-        };
+        use crate::components::components::{Component, ComponentCollection};
         struct A;
         impl Component for A {}
 

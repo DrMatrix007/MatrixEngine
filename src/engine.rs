@@ -3,10 +3,7 @@ use std::sync::{
     Arc,
 };
 
-use crate::{
-    scene::{SceneUpdateArgs},
-    world::World, schedulers::schedulers::Scheduler,
-};
+use crate::{schedulers::schedulers::Scheduler, world::World};
 
 pub struct EngineArgs<S: Scheduler> {
     pub world: World,
@@ -29,14 +26,12 @@ impl Engine {
     }
 
     pub fn run(&mut self) {
-        let args = SceneUpdateArgs {
-            quit: self.quit.clone(),
-        };
-        let (scene, resources) = self.world.unpack();
-        self.scheduler.run(scene, &args);
+        
+        let mut args = self.world.unpack();
+        self.scheduler.run(args.startups, &mut args.args);
 
         while !self.quit.load(Ordering::Acquire) {
-            self.scheduler.run(scene, &args);
+            self.scheduler.run(args.systems, &mut args.args);
         }
     }
 }

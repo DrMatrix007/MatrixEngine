@@ -1,37 +1,29 @@
 use std::{collections::VecDeque, io};
 
-use crate::{
-    dispatchers::systems::UnsafeBoxedDispatcher,
-    scene::{Scene, SceneUpdateArgs},
-};
+use crate::dispatchers::{dispatchers::DispatcherArgs, systems::UnsafeBoxedDispatcher};
 
 use super::{
     access::Access,
-    thread_pool::{Job, ThreadPool, ThreadPoolSender},
+    thread_pool::{ThreadPool, ThreadPoolSender},
 };
 
-
 pub trait Scheduler {
-    fn run(
-        &mut self,
-        scene: &mut Scene,
-        args: &SceneUpdateArgs,
-    );
+    fn run<'a>(&mut self, dis: &mut Vec<UnsafeBoxedDispatcher>, args: &mut DispatcherArgs<'a>);
 }
 
 pub struct SingleThreadScheduler;
 
 impl Scheduler for SingleThreadScheduler {
-    fn run(
-        &mut self,
-        scene: &mut Scene,
-        _: &SceneUpdateArgs,
-    ) {
-        
+    fn run<'a>(&mut self, dis: &mut Vec<UnsafeBoxedDispatcher>, args: &mut DispatcherArgs<'a>) {
+        for i in dis {
+            let data = unsafe { i.as_mut().dispatch(args) };
+            i.as_mut()
+                .try_run(data)
+                .map_err(|_| ())
+                .expect("this function should not return Err(())");
+        }
     }
-    // fn run_group(&mut self,dis:Vec<UnsafeBoxedDispatcher>)
 }
-
 
 pub struct MultiThreadedScheduler {
     pool: ThreadPool<UnsafeBoxedDispatcher>,
@@ -52,22 +44,55 @@ impl MultiThreadedScheduler {
     pub fn with_amount_of_cores() -> io::Result<Self> {
         Ok(Self::new(std::thread::available_parallelism()?.get()))
     }
-    fn try_run_dispatcher(
-        pool: &mut ThreadPoolSender<UnsafeBoxedDispatcher>,
-        access_state: &mut Access,
+
+    unsafe fn send_dispatcher(
+        sender: &ThreadPoolSender<UnsafeBoxedDispatcher>,
         mut dis: UnsafeBoxedDispatcher,
-        pending: &mut VecDeque<UnsafeBoxedDispatcher>,
-        scene: &mut Scene,
+        args: &mut DispatcherArgs,
     ) {
-        
+        let data = unsafe { dis.as_mut().dispatch(args) };
+
+        sender
+            .send(move || {
+                dis.as_mut()
+                    .try_run(data)
+                    .map_err(|_| ())
+                    .expect("this function should work");
+                dis
+            })
+            .expect("this value should be sent");
     }
 }
 
 impl Scheduler for MultiThreadedScheduler {
-    fn run(
-        &mut self,
-        scene: &mut Scene,
-        _args: &SceneUpdateArgs,
-    ) {
-           }
+    fn run<'a>(&mut self, dis: &mut Vec<UnsafeBoxedDispatcher>, args: &mut DispatcherArgs<'a>) {
+        self.access_state.clear();
+        let sender = self.pool.sender();
+
+        while let Some(dis) = dis.pop() {
+            match self.access_state.try_combine(dis.as_access()) {
+                Ok(_) => {
+                    unsafe { Self::send_dispatcher(&sender, dis, args) };
+                }
+                Err(_) => self.pending.push_back(dis),
+            }
+            for dis in self.pool.try_recv_iter() {
+                self.access_state.remove(dis.as_access());
+                self.done.push_back(dis);
+            }
+        }
+        for i in self.pool.recv_iter() {
+            self.access_state.remove(i.as_access());
+            self.done.push_back(i);
+            for _ in 0..self.pending.len() {
+                let dis = self.pending.pop_back().expect("this should work");
+                match self.access_state.try_combine(dis.as_access()) {
+                    Ok(_) => {
+                        unsafe { Self::send_dispatcher(&sender, dis, args) };
+                    }
+                    Err(_) => self.pending.push_front(dis),
+                }
+            }
+        }
+    }
 }

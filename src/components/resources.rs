@@ -73,7 +73,5 @@ mod tests {
 
     #[test]
     fn test() {
-        use super::ResourceRegistry;
-        let a = ResourceRegistry::default();
     }
 }

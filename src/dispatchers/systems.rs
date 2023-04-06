@@ -1,6 +1,4 @@
-use std::default;
-
-use crate::{components::components::ComponentRegistry, scene::Scene, schedulers::access::Access};
+use crate::schedulers::access::Access;
 
 use super::dispatchers::{DispatchData, Dispatcher, DispatcherArgs};
 
@@ -57,6 +55,11 @@ pub trait System<'a>: Dispatcher<'a, DispatchArgs = DispatcherArgs<'a>> {
     fn run(&mut self, comps: Self::Query);
 }
 
+pub(crate) struct SystemRegistryRefMut<'a> {
+    pub startup_systems: &'a mut Vec<UnsafeBoxedDispatcher>,
+    pub runtime_systems: &'a mut Vec<UnsafeBoxedDispatcher>,
+}
+
 #[derive(Default)]
 pub struct SystemRegistry {
     startup_systems: Vec<UnsafeBoxedDispatcher>,
@@ -69,5 +72,11 @@ impl SystemRegistry {
     }
     pub(crate) fn add_startup_system(&mut self, dispatcher: UnsafeBoxedDispatcher) {
         self.startup_systems.push(dispatcher);
+    }
+    pub(crate) fn unpack(&mut self) -> SystemRegistryRefMut<'_> {
+        SystemRegistryRefMut {
+            startup_systems: &mut self.startup_systems,
+            runtime_systems: &mut self.runtime_systems,
+        }
     }
 }

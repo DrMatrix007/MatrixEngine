@@ -21,6 +21,9 @@ impl Scene {
     pub fn system_registry(&self) -> &SystemRegistry {
         &self.systems
     }
+    pub(crate) fn unpack(&mut self) -> (&mut SystemRegistry,&mut ComponentRegistry) {
+        (&mut self.systems,&mut self.components)
+    }
 }
 
 #[derive(Clone)]

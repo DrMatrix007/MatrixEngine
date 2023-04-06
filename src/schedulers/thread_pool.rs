@@ -175,8 +175,11 @@ pub struct ThreadPoolSender<T> {
 }
 
 impl<T> ThreadPoolSender<T> {
-    pub fn send(&self, job: Job<T>) -> Result<(), SendError<Job<T>>> {
-        self.sender.send(job).map(|x| {
+    pub fn send<F>(&self, job: F) -> Result<(), SendError<Job<T>>>
+    where
+        F: FnOnce() -> T + Send+'static,
+    {
+        self.sender.send(Job::Work(Box::new(job))).map(|x| {
             self.counter.fetch_add(1, Ordering::Acquire);
             x
         })
