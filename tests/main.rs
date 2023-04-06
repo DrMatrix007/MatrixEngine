@@ -1,6 +1,13 @@
-use std::time::Duration;
 
-use matrix_engine::{components::{components::{Component, ComponentCollection}, resources::{Resource, ResourceHolder}}, dispatchers::systems::System, world::World, entity::Entity, engine::{Engine, EngineArgs}, schedulers::schedulers::MultiThreadedScheduler
+use matrix_engine::{
+    components::{
+        components::{Component, ComponentCollection},
+        resources::{Resource, ResourceHolder},
+    },
+    dispatchers::systems::System,
+    engine::{Engine, EngineArgs},
+    entity::Entity,
+    world::World, schedulers::multi_threaded_scheduler::MultiThreadedScheduler,
 };
 
 #[derive(Debug)]
@@ -13,39 +20,36 @@ impl Component for B {}
 
 struct D;
 impl<'a> System<'a> for D {
-    type Query = (&'a ComponentCollection<A>,&'a ResourceHolder<Data>);
+    type Query = (&'a ComponentCollection<A>, &'a ResourceHolder<Data>);
 
-    fn run(&mut self, (_a,b): Self::Query) {
+    fn run(&mut self, (_a, b): Self::Query) {
         let b = b.get().unwrap();
         println!("start D");
-        println!("DATA: {}",b.0);
-        spin_sleep::sleep(Duration::new(2, 0));
+        println!("DATA: {}", b.0);
         println!("end D");
     }
 }
 
 struct C;
 impl<'a> System<'a> for C {
-    type Query = (&'a ComponentCollection<A>,&'a ResourceHolder<Data>);
+    type Query = (&'a ComponentCollection<A>, &'a ResourceHolder<Data>);
 
-    fn run(&mut self, (_a,b): Self::Query) {
+    fn run(&mut self, (_a, b): Self::Query) {
         let b = b.get().unwrap();
         println!("start C");
-        println!("DATA: {}",b.0);
+        println!("DATA: {}", b.0);
 
-        spin_sleep::sleep(Duration::new(2, 0));
         println!("end C");
     }
 }
 struct E;
 impl<'a> System<'a> for E {
-    type Query = (&'a mut ComponentCollection<A>,&'a mut ResourceHolder<Data>);
+    type Query = (&'a mut ComponentCollection<A>, &'a mut ResourceHolder<Data>);
 
-    fn run(&mut self, (_a,b): Self::Query) {
-        let b=  b.get_mut().unwrap();
+    fn run(&mut self, (_a, b): Self::Query) {
+        let b = b.get_mut().unwrap();
         println!("start E");
-        b.0+=1;
-        spin_sleep::sleep(Duration::new(2, 0));
+        b.0 += 1;
         println!("end E");
     }
 }
@@ -70,6 +74,7 @@ fn main() {
     // world.add_startup(D {}).add_startup(D {});
     world.add_system(C {}).add_system(E {}).add_system(D {});
     let mut engine = Engine::new(EngineArgs {
+        fps: 1,
         world,
         scheduler: MultiThreadedScheduler::with_amount_of_cores().unwrap(),
     });

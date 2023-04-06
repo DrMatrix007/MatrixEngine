@@ -7,3 +7,4 @@ pub mod scene;
 pub mod dispatchers;
 pub mod schedulers;
 pub mod world;
+pub mod event_loop;
