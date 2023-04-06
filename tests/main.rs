@@ -19,9 +19,9 @@ impl Component for B {}
 
 struct D;
 impl System for D {
-    type Query<'a> = &'a mut ComponentCollection<A>;
+    type Query<'a> = (&'a ComponentCollection<A>,);
 
-    fn run(&mut self, _comps: &mut ComponentCollection<A>) {
+    fn run(&mut self, (_a,): Self::Query<'_>) {
         println!("start D");
         spin_sleep::sleep(Duration::new(2, 0));
         println!("end D");
@@ -30,15 +30,24 @@ impl System for D {
 
 struct C;
 impl System for C {
-    type Query<'a> = (&'a mut ComponentCollection<A>,&'a ComponentCollection<B>,);
+    type Query<'a> = (&'a ComponentCollection<A>,);
 
-    fn run<'a>(&mut self, (_a,_b,): Self::Query<'a>) {
+    fn run<'a>(&mut self, (_a,): Self::Query<'a>) {
         println!("start C");
         spin_sleep::sleep(Duration::new(2, 0));
         println!("end C");
     }
 }
+struct E;
+impl System for E {
+    type Query<'a> = (&'a mut ComponentCollection<A>,);
 
+    fn run<'a>(&mut self, (_a,): Self::Query<'a>) {
+        println!("start E");
+        spin_sleep::sleep(Duration::new(2, 0));
+        println!("end E");
+    }
+}
 fn main() {
     let mut world = World::default();
 
@@ -50,7 +59,7 @@ fn main() {
     }
 
     // world.add_startup(D {}).add_startup(D {});
-    world.add_system(C {}).add_system(D {});
+    world.add_system(C {}).add_system(E {}).add_system(D {});
     let mut engine = Engine::new(EngineArgs {
         world,
         scheduler: MultiThreadedScheduler::new(2),
