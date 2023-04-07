@@ -1,16 +1,20 @@
-use std::{collections::VecDeque, io};
+use std::{collections::VecDeque, io, sync::Arc};
 
-use crate::dispatchers::{systems::UnsafeBoxedDispatcher, dispatchers::DispatcherArgs};
+use crate::dispatchers::{
+    dispatchers::DispatcherArgs,
+    systems::{SystemArgs, UnsafeBoxedSystem},
+};
 
 use super::{
     access::Access,
-    thread_pool::{ThreadPool, ThreadPoolSender}, schedulers::Scheduler,
+    schedulers::Scheduler,
+    thread_pool::{ThreadPool, ThreadPoolSender},
 };
 
 pub struct MultiThreadedScheduler {
-    pool: ThreadPool<UnsafeBoxedDispatcher>,
-    done: VecDeque<UnsafeBoxedDispatcher>,
-    pending: VecDeque<UnsafeBoxedDispatcher>,
+    pool: ThreadPool<UnsafeBoxedSystem>,
+    done: VecDeque<UnsafeBoxedSystem>,
+    pending: VecDeque<UnsafeBoxedSystem>,
     access_state: Access,
 }
 
@@ -27,17 +31,18 @@ impl MultiThreadedScheduler {
         Ok(Self::new(std::thread::available_parallelism()?.get()))
     }
 
-    unsafe fn send_dispatcher(
-        sender: &ThreadPoolSender<UnsafeBoxedDispatcher>,
-        mut dis: UnsafeBoxedDispatcher,
+    unsafe fn send_dispatcher<'a>(
+        sender: &ThreadPoolSender<UnsafeBoxedSystem>,
+        mut dis: UnsafeBoxedSystem,
         args: &mut DispatcherArgs,
+        system_args: Arc<SystemArgs>,
     ) {
         let data = unsafe { dis.as_mut().dispatch(args) };
 
         sender
             .send(move || {
                 dis.as_mut()
-                    .try_run(data)
+                    .try_run(system_args, data)
                     .map_err(|_| ())
                     .expect("this function should work");
                 dis
@@ -49,8 +54,9 @@ impl MultiThreadedScheduler {
 impl Scheduler for MultiThreadedScheduler {
     fn run<'a>(
         &mut self,
-        dispatchers: &mut Vec<UnsafeBoxedDispatcher>,
+        dispatchers: &mut Vec<UnsafeBoxedSystem>,
         args: &mut DispatcherArgs<'a>,
+        system_args: Arc<SystemArgs>,
     ) {
         self.access_state.clear();
         let sender = self.pool.sender();
@@ -58,7 +64,7 @@ impl Scheduler for MultiThreadedScheduler {
         while let Some(dis) = dispatchers.pop() {
             match self.access_state.try_combine(dis.as_access()) {
                 Ok(_) => {
-                    unsafe { Self::send_dispatcher(&sender, dis, args) };
+                    unsafe { Self::send_dispatcher(&sender, dis, args, system_args.clone()) };
                 }
                 Err(_) => self.pending.push_back(dis),
             }
@@ -70,7 +76,7 @@ impl Scheduler for MultiThreadedScheduler {
                     let dis = self.pending.pop_back().expect("this should work");
                     match self.access_state.try_combine(dis.as_access()) {
                         Ok(_) => {
-                            unsafe { Self::send_dispatcher(&sender, dis, args) };
+                            unsafe { Self::send_dispatcher(&sender, dis, args, system_args.clone()) };
                         }
                         Err(_) => self.pending.push_front(dis),
                     }
@@ -84,7 +90,7 @@ impl Scheduler for MultiThreadedScheduler {
                 let dis = self.pending.pop_back().expect("this should work");
                 match self.access_state.try_combine(dis.as_access()) {
                     Ok(_) => {
-                        unsafe { Self::send_dispatcher(&sender, dis, args) };
+                        unsafe { Self::send_dispatcher(&sender, dis, args, system_args.clone()) };
                     }
                     Err(_) => self.pending.push_front(dis),
                 }

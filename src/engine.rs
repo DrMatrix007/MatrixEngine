@@ -3,7 +3,10 @@ use std::sync::{
     Arc,
 };
 
-use crate::{event_loop::EventLoop, schedulers::schedulers::Scheduler, world::World};
+use crate::{
+    dispatchers::systems::SystemArgs, event_loop::EventLoop, schedulers::schedulers::Scheduler,
+    world::World,
+};
 
 pub struct EngineArgs<S: Scheduler> {
     pub world: World,
@@ -33,11 +36,16 @@ impl Engine {
 
     pub fn run(&mut self) {
         let mut args = self.world.unpack();
-        self.scheduler.run(args.startups, &mut args.args);
+
+        let system_args = Arc::new(SystemArgs::new(self.quit.clone(), self.target_fps.clone()));
+
+        self.scheduler
+            .run(args.startups, &mut args.args, system_args.clone());
 
         while !self.quit.load(Ordering::Acquire) {
             self.event_loop.capture();
-            self.scheduler.run(args.systems, &mut args.args);
+            self.scheduler
+                .run(args.systems, &mut args.args, system_args.clone());
             self.event_loop.wait();
         }
     }

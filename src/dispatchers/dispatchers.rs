@@ -1,4 +1,4 @@
-use std::{any::Any, marker::PhantomData};
+use std::any::Any;
 
 use crate::{
     components::{
@@ -7,8 +7,6 @@ use crate::{
     },
     schedulers::access::{Access, AccessAction, AccessType},
 };
-
-use super::systems::System;
 
 pub struct DispatcherArgs<'a> {
     components: &'a mut ComponentRegistry,
@@ -47,12 +45,11 @@ pub struct DispatchError;
 
 pub trait Dispatcher<'a> {
     type DispatchArgs: 'a;
-
-    unsafe fn dispatch(&mut self, args: &mut Self::DispatchArgs) -> BoxedData
-where;
-
-    fn try_run(&mut self, b: BoxedData) -> Result<(), BoxedData>
-where;
+    type RunArgs;
+    
+    unsafe fn dispatch(&mut self, args: &mut Self::DispatchArgs) -> BoxedData;
+    
+    fn try_run(&mut self,args: Self::RunArgs, b: BoxedData) -> Result<(), BoxedData>;
 
     fn access() -> Access
     where
@@ -75,8 +72,6 @@ pub trait DispatchData<'a> {
         Self: Sized;
 }
 
-struct _Single<T>(PhantomData<T>);
-
 pub struct BoxedData {
     pub data: Box<dyn Any>,
 }
@@ -95,32 +90,7 @@ impl BoxedData {
 
 unsafe impl Send for BoxedData {}
 
-impl<'a, S: System<'a> + 'static> Dispatcher<'a> for S
-where
-    S::Query: DispatchData<'a, DispatcherArgs = DispatcherArgs<'a>>,
-{
-    unsafe fn dispatch(&mut self, args: &mut Self::DispatchArgs) -> BoxedData {
-        BoxedData::new(<<S as System<'a>>::Query as DispatchData<'a>>::dispatch(
-            args,
-        ))
-    }
-
-    fn try_run(&mut self, b: BoxedData) -> Result<(), BoxedData> {
-        let data = *(b.downcast::<<S::Query as DispatchData<'a>>::Target>()?);
-        self.run(unsafe { <S::Query as DispatchData<'a>>::from_target_to_data(data) });
-        Ok(())
-    }
-    fn access() -> Access
-    where
-        Self: Sized,
-    {
-        <Self as System>::Query::access()
-    }
-
-    type DispatchArgs = DispatcherArgs<'a>;
-}
-
-impl<'a, T: Component + 'static> DispatchData<'a> for &'a ComponentCollection<T> {
+impl<'a, T: Component + Sync + 'static> DispatchData<'a> for &'a ComponentCollection<T> {
     type DispatcherArgs = DispatcherArgs<'a>;
 
     type Target = *const ComponentCollection<T>;
@@ -167,7 +137,7 @@ impl<'a, T: Component + 'static> DispatchData<'a> for &'a mut ComponentCollectio
     }
 }
 
-impl<'a, T: Resource + 'static> DispatchData<'a> for &'a ResourceHolder<T> {
+impl<'a, T: Resource + Sync + 'static> DispatchData<'a> for &'a ResourceHolder<T> {
     type DispatcherArgs = DispatcherArgs<'a>;
 
     type Target = *const ResourceHolder<T>;

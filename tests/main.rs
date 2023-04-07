@@ -1,13 +1,13 @@
-
 use matrix_engine::{
     components::{
         components::{Component, ComponentCollection},
         resources::{Resource, ResourceHolder},
     },
-    dispatchers::systems::System,
+    dispatchers::systems::{System, SystemArgs},
     engine::{Engine, EngineArgs},
     entity::Entity,
-    world::World, schedulers::multi_threaded_scheduler::MultiThreadedScheduler,
+    schedulers::multi_threaded_scheduler::MultiThreadedScheduler,
+    world::World,
 };
 
 #[derive(Debug)]
@@ -22,7 +22,7 @@ struct D;
 impl<'a> System<'a> for D {
     type Query = (&'a ComponentCollection<A>, &'a ResourceHolder<Data>);
 
-    fn run(&mut self, (_a, b): Self::Query) {
+    fn run(&mut self, args: &SystemArgs, (_a, b): Self::Query) {
         let b = b.get().unwrap();
         println!("start D");
         println!("DATA: {}", b.0);
@@ -34,19 +34,22 @@ struct C;
 impl<'a> System<'a> for C {
     type Query = (&'a ComponentCollection<A>, &'a ResourceHolder<Data>);
 
-    fn run(&mut self, (_a, b): Self::Query) {
+    fn run(&mut self, args: &SystemArgs, (_a, b): Self::Query) {
         let b = b.get().unwrap();
         println!("start C");
         println!("DATA: {}", b.0);
 
         println!("end C");
+        if b.0 > 15 { 
+            args.stop();
+        }
     }
 }
 struct E;
 impl<'a> System<'a> for E {
     type Query = (&'a mut ComponentCollection<A>, &'a mut ResourceHolder<Data>);
 
-    fn run(&mut self, (_a, b): Self::Query) {
+    fn run(&mut self, args: &SystemArgs, (_a, b): Self::Query) {
         let b = b.get_mut().unwrap();
         println!("start E");
         b.0 += 1;

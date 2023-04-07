@@ -1,16 +1,18 @@
+use std::sync::Arc;
+
 use crate::{
     components::resources::ResourceRegistry,
     dispatchers::{
         dispatchers::DispatcherArgs,
-        systems::{System, SystemRegistryRefMut, UnsafeBoxedDispatcher},
+        systems::{System, SystemRegistryRefMut, UnsafeBoxedSystem, SystemArgs},
     },
     scene::Scene,
 };
 
 pub(crate) struct WorldRefMut<'a> {
     pub args: DispatcherArgs<'a>,
-    pub startups: &'a mut Vec<UnsafeBoxedDispatcher>,
-    pub systems: &'a mut Vec<UnsafeBoxedDispatcher>,
+    pub startups: &'a mut Vec<UnsafeBoxedSystem>,
+    pub systems: &'a mut Vec<UnsafeBoxedSystem>,
 }
 
 #[derive(Default)]
@@ -22,21 +24,23 @@ pub struct World {
 impl World {
     pub fn add_startup_system(
         &mut self,
-        sys: impl for<'a> System<'a, DispatchArgs = DispatcherArgs<'a>> + 'static,
+        sys: impl for<'a> System<'a, DispatchArgs = DispatcherArgs<'a>,RunArgs = Arc<SystemArgs>> + 'static,
     ) -> &mut Self
 where {
         self.scene
             .system_registry_mut()
-            .add_startup_system(sys.into());
+            .add_startup_system(UnsafeBoxedSystem::new(sys));
         self
     }
 
     pub fn add_system(
         &mut self,
-        sys: impl for<'a> System<'a, DispatchArgs = DispatcherArgs<'a>> + 'static,
+        sys: impl for<'a> System<'a, DispatchArgs = DispatcherArgs<'a>,RunArgs = Arc<SystemArgs>> + 'static,
     ) -> &mut Self
 where {
-        self.scene.system_registry_mut().add_system(sys.into());
+        self.scene
+            .system_registry_mut()
+            .add_system(UnsafeBoxedSystem::new(sys));
         self
     }
 
