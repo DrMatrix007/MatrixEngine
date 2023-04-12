@@ -22,6 +22,8 @@ pub struct World {
 }
 
 impl World {
+    pub fn new(scene: Scene, resources: ResourceRegistry) -> Self { Self { scene, resources } }
+
     pub fn add_startup_system(
         &mut self,
         sys: impl for<'a> System<'a, DispatchArgs = DispatcherArgs<'a>,RunArgs = Arc<SystemArgs>> + 'static,
