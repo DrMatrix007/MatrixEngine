@@ -22,22 +22,20 @@ impl SystemArgs {
     }
 }
 
-pub trait System<'a>:
-    Dispatcher<'a, DispatchArgs = DispatcherArgs<'a>, RunArgs = Arc<SystemArgs>> + Send
+pub trait BaseSystem<'a>:
+    Dispatcher<'a, DispatchArgs = DispatcherArgs<'a>, RunArgs = Arc<SystemArgs>>
 {
     type Query: DispatchData<'a>;
 
     fn run(&mut self, args: &SystemArgs, comps: Self::Query);
 }
 
-impl<'a, S: System<'a> + 'static> Dispatcher<'a> for S
+impl<'a, S: BaseSystem<'a> + 'static> Dispatcher<'a> for S
 where
     S::Query: DispatchData<'a, DispatcherArgs = DispatcherArgs<'a>>,
 {
     unsafe fn dispatch(&mut self, args: &mut Self::DispatchArgs) -> BoxedData {
-        BoxedData::new(<<S as System<'a>>::Query as DispatchData<'a>>::dispatch(
-            args,
-        ))
+        BoxedData::new(<<S as BaseSystem<'a>>::Query as DispatchData<'a>>::dispatch(args))
     }
     type RunArgs = Arc<SystemArgs>;
     type DispatchArgs = DispatcherArgs<'a>;
@@ -53,88 +51,36 @@ where
     where
         Self: Sized,
     {
-        <Self as System>::Query::access()
+        <Self as BaseSystem>::Query::access()
     }
 }
 
-pub(crate) struct SystemRegistryRefMut<'a> {
-    pub startup_systems: &'a mut Vec<UnsafeBoxedSystem>,
-    pub runtime_systems: &'a mut Vec<UnsafeBoxedSystem>,
+pub trait ExclusiveSystem<'a>:
+    BaseSystem<'a, Query = <Self as ExclusiveSystem<'a>>::Query>
+{
+    type Query: DispatchData<'a>;
+
+    fn run(&mut self, args: &SystemArgs, comps: <Self as ExclusiveSystem<'a>>::Query);
 }
+impl<'a, T: ExclusiveSystem<'a>> BaseSystem<'a> for T {
+    type Query = <T as ExclusiveSystem<'a>>::Query;
 
-#[derive(Default)]
-pub struct SystemRegistry {
-    startup_systems: Vec<UnsafeBoxedSystem>,
-    runtime_systems: Vec<UnsafeBoxedSystem>,
-}
-
-impl SystemRegistry {
-    pub(crate) fn add_system(&mut self, dispatcher: UnsafeBoxedSystem) {
-        self.runtime_systems.push(dispatcher);
-    }
-    pub(crate) fn add_startup_system(&mut self, dispatcher: UnsafeBoxedSystem) {
-        self.startup_systems.push(dispatcher);
-    }
-    pub(crate) fn unpack(&mut self) -> SystemRegistryRefMut<'_> {
-        SystemRegistryRefMut {
-            startup_systems: &mut self.startup_systems,
-            runtime_systems: &mut self.runtime_systems,
-        }
-    }
-}
-pub struct UnsafeBoxedSystem {
-    system: Box<
-        dyn for<'a> Dispatcher<'a, DispatchArgs = DispatcherArgs<'a>, RunArgs = Arc<SystemArgs>>,
-    >,
-    access: Access,
-}
-
-impl UnsafeBoxedSystem {
-    pub fn new<
-        T: for<'a> System<'a, DispatchArgs = DispatcherArgs<'a>, RunArgs = Arc<SystemArgs>> + 'static,
-    >(
-        system: T,
-    ) -> Self {
-        let access = T::access();
-        Self {
-            system: Box::new(system),
-            access,
-        }
-    }
-
-    pub unsafe fn get_ptr_mut(
-        &mut self,
-    ) -> *mut dyn for<'a> Dispatcher<'a, DispatchArgs = DispatcherArgs<'a>, RunArgs = Arc<SystemArgs>>
-    {
-        self.system.as_mut()
-    }
-
-    pub(crate) fn get_mut(
-        &mut self,
-    ) -> &mut dyn for<'a> Dispatcher<'a, DispatchArgs = DispatcherArgs<'a>, RunArgs = Arc<SystemArgs>>
-    {
-        self.system.as_mut()
-    }
-
-    pub(crate) fn as_ref(
-        &self,
-    ) -> &(dyn for<'a> Dispatcher<'a, DispatchArgs = DispatcherArgs<'a>, RunArgs = Arc<SystemArgs>>)
-    {
-        self.system.as_ref()
-    }
-
-    pub(crate) fn as_mut(
-        &mut self,
-    ) -> &mut (dyn for<'a> Dispatcher<
-        'a,
-        DispatchArgs = DispatcherArgs<'a>,
-        RunArgs = Arc<SystemArgs>,
-    >) {
-        self.system.as_mut()
-    }
-    pub(crate) fn as_access(&self) -> &Access {
-        &self.access
+    fn run(&mut self, args: &SystemArgs, comps: <Self as BaseSystem<'a>>::Query) {
+        <T as ExclusiveSystem<'a>>::run(self, args, comps);
     }
 }
 
-unsafe impl Send for UnsafeBoxedSystem {}
+pub trait AsyncSystem<'a>:
+    Send + Sync + ExclusiveSystem<'a, Query = <Self as AsyncSystem<'a>>::Query>
+{
+    type Query: DispatchData<'a>;
+
+    fn run(&mut self, args: &SystemArgs, comps: <Self as AsyncSystem<'a>>::Query);
+}
+impl<'a, T: AsyncSystem<'a>> ExclusiveSystem<'a> for T {
+    type Query = <T as AsyncSystem<'a>>::Query;
+
+    fn run(&mut self, args: &SystemArgs, comps: <Self as BaseSystem<'a>>::Query) {
+        <T as AsyncSystem<'a>>::run(self, args, comps);
+    }
+}

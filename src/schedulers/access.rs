@@ -127,6 +127,16 @@ impl Access {
             }
         }
     }
+
+    pub fn all() -> Access {
+        Access {
+            data: Default::default(),
+        }
+    }
+
+    pub fn empty() -> Access {
+        Default::default()
+    }
 }
 
 mod tests {

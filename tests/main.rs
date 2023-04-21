@@ -1,9 +1,11 @@
+use std::time::Duration;
+
 use matrix_engine::{
     components::{
         components::{Component, ComponentCollection},
         resources::{Resource, ResourceHolder},
     },
-    dispatchers::systems::{System, SystemArgs},
+    dispatchers::systems::{AsyncSystem, ExclusiveSystem, SystemArgs},
     engine::{Engine, EngineArgs},
     entity::Entity,
     schedulers::multi_threaded_scheduler::MultiThreadedScheduler,
@@ -19,37 +21,38 @@ struct B;
 impl Component for B {}
 
 struct D;
-impl<'a> System<'a> for D {
+impl<'a> AsyncSystem<'a> for D {
     type Query = (&'a ComponentCollection<A>, &'a ResourceHolder<Data>);
 
-    fn run(&mut self, args: &SystemArgs, (_a, b): Self::Query) {
-        let b = b.get().unwrap();
+    fn run(&mut self, _args: &SystemArgs, (_a, b): <Self as AsyncSystem<'a>>::Query) {
+        let _b = b.get().unwrap();
         println!("start D");
-        println!("DATA: {}", b.0);
+        spin_sleep::sleep(Duration::from_secs_f64(1.0));
         println!("end D");
     }
 }
 
 struct C;
-impl<'a> System<'a> for C {
+impl<'a> AsyncSystem<'a> for C {
     type Query = (&'a ComponentCollection<A>, &'a ResourceHolder<Data>);
 
-    fn run(&mut self, args: &SystemArgs, (_a, b): Self::Query) {
+    fn run(&mut self, args: &SystemArgs, (_a, b): <Self as AsyncSystem<'a>>::Query) {
         let b = b.get().unwrap();
         println!("start C");
-        println!("DATA: {}", b.0);
 
+        spin_sleep::sleep(Duration::from_secs_f64(1.0));
+        //println!("DATA: {}", b.0);
         println!("end C");
-        if b.0 > 15 { 
+        if b.0 > 15 {
             args.stop();
         }
     }
 }
 struct E;
-impl<'a> System<'a> for E {
+impl<'a> AsyncSystem<'a> for E {
     type Query = (&'a mut ComponentCollection<A>, &'a mut ResourceHolder<Data>);
 
-    fn run(&mut self, args: &SystemArgs, (_a, b): Self::Query) {
+    fn run(&mut self, _args: &SystemArgs, (_a, b): <Self as AsyncSystem<'a>>::Query) {
         let b = b.get_mut().unwrap();
         println!("start E");
         b.0 += 1;
@@ -60,6 +63,18 @@ impl<'a> System<'a> for E {
 struct Data(pub i32);
 impl Resource for Data {}
 
+struct Test(*const ());
+
+impl<'a> ExclusiveSystem<'a> for Test {
+    type Query = ();
+
+    fn run(&mut self, _: &SystemArgs, _: <Self as ExclusiveSystem<'a>>::Query) {
+        println!("ex!");
+        spin_sleep::sleep(Duration::from_secs_f64(1.0));
+        println!("finished ex");
+    }
+}
+
 fn main() {
     let mut world = World::default();
 
@@ -69,18 +84,20 @@ fn main() {
     for i in 0..100 {
         reg.insert(Entity::default(), A(i));
     }
-
     let resources = world.resource_registry_mut();
 
     resources.insert(Data(10));
 
     // world.add_startup(D {}).add_startup(D {});
-    world.add_system(C {}).add_system(E {}).add_system(D {});
+    world
+        .add_system(C {})
+        .add_system(E {})
+        .add_system(D {})
+        .add_exclusive_system(Test(std::ptr::null()));
     let mut engine = Engine::new(EngineArgs {
         fps: 1,
         world,
-        scheduler: MultiThreadedScheduler::with_amount_of_cores().unwrap(),
+        scheduler: MultiThreadedScheduler::with_amount_of_cpu_cores().unwrap(),
     });
-
     engine.run();
 }

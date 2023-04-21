@@ -2,7 +2,8 @@ use std::{collections::VecDeque, io, sync::Arc};
 
 use crate::dispatchers::{
     dispatchers::DispatcherArgs,
-    systems::{SystemArgs, UnsafeBoxedSystem},
+    system_registry::{BoxedSystem, SystemGroup},
+    systems::SystemArgs,
 };
 
 use super::{
@@ -12,9 +13,9 @@ use super::{
 };
 
 pub struct MultiThreadedScheduler {
-    pool: ThreadPool<UnsafeBoxedSystem>,
-    done: VecDeque<UnsafeBoxedSystem>,
-    pending: VecDeque<UnsafeBoxedSystem>,
+    pool: ThreadPool<BoxedSystem>,
+    done: VecDeque<BoxedSystem>,
+    pending: VecDeque<BoxedSystem>,
     access_state: Access,
 }
 
@@ -27,13 +28,13 @@ impl MultiThreadedScheduler {
             access_state: Default::default(),
         }
     }
-    pub fn with_amount_of_cores() -> io::Result<Self> {
+    pub fn with_amount_of_cpu_cores() -> io::Result<Self> {
         Ok(Self::new(std::thread::available_parallelism()?.get()))
     }
 
     unsafe fn send_dispatcher<'a>(
-        sender: &ThreadPoolSender<UnsafeBoxedSystem>,
-        mut dis: UnsafeBoxedSystem,
+        sender: &ThreadPoolSender<BoxedSystem>,
+        mut dis: BoxedSystem,
         args: &mut DispatcherArgs,
         system_args: Arc<SystemArgs>,
     ) {
@@ -54,14 +55,14 @@ impl MultiThreadedScheduler {
 impl Scheduler for MultiThreadedScheduler {
     fn run<'a>(
         &mut self,
-        dispatchers: &mut Vec<UnsafeBoxedSystem>,
+        dispatchers: &mut SystemGroup,
         args: &mut DispatcherArgs<'a>,
         system_args: Arc<SystemArgs>,
     ) {
         self.access_state.clear();
         let sender = self.pool.sender();
 
-        while let Some(dis) = dispatchers.pop() {
+        while let Some(dis) = dispatchers.pop_normal() {
             match self.access_state.try_combine(dis.as_access()) {
                 Ok(_) => {
                     unsafe { Self::send_dispatcher(&sender, dis, args, system_args.clone()) };
@@ -76,7 +77,9 @@ impl Scheduler for MultiThreadedScheduler {
                     let dis = self.pending.pop_back().expect("this should work");
                     match self.access_state.try_combine(dis.as_access()) {
                         Ok(_) => {
-                            unsafe { Self::send_dispatcher(&sender, dis, args, system_args.clone()) };
+                            unsafe {
+                                Self::send_dispatcher(&sender, dis, args, system_args.clone())
+                            };
                         }
                         Err(_) => self.pending.push_front(dis),
                     }
@@ -97,7 +100,14 @@ impl Scheduler for MultiThreadedScheduler {
             }
         }
         while let Some(dis) = self.done.pop_back() {
-            dispatchers.push(dis);
+            dispatchers.push_normal(dis);
+        }
+
+        for b in dispatchers.iter_exclusive() {
+            let data = unsafe { b.as_mut().dispatch(args) };
+            let Ok(_) = b.as_mut().try_run(system_args.clone(), data) else {
+                panic!("Uknown error");
+            };
         }
     }
 }

@@ -46,10 +46,10 @@ pub struct DispatchError;
 pub trait Dispatcher<'a> {
     type DispatchArgs: 'a;
     type RunArgs;
-    
+
     unsafe fn dispatch(&mut self, args: &mut Self::DispatchArgs) -> BoxedData;
-    
-    fn try_run(&mut self,args: Self::RunArgs, b: BoxedData) -> Result<(), BoxedData>;
+
+    fn try_run(&mut self, args: Self::RunArgs, b: BoxedData) -> Result<(), BoxedData>;
 
     fn access() -> Access
     where
@@ -67,6 +67,19 @@ pub trait DispatchData<'a> {
     fn access() -> Access
     where
         Self: Sized;
+    unsafe fn from_target_to_data(data: Self::Target) -> Self
+    where
+        Self: Sized;
+}
+
+pub trait ExclusiveDispatchData<'a> {
+    type DispatchArgs: 'a;
+    type Target: 'static;
+
+    unsafe fn dispatch(args: &mut DispatcherArgs<'a>) -> Self::Target
+    where
+        Self: Sized;
+
     unsafe fn from_target_to_data(data: Self::Target) -> Self
     where
         Self: Sized;
@@ -183,6 +196,12 @@ impl<'a, T: Resource + 'static> DispatchData<'a> for &'a mut ResourceHolder<T> {
         &mut *data as Self
     }
 }
+trait SingleDispatchData<'a>: DispatchData<'a> {}
+
+impl<'a, T: Component + Sync + 'static> SingleDispatchData<'a> for &'a ComponentCollection<T> {}
+impl<'a, T: Component + Sync + 'static> SingleDispatchData<'a> for &'a mut ComponentCollection<T> {}
+impl<'a, T: Resource + Sync + 'static> SingleDispatchData<'a> for &'a ResourceHolder<T> {}
+impl<'a, T: Resource + Sync + 'static> SingleDispatchData<'a> for &'a mut ResourceHolder<T> {}
 
 macro_rules! impl_all {
     ($mac:ident, $t:ident, $($ts:ident),+) => {
@@ -198,7 +217,7 @@ macro_rules! impl_tuple_dispatch_data {
     ($($t:ident),*) => {
 
         #[allow(non_snake_case)]
-        impl<'a,$($t: DispatchData<'a,DispatcherArgs=DispatcherArgs<'a>>,)*> DispatchData<'a> for ($($t,)*) {
+        impl<'a,$($t: SingleDispatchData<'a,DispatcherArgs=DispatcherArgs<'a>>,)*> DispatchData<'a> for ($($t,)*) {
             type Target = ($($t::Target,)*);
             type DispatcherArgs = DispatcherArgs<'a>;
             unsafe fn dispatch(scene:&mut Self::DispatcherArgs) -> Self::Target {
@@ -220,7 +239,7 @@ macro_rules! impl_tuple_dispatch_data {
     };
 }
 
-// impl_tuple_dispatch_data!(A,);
+// impl_all!(impl_tuple_dispatch_data, A, B, C);
 impl_all!(
     impl_tuple_dispatch_data,
     A,
@@ -252,6 +271,79 @@ impl_all!(
 );
 // impl_tuple_dispatch_data!(A,B,C);
 // impl_all!(impl_tuple_dispatch_data, A, B, C);
+
+impl<'a> DispatchData<'a> for &'a ComponentRegistry {
+    type DispatcherArgs = DispatcherArgs<'a>;
+
+    type Target = *const ComponentRegistry;
+
+    unsafe fn dispatch<'b>(args: &mut Self::DispatcherArgs) -> Self::Target {
+        args.components
+    }
+
+    fn access() -> Access
+    where
+        Self: Sized,
+    {
+        Access::all()
+    }
+
+    unsafe fn from_target_to_data(data: Self::Target) -> Self
+    where
+        Self: Sized,
+    {
+        &*data as Self
+    }
+}
+impl<'a> DispatchData<'a> for &'a mut ComponentRegistry {
+    type DispatcherArgs = DispatcherArgs<'a>;
+
+    type Target = *mut ComponentRegistry;
+
+    unsafe fn dispatch<'b>(args: &mut Self::DispatcherArgs) -> Self::Target {
+        args.components
+    }
+
+    fn access() -> Access
+    where
+        Self: Sized,
+    {
+        Access::all()
+    }
+
+    unsafe fn from_target_to_data(data: Self::Target) -> Self
+    where
+        Self: Sized,
+    {
+        &mut *data as Self
+    }
+}
+
+impl<'a> DispatchData<'a> for () {
+    type DispatcherArgs = DispatcherArgs<'a>;
+
+    type Target = ();
+
+    unsafe fn dispatch(_: &mut DispatcherArgs<'a>) -> Self::Target
+    where
+        Self: Sized,
+    {
+    }
+
+    fn access() -> Access
+    where
+        Self: Sized,
+    {
+        Access::empty()
+    }
+
+    unsafe fn from_target_to_data(_: Self::Target) -> Self
+    where
+        Self: Sized,
+    {
+    }
+}
+
 mod tests {
 
     #[test]

@@ -4,15 +4,16 @@ use crate::{
     components::resources::ResourceRegistry,
     dispatchers::{
         dispatchers::DispatcherArgs,
-        systems::{System, SystemRegistryRefMut, UnsafeBoxedSystem, SystemArgs},
+        system_registry::{BoxedExclusiveSystem, BoxedSystem, SystemGroup, SystemRegistryRefMut},
+        systems::{AsyncSystem, ExclusiveSystem, SystemArgs},
     },
     scene::Scene,
 };
 
 pub(crate) struct WorldRefMut<'a> {
     pub args: DispatcherArgs<'a>,
-    pub startups: &'a mut Vec<UnsafeBoxedSystem>,
-    pub systems: &'a mut Vec<UnsafeBoxedSystem>,
+    pub startups: &'a mut SystemGroup,
+    pub systems: &'a mut SystemGroup,
 }
 
 #[derive(Default)]
@@ -22,28 +23,58 @@ pub struct World {
 }
 
 impl World {
-    pub fn new(scene: Scene, resources: ResourceRegistry) -> Self { Self { scene, resources } }
+    pub fn new(scene: Scene, resources: ResourceRegistry) -> Self {
+        Self { scene, resources }
+    }
 
     pub fn add_startup_system(
         &mut self,
-        sys: impl for<'a> System<'a, DispatchArgs = DispatcherArgs<'a>,RunArgs = Arc<SystemArgs>> + 'static,
+        sys: impl for<'a> AsyncSystem<'a, DispatchArgs = DispatcherArgs<'a>, RunArgs = Arc<SystemArgs>>
+            + 'static,
     ) -> &mut Self
 where {
         self.scene
             .system_registry_mut()
-            .add_startup_system(UnsafeBoxedSystem::new(sys));
+            .add_startup_system(BoxedSystem::new(sys));
         self
     }
 
     pub fn add_system(
         &mut self,
-        sys: impl for<'a> System<'a, DispatchArgs = DispatcherArgs<'a>,RunArgs = Arc<SystemArgs>> + 'static,
+        sys: impl for<'a> AsyncSystem<'a, DispatchArgs = DispatcherArgs<'a>, RunArgs = Arc<SystemArgs>>
+            + 'static,
     ) -> &mut Self
 where {
         self.scene
             .system_registry_mut()
-            .add_system(UnsafeBoxedSystem::new(sys));
+            .add_system(BoxedSystem::new(sys));
         self
+    }
+
+    pub fn add_exclusive_system(
+        &mut self,
+        sys: impl for<'a> ExclusiveSystem<
+                'a,
+                DispatchArgs = DispatcherArgs<'a>,
+                RunArgs = Arc<SystemArgs>,
+            > + 'static,
+    ) {
+        self.scene
+            .system_registry_mut()
+            .add_exclusive_system(BoxedExclusiveSystem::new(sys))
+    }
+
+    pub fn add_exclusive_startup_system(
+        &mut self,
+        sys: impl for<'a> ExclusiveSystem<
+                'a,
+                DispatchArgs = DispatcherArgs<'a>,
+                RunArgs = Arc<SystemArgs>,
+            > + 'static,
+    ) {
+        self.scene
+            .system_registry_mut()
+            .add_exclusive_startup_system(BoxedExclusiveSystem::new(sys))
     }
 
     pub fn scene(&self) -> &Scene {

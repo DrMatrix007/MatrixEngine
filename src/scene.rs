@@ -1,6 +1,6 @@
 use std::sync::{atomic::AtomicBool, Arc};
 
-use crate::{components::components::ComponentRegistry, dispatchers::systems::SystemRegistry};
+use crate::{components::components::ComponentRegistry, dispatchers::system_registry::SystemRegistry};
 
 #[derive(Default)]
 pub struct Scene {
