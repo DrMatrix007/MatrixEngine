@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use matrix_engine::{
     components::{
-        components::{Component, ComponentCollection},
+        components::{Component, ComponentCollection, ComponentRegistry},
         resources::{Resource, ResourceHolder},
     },
     dispatchers::systems::{AsyncSystem, ExclusiveSystem, SystemArgs},
@@ -66,12 +66,25 @@ impl Resource for Data {}
 struct Test(*const ());
 
 impl<'a> ExclusiveSystem<'a> for Test {
-    type Query = ();
+    type Query = &'a mut ComponentRegistry;
 
-    fn run(&mut self, _: &SystemArgs, _: <Self as ExclusiveSystem<'a>>::Query) {
-        println!("ex!");
+    fn run(&mut self, _: &SystemArgs, q: <Self as ExclusiveSystem<'a>>::Query) {
+        println!("start ex");
+        unsafe { q.get_ptr::<A>() };
         spin_sleep::sleep(Duration::from_secs_f64(1.0));
-        println!("finished ex");
+        println!("end ex");
+    }
+}
+
+struct Other;
+
+impl<'a> AsyncSystem<'a> for Other {
+    type Query = &'a mut ComponentRegistry;
+
+    fn run(&mut self, _: &SystemArgs, _: <Self as AsyncSystem<'a>>::Query) {
+        println!("start other");
+        spin_sleep::sleep(Duration::from_secs_f64(3.0));
+        println!("end other");
     }
 }
 
@@ -93,6 +106,7 @@ fn main() {
         .add_system(C {})
         .add_system(E {})
         .add_system(D {})
+        .add_system(Other {})
         .add_exclusive_system(Test(std::ptr::null()));
     let mut engine = Engine::new(EngineArgs {
         fps: 1,
