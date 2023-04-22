@@ -5,7 +5,10 @@ use matrix_engine::{
         components::{Component, ComponentCollection, ComponentRegistry},
         resources::{Resource, ResourceHolder},
     },
-    dispatchers::systems::{AsyncSystem, ExclusiveSystem, SystemArgs},
+    dispatchers::{
+        dispatchers::RegistryData,
+        systems::{AsyncSystem, ExclusiveSystem, SystemArgs},
+    },
     engine::{Engine, EngineArgs},
     entity::Entity,
     schedulers::multi_threaded_scheduler::MultiThreadedScheduler,
@@ -66,11 +69,11 @@ impl Resource for Data {}
 struct Test(*const ());
 
 impl<'a> ExclusiveSystem<'a> for Test {
-    type Query = &'a mut ComponentRegistry;
+    type Query = RegistryData<'a>;
 
     fn run(&mut self, _: &SystemArgs, q: <Self as ExclusiveSystem<'a>>::Query) {
         println!("start ex");
-        unsafe { q.get_ptr::<A>() };
+        unsafe { q.components.get_ptr::<A>() };
         spin_sleep::sleep(Duration::from_secs_f64(1.0));
         println!("end ex");
     }
@@ -79,7 +82,7 @@ impl<'a> ExclusiveSystem<'a> for Test {
 struct Other;
 
 impl<'a> AsyncSystem<'a> for Other {
-    type Query = &'a mut ComponentRegistry;
+    type Query = RegistryData<'a>;
 
     fn run(&mut self, _: &SystemArgs, _: <Self as AsyncSystem<'a>>::Query) {
         println!("start other");

@@ -272,13 +272,25 @@ impl_all!(
 // impl_tuple_dispatch_data!(A,B,C);
 // impl_all!(impl_tuple_dispatch_data, A, B, C);
 
-impl<'a> DispatchData<'a> for &'a ComponentRegistry {
+pub struct RegistryData<'a> {
+    pub components: &'a mut ComponentRegistry,
+    pub resources: &'a mut ResourceRegistry,
+}
+pub struct RegistryDataUnsafe {
+    pub components: *mut ComponentRegistry,
+    pub resources: *mut ResourceRegistry,
+}
+
+impl<'a> DispatchData<'a> for RegistryData<'a> {
     type DispatcherArgs = DispatcherArgs<'a>;
 
-    type Target = *const ComponentRegistry;
+    type Target = RegistryDataUnsafe;
 
     unsafe fn dispatch<'b>(args: &mut Self::DispatcherArgs) -> Self::Target {
-        args.components
+        Self::Target {
+            resources: args.resources,
+            components: args.components,
+        }
     }
 
     fn access() -> Access
@@ -292,33 +304,12 @@ impl<'a> DispatchData<'a> for &'a ComponentRegistry {
     where
         Self: Sized,
     {
-        &*data as Self
+        Self {
+            components: &mut *data.components,
+            resources: &mut *data.resources,
+        }
     }
 }
-impl<'a> DispatchData<'a> for &'a mut ComponentRegistry {
-    type DispatcherArgs = DispatcherArgs<'a>;
-
-    type Target = *mut ComponentRegistry;
-
-    unsafe fn dispatch<'b>(args: &mut Self::DispatcherArgs) -> Self::Target {
-        args.components
-    }
-
-    fn access() -> Access
-    where
-        Self: Sized,
-    {
-        Access::all()
-    }
-
-    unsafe fn from_target_to_data(data: Self::Target) -> Self
-    where
-        Self: Sized,
-    {
-        &mut *data as Self
-    }
-}
-
 impl<'a> DispatchData<'a> for () {
     type DispatcherArgs = DispatcherArgs<'a>;
 
