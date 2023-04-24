@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use crate::{
-    components::resources::ResourceRegistry,
+    components::{
+        resources::ResourceRegistry,
+        storage::{Storage, StorageWriteGuard, StorageReadGuard},
+    },
     dispatchers::{
         dispatchers::DispatcherArgs,
         system_registry::{BoxedExclusiveSystem, BoxedSystem, SystemGroup, SystemRegistryRefMut},
@@ -19,12 +22,15 @@ pub(crate) struct WorldRefMut<'a> {
 #[derive(Default)]
 pub struct World {
     scene: Scene,
-    resources: ResourceRegistry,
+    resources: Storage<ResourceRegistry>,
 }
 
 impl World {
     pub fn new(scene: Scene, resources: ResourceRegistry) -> Self {
-        Self { scene, resources }
+        Self {
+            scene,
+            resources: Storage::new(resources),
+        }
     }
 
     pub fn add_startup_system(
@@ -97,10 +103,10 @@ where {
         }
     }
 
-    pub fn resource_registry_mut(&mut self) -> &mut ResourceRegistry {
-        &mut self.resources
+    pub fn resource_registry_mut(&mut self) -> Option<StorageWriteGuard<ResourceRegistry>> {
+        self.resources.write()
     }
-    pub fn resource_registry(&self) -> &ResourceRegistry {
-        &self.resources
+    pub fn resource_registry(&self) -> Option<StorageReadGuard<ResourceRegistry>> {
+        self.resources.read()
     }
 }

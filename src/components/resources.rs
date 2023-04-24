@@ -3,6 +3,8 @@ use std::{
     collections::HashMap,
 };
 
+use super::storage::{Storage, StorageReadGuard, StorageWriteGuard};
+
 pub trait Resource: Send {}
 
 pub struct ResourceHolder<T> {
@@ -48,20 +50,26 @@ pub struct ResourceRegistry {
 }
 
 impl ResourceRegistry {
-    pub unsafe fn get_ptr_mut<T: Resource + 'static>(&mut self) -> *mut ResourceHolder<T> {
+    pub fn get_mut<T: Resource + 'static>(
+        &mut self,
+    ) -> Option<StorageWriteGuard<ResourceHolder<T>>> {
         self.data
             .entry(TypeId::of::<T>())
-            .or_insert(Box::new(ResourceHolder::<T>::default()))
-            .downcast_mut::<ResourceHolder<T>>()
-            .expect("this value should be of this type") as *mut ResourceHolder<T>
+            .or_insert(Box::new(Storage::new(ResourceHolder::<T>::default())))
+            .downcast_mut::<Storage<ResourceHolder<T>>>()
+            .expect("this value should be of this type")
+            .write()
     }
 
-    pub unsafe fn get_ptr<T: Resource + 'static>(&mut self) -> *const ResourceHolder<T> {
+    pub fn get<T: Resource + 'static>(
+        &mut self,
+    ) -> Option<StorageReadGuard<ResourceHolder<T>>> {
         self.data
             .entry(TypeId::of::<T>())
-            .or_insert(Box::new(ResourceHolder::<T>::default()))
-            .downcast_ref::<ResourceHolder<T>>()
-            .expect("this value should be of this type") as *const ResourceHolder<T>
+            .or_insert(Box::new(Storage::new(ResourceHolder::<T>::default())))
+            .downcast_ref::<Storage<ResourceHolder<T>>>()
+            .expect("this value should be of this type")
+            .read()
     }
     pub fn insert<T: Resource + 'static>(&mut self, resource: T) {
         self.data
@@ -72,6 +80,5 @@ impl ResourceRegistry {
 mod tests {
 
     #[test]
-    fn test() {
-    }
+    fn test() {}
 }

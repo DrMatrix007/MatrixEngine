@@ -5,7 +5,7 @@ use std::sync::{
 
 use crate::schedulers::access::Access;
 
-use super::dispatchers::{BoxedData, DispatchData, Dispatcher, DispatcherArgs};
+use super::dispatchers::{BoxedData, DispatchData, DispatchError, Dispatcher, DispatcherArgs};
 
 pub struct SystemArgs {
     quit: Arc<AtomicBool>,
@@ -34,17 +34,22 @@ impl<'a, S: BaseSystem<'a> + 'static> Dispatcher<'a> for S
 where
     S::Query: DispatchData<'a, DispatcherArgs = DispatcherArgs<'a>>,
 {
-    unsafe fn dispatch(&mut self, args: &mut Self::DispatchArgs) -> BoxedData {
-        BoxedData::new(<<S as BaseSystem<'a>>::Query as DispatchData<'a>>::dispatch(args))
+    fn dispatch(&mut self, args: &mut Self::DispatchArgs) -> Result<BoxedData, DispatchError> {
+        Ok(BoxedData::new(
+            <<S as BaseSystem<'a>>::Query as DispatchData<'a>>::dispatch(args)?,
+        ))
     }
     type RunArgs = Arc<SystemArgs>;
     type DispatchArgs = DispatcherArgs<'a>;
 
-    fn try_run(&mut self, args: Self::RunArgs, b: BoxedData) -> Result<(), BoxedData> {
-        let data = *(b.downcast::<<S::Query as DispatchData<'a>>::Target>()?);
-        self.run(args.as_ref(), unsafe {
-            <S::Query as DispatchData<'a>>::from_target_to_data(data)
-        });
+    fn try_run(&mut self, args: Self::RunArgs, b: &'a mut BoxedData) -> Result<(), DispatchError> {
+        let Some(data) = b.downcast_mut::<<S::Query as DispatchData<'a>>::Target>() else {
+            return Err(DispatchError);
+        };
+        self.run(
+            args.as_ref(),
+            <S::Query as DispatchData>::from_target_to_data(data),
+        );
         Ok(())
     }
     fn access() -> Access

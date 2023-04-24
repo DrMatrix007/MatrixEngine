@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use matrix_engine::{
     components::{
-        components::{Component, ComponentCollection, ComponentRegistry},
+        components::{Component, ComponentCollection},
         resources::{Resource, ResourceHolder},
     },
     dispatchers::{
@@ -30,7 +30,7 @@ impl<'a> AsyncSystem<'a> for D {
     fn run(&mut self, _args: &SystemArgs, (_a, b): <Self as AsyncSystem<'a>>::Query) {
         let _b = b.get().unwrap();
         println!("start D");
-        spin_sleep::sleep(Duration::from_secs_f64(1.0));
+        // spin_sleep::sleep(Duration::from_secs_f64(1.0));
         println!("end D");
     }
 }
@@ -43,7 +43,7 @@ impl<'a> AsyncSystem<'a> for C {
         let b = b.get().unwrap();
         println!("start C");
 
-        spin_sleep::sleep(Duration::from_secs_f64(1.0));
+        // spin_sleep::sleep(Duration::from_secs_f64(1.0));
         //println!("DATA: {}", b.0);
         println!("end C");
         if b.0 > 15 {
@@ -71,10 +71,9 @@ struct Test(*const ());
 impl<'a> ExclusiveSystem<'a> for Test {
     type Query = RegistryData<'a>;
 
-    fn run(&mut self, _: &SystemArgs, q: <Self as ExclusiveSystem<'a>>::Query) {
+    fn run(&mut self, _: &SystemArgs, _: <Self as ExclusiveSystem<'a>>::Query) {
         println!("start ex");
-        unsafe { q.components.get_ptr::<A>() };
-        spin_sleep::sleep(Duration::from_secs_f64(1.0));
+        // spin_sleep::sleep(Duration::from_secs_f64(1.0));
         println!("end ex");
     }
 }
@@ -86,7 +85,7 @@ impl<'a> AsyncSystem<'a> for Other {
 
     fn run(&mut self, _: &SystemArgs, _: <Self as AsyncSystem<'a>>::Query) {
         println!("start other");
-        spin_sleep::sleep(Duration::from_secs_f64(3.0));
+        // spin_sleep::sleep(Duration::from_secs_f64(3.0));
         println!("end other");
     }
 }
@@ -95,14 +94,14 @@ fn main() {
     let mut world = World::default();
 
     let scene = world.scene_mut();
-    let reg = scene.component_registry_mut();
+    let mut reg = scene.component_registry_mut().unwrap();
 
     for i in 0..100 {
-        reg.insert(Entity::default(), A(i));
+        reg.get_mut().insert(Entity::default(), A(i)).unwrap();
     }
-    let resources = world.resource_registry_mut();
+    let mut resources = world.resource_registry_mut().unwrap();
 
-    resources.insert(Data(10));
+    resources.get_mut().insert(Data(10));
 
     // world.add_startup(D {}).add_startup(D {});
     world
