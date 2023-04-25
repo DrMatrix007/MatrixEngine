@@ -70,6 +70,7 @@ impl Scheduler for MultiThreadedScheduler {
             };
 
             for dis in self.pool.try_recv_iter() {
+                let dis = dis.expect("thread panicked");
                 self.done.push_back(dis);
 
                 for _ in 0..self.pending.len() {
@@ -81,8 +82,9 @@ impl Scheduler for MultiThreadedScheduler {
                 }
             }
         }
-        for i in self.pool.recv_iter() {
-            self.done.push_back(i);
+        for dis in self.pool.recv_iter() {
+            let dis = dis.expect("thread panicked");
+            self.done.push_back(dis);
             for _ in 0..self.pending.len() {
                 let dis = self.pending.pop_back().expect("this should work");
 

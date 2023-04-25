@@ -42,6 +42,7 @@ impl<T> Drop for StorageWriteGuard<T> {
     fn drop(&mut self) {
         let mut m = self.data_ref.lock().unwrap();
         let _ = m.insert(Arc::new(self.data.take().expect("this sould not be empty")));
+        println!("removed!");
     }
 }
 

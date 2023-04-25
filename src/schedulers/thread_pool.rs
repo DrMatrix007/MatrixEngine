@@ -5,7 +5,7 @@ use std::{
         mpsc::{channel, Receiver, SendError, Sender},
         Arc, Mutex,
     },
-    thread::JoinHandle,
+    thread::{self, JoinHandle, Thread},
 };
 
 pub enum Job<T> {
@@ -21,26 +21,53 @@ impl<T> Job<T> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum WorkerError {
+    Panic,
+}
+
+pub type JobResult<T> = Result<T, WorkerError>;
+
 struct Worker<T: Send> {
     _handle: JoinHandle<()>,
     marker: PhantomData<T>,
 }
 
+#[derive(Debug, Clone)]
+struct PosionPill<'a, T>(&'a Sender<JobResult<T>>);
+
+impl<'a, T> PosionPill<'a, T> {
+    pub fn new(sender: &'a Sender<JobResult<T>>) -> Self {
+        Self(sender)
+    }
+}
+
+impl<'a, T> Drop for PosionPill<'a, T> {
+    fn drop(&mut self) {
+        if thread::panicking() {
+            self.0
+                .send(Err(WorkerError::Panic))
+                .expect("this function should send this data");
+        }
+    }
+}
+
 impl<T: Send + 'static> Worker<T> {
-    fn new(jobs: Arc<Mutex<Receiver<Job<T>>>>, done: Sender<T>) -> Self {
+    fn new(jobs: Arc<Mutex<Receiver<Job<T>>>>, done: Sender<JobResult<T>>) -> Self {
         Self {
             _handle: std::thread::spawn(|| Worker::run_thread(jobs, done)),
             marker: PhantomData,
         }
     }
-    fn run_thread(jobs: Arc<Mutex<Receiver<Job<T>>>>, done: Sender<T>) {
+    fn run_thread(jobs: Arc<Mutex<Receiver<Job<T>>>>, done: Sender<JobResult<T>>) {
+        let _pill = PosionPill::new(&done);
         loop {
             let job = jobs.lock().expect("the value should be accessible").recv();
             match job {
                 Ok(job) => match job {
                     Job::Work(job) => {
                         let ans = job();
-                        match done.send(ans) {
+                        match done.send(Ok(ans)) {
                             Err(_) => return,
                             Ok(_) => {}
                         }
@@ -58,9 +85,9 @@ impl<T: Send + 'static> Worker<T> {
 }
 
 pub struct ThreadPool<T: Send> {
-    _threads: Vec<Worker<T>>,
+    threads: Vec<Worker<T>>,
     job_sender: Sender<Job<T>>,
-    data_receiver: Receiver<T>,
+    data_receiver: Receiver<JobResult<T>>,
     job_counter: Arc<AtomicIsize>,
 }
 
@@ -76,7 +103,7 @@ impl<T: Send + 'static> ThreadPool<T> {
         }
 
         Self {
-            _threads: threads,
+            threads,
             job_sender,
             data_receiver,
             job_counter: Arc::new(0.into()),
@@ -100,11 +127,11 @@ impl<T: Send + 'static> ThreadPool<T> {
     }
 
     pub fn join(self) {
-        for _ in 0..self._threads.len() {
+        for _ in 0..self.threads.len() {
             self.job_sender.send(Job::Close).unwrap();
         }
-        for t in self._threads {
-            t._handle.join().unwrap();
+        for t in self.threads {
+            t._handle.join().expect("a thread panicked");
         }
     }
     pub fn try_recv_iter(&self) -> ThreadPoolTryRecvIter<'_, T> {
@@ -129,14 +156,17 @@ impl<T: Send + 'static> ThreadPool<T> {
             counter: self.job_counter.clone(),
         }
     }
+    pub fn health(&self) {
+        for i in &self.threads {}
+    }
 }
 pub struct ThreadPoolTryRecvIter<'a, T> {
-    recv: &'a Receiver<T>,
+    recv: &'a Receiver<JobResult<T>>,
     job_counter: Arc<AtomicIsize>,
 }
 
 impl<'a, T> Iterator for ThreadPoolTryRecvIter<'a, T> {
-    type Item = T;
+    type Item = JobResult<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.recv.try_recv().ok() {
@@ -149,12 +179,12 @@ impl<'a, T> Iterator for ThreadPoolTryRecvIter<'a, T> {
     }
 }
 pub struct ThreadPoolRecvIter<'a, T> {
-    recv: &'a Receiver<T>,
+    recv: &'a Receiver<JobResult<T>>,
     job_counter: Arc<AtomicIsize>,
 }
 
 impl<'a, T> Iterator for ThreadPoolRecvIter<'a, T> {
-    type Item = T;
+    type Item = JobResult<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let c = self.job_counter.fetch_sub(1, Ordering::SeqCst);
@@ -177,7 +207,7 @@ pub struct ThreadPoolSender<T> {
 impl<T> ThreadPoolSender<T> {
     pub fn send<F>(&self, job: F) -> Result<(), SendError<Job<T>>>
     where
-        F: FnOnce() -> T + Send+'static,
+        F: FnOnce() -> T + Send + 'static,
     {
         self.sender.send(Job::Work(Box::new(job))).map(|x| {
             self.counter.fetch_add(1, Ordering::Acquire);
@@ -205,7 +235,7 @@ mod tests {
             pool.add(move || i).unwrap();
         }
         for i in pool.recv_iter() {
-            data.remove(&i);
+            data.remove(&i.unwrap());
         }
         println!("{:?}", data);
     }

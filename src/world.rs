@@ -64,10 +64,11 @@ where {
                 DispatchArgs = DispatcherArgs<'a>,
                 RunArgs = Arc<SystemArgs>,
             > + 'static,
-    ) {
+    ) -> &mut Self {
         self.scene
             .system_registry_mut()
-            .add_exclusive_system(BoxedExclusiveSystem::new(sys))
+            .add_exclusive_system(BoxedExclusiveSystem::new(sys));
+        self
     }
 
     pub fn add_exclusive_startup_system(
@@ -77,10 +78,11 @@ where {
                 DispatchArgs = DispatcherArgs<'a>,
                 RunArgs = Arc<SystemArgs>,
             > + 'static,
-    ) {
+    ) -> &mut Self {
         self.scene
             .system_registry_mut()
-            .add_exclusive_startup_system(BoxedExclusiveSystem::new(sys))
+            .add_exclusive_startup_system(BoxedExclusiveSystem::new(sys));
+        self
     }
 
     pub fn scene(&self) -> &Scene {
