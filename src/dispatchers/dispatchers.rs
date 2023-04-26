@@ -6,22 +6,26 @@ use crate::{
         resources::{Resource, ResourceHolder, ResourceRegistry},
         storage::{Storage, StorageReadGuard, StorageWriteGuard},
     },
+    events::Events,
     schedulers::access::{Access, AccessAction, AccessType},
 };
 
 pub struct DispatcherArgs<'a> {
     components: &'a mut Storage<ComponentRegistry>,
     resources: &'a mut Storage<ResourceRegistry>,
+    events: &'a mut Storage<Events>,
 }
 
 impl<'a> DispatcherArgs<'a> {
     pub fn new(
         components: &'a mut Storage<ComponentRegistry>,
         resources: &'a mut Storage<ResourceRegistry>,
+        events: &'a mut Storage<Events>,
     ) -> Self {
         Self {
             components,
             resources,
+            events,
         }
     }
 
@@ -216,6 +220,34 @@ impl<'a, T: Resource + 'static> DispatchData<'a> for &'a mut ResourceHolder<T> {
         data.get_mut()
     }
 }
+
+impl<'a> DispatchData<'a> for &'a Events {
+    type DispatcherArgs = DispatcherArgs<'a>;
+
+    type Target = StorageReadGuard<Events>;
+
+    fn dispatch(args: &mut DispatcherArgs<'a>) -> Result<Self::Target, DispatchError>
+    where
+        Self: Sized,
+    {
+        args.events.read().ok_or(DispatchError)
+    }
+
+    fn access() -> Access
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
+
+    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
+    where
+        Self: Sized,
+    {
+        data.get()
+    }
+}
+
 trait SingleDispatchData<'a>: DispatchData<'a> {}
 
 impl<'a, T: Component + Sync + 'static> SingleDispatchData<'a> for &'a ComponentCollection<T> {}
@@ -340,7 +372,7 @@ impl<'a> DispatchData<'a> for () {
 
     type Target = ();
 
-    fn dispatch(_: &mut DispatcherArgs<'a>) -> Result<Self::Target,DispatchError>
+    fn dispatch(_: &mut DispatcherArgs<'a>) -> Result<Self::Target, DispatchError>
     where
         Self: Sized,
     {

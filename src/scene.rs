@@ -1,17 +1,37 @@
-use std::sync::{atomic::AtomicBool, Arc};
+use std::sync::{
+    atomic::{AtomicBool, AtomicU64},
+    Arc,
+};
 
 use crate::{
     components::{
         components::ComponentRegistry,
+        resources::ResourceRegistry,
         storage::{Storage, StorageReadGuard, StorageWriteGuard},
     },
-    dispatchers::system_registry::SystemRegistry,
+    dispatchers::{
+        dispatchers::DispatcherArgs,
+        system_registry::{BoxedExclusiveSystem, BoxedSystem, SystemRegistry},
+        systems::{AsyncSystem, ExclusiveSystem, SystemArgs},
+    },
+    events::Events,
+    schedulers::schedulers::Scheduler,
 };
 
-#[derive(Default)]
 pub struct Scene {
-    components: Storage<ComponentRegistry>,
-    systems: SystemRegistry,
+    pub(crate) components: Storage<ComponentRegistry>,
+    pub(crate) systems: SystemRegistry,
+    is_started: bool,
+}
+
+impl Default for Scene {
+    fn default() -> Self {
+        Self {
+            components: Default::default(),
+            systems: Default::default(),
+            is_started: false,
+        }
+    }
 }
 
 impl Scene {
@@ -30,9 +50,76 @@ impl Scene {
     pub(crate) fn unpack(&mut self) -> (&mut SystemRegistry, &mut Storage<ComponentRegistry>) {
         (&mut self.systems, &mut self.components)
     }
+
+    pub fn add_startup_system(
+        &mut self,
+        sys: impl for<'a> AsyncSystem<'a, DispatchArgs = DispatcherArgs<'a>, RunArgs = Arc<SystemArgs>>
+            + 'static,
+    ) -> &mut Self
+where {
+        self.system_registry_mut()
+            .add_startup_system(BoxedSystem::new(sys));
+        self
+    }
+
+    pub fn add_system(
+        &mut self,
+        sys: impl for<'a> AsyncSystem<'a, DispatchArgs = DispatcherArgs<'a>, RunArgs = Arc<SystemArgs>>
+            + 'static,
+    ) -> &mut Self
+where {
+        self.system_registry_mut().add_system(BoxedSystem::new(sys));
+        self
+    }
+
+    pub fn add_exclusive_system(
+        &mut self,
+        sys: impl for<'a> ExclusiveSystem<
+                'a,
+                DispatchArgs = DispatcherArgs<'a>,
+                RunArgs = Arc<SystemArgs>,
+            > + 'static,
+    ) -> &mut Self {
+        self.system_registry_mut()
+            .add_exclusive_system(BoxedExclusiveSystem::new(sys));
+        self
+    }
+
+    pub fn add_exclusive_startup_system(
+        &mut self,
+        sys: impl for<'a> ExclusiveSystem<
+                'a,
+                DispatchArgs = DispatcherArgs<'a>,
+                RunArgs = Arc<SystemArgs>,
+            > + 'static,
+    ) -> &mut Self {
+        self.system_registry_mut()
+            .add_exclusive_startup_system(BoxedExclusiveSystem::new(sys));
+        self
+    }
+
+    pub(crate) fn update(&mut self, args: SceneUpdateArgs) {
+        if !self.is_started {
+            args.scheduler.run(
+                &mut self.systems.startup_systems,
+                &mut DispatcherArgs::new(&mut self.components, args.resources, args.events),
+                Arc::new(SystemArgs::new(args.quit, args.fps)),
+            );
+            self.is_started = true;
+        } else {
+            args.scheduler.run(
+                &mut self.systems.runtime_systems,
+                &mut DispatcherArgs::new(&mut self.components, args.resources, args.events),
+                Arc::new(SystemArgs::new(args.quit, args.fps)),
+            );
+        }
+    }
 }
 
-#[derive(Clone)]
-pub struct SceneUpdateArgs {
+pub struct SceneUpdateArgs<'a> {
     pub quit: Arc<AtomicBool>,
+    pub fps: Arc<AtomicU64>,
+    pub scheduler: &'a mut dyn Scheduler,
+    pub resources: &'a mut Storage<ResourceRegistry>,
+    pub events: &'a mut Storage<Events>,
 }

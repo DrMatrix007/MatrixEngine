@@ -38,6 +38,11 @@ impl<T> StorageWriteGuard<T> {
         Self { data:Some(data), data_ref }
     }
 }
+impl<T> From<T> for Storage<T> {
+    fn from(value: T) -> Self {
+        Storage::new(value)
+    }
+}
 impl<T> Drop for StorageWriteGuard<T> {
     fn drop(&mut self) {
         let mut m = self.data_ref.lock().unwrap();

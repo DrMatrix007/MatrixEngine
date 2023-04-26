@@ -5,7 +5,7 @@ use std::{
         mpsc::{channel, Receiver, SendError, Sender},
         Arc, Mutex,
     },
-    thread::{self, JoinHandle, Thread},
+    thread::{self, JoinHandle},
 };
 
 pub enum Job<T> {
@@ -155,9 +155,6 @@ impl<T: Send + 'static> ThreadPool<T> {
             sender: self.job_sender.clone(),
             counter: self.job_counter.clone(),
         }
-    }
-    pub fn health(&self) {
-        for i in &self.threads {}
     }
 }
 pub struct ThreadPoolTryRecvIter<'a, T> {

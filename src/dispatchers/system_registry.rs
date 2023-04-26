@@ -68,7 +68,6 @@ impl BoxedSystem {
     }
 }
 
-
 pub struct BoxedExclusiveSystem {
     system: Box<
         dyn for<'a> Dispatcher<'a, DispatchArgs = DispatcherArgs<'a>, RunArgs = Arc<SystemArgs>>,
@@ -156,8 +155,8 @@ pub(crate) struct SystemRegistryRefMut<'a> {
 
 #[derive(Default)]
 pub struct SystemRegistry {
-    startup_systems: SystemGroup,
-    runtime_systems: SystemGroup,
+    pub(crate) startup_systems: SystemGroup,
+    pub(crate) runtime_systems: SystemGroup,
 }
 
 impl SystemRegistry {

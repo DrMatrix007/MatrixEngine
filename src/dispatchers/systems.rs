@@ -13,8 +13,14 @@ pub struct SystemArgs {
 }
 
 impl SystemArgs {
-    pub fn new(quit: Arc<AtomicBool>, fps: Arc<AtomicU64>) -> Self {
-        Self { quit, fps }
+    pub fn new(
+        quit: Arc<AtomicBool>,
+        fps: Arc<AtomicU64>,
+    ) -> Self {
+        Self {
+            quit,
+            fps,
+        }
     }
 
     pub fn stop(&self) {

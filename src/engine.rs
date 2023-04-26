@@ -3,50 +3,81 @@ use std::sync::{
     Arc,
 };
 
+use winit::{
+    event::Event,
+    event_loop::{ControlFlow, EventLoop},
+};
+
 use crate::{
-    dispatchers::systems::SystemArgs, event_loop::EventLoop, schedulers::schedulers::Scheduler,
-    world::World,
+    components::{resources::ResourceRegistry, storage::Storage},
+    events::Events,
+    scene::{Scene, SceneUpdateArgs},
+    schedulers::schedulers::Scheduler,
 };
 
 pub struct EngineArgs<S: Scheduler> {
-    pub world: World,
+    pub scene: Scene,
     pub scheduler: S,
+    pub resources: Option<ResourceRegistry>,
     pub fps: u64,
 }
 
 pub struct Engine {
-    world: World,
+    scene: Scene,
     quit: Arc<AtomicBool>,
     target_fps: Arc<AtomicU64>,
     scheduler: Box<dyn Scheduler>,
-    event_loop: EventLoop,
+    resources: Storage<ResourceRegistry>,
+    event_loop: EventLoop<()>,
+    events: Storage<Events>,
 }
 
 impl Engine {
     pub fn new<S: Scheduler + 'static>(args: EngineArgs<S>) -> Self {
         let target_fps = Arc::new(AtomicU64::from(args.fps));
         Self {
-            world: args.world,
+            scene: args.scene,
             quit: Arc::new(false.into()),
             scheduler: Box::new(args.scheduler),
             target_fps: target_fps.clone(),
-            event_loop: EventLoop::new(target_fps),
+            event_loop: EventLoop::new(),
+            resources: args.resources.unwrap_or_default().into(),
+            events: Storage::default(),
         }
     }
 
-    pub fn run(&mut self) {
-        let mut args = self.world.unpack();
+    pub fn run(mut self) -> ! {
+        self.event_loop.run(move |event, _, control_flow| {
+            if let Event::MainEventsCleared = event {
+                self.scene.update(SceneUpdateArgs {
+                    fps: self.target_fps.clone(),
+                    quit: self.quit.clone(),
+                    resources: &mut self.resources,
+                    scheduler: self.scheduler.as_mut(),
+                    events: &mut self.events,
+                });
+                self.events
+                    .write()
+                    .expect("nothing should be holding the Events value")
+                    .get_mut()
+                    .update();
+                if self.quit.load(Ordering::Acquire) {
+                    *control_flow = ControlFlow::Exit;
+                }
+            } else {
+                self.events
+                    .write()
+                    .expect("nothing should be holding the Events value")
+                    .get_mut()
+                    .push(event);
+            }
+        });
 
-        let system_args = Arc::new(SystemArgs::new(self.quit.clone(), self.target_fps.clone()));
-
-        self.scheduler
-            .run(args.startups, &mut args.args, system_args.clone());
-
-        while !self.quit.load(Ordering::Acquire) {
-            self.event_loop.capture();
-            self.scheduler
-                .run(args.systems, &mut args.args, system_args.clone());
-            self.event_loop.wait();
-        }
+        // while !self.quit.load(Ordering::Acquire) {
+        //     self.event_loop.capture();
+        //     self.scheduler
+        //         .run(args.systems, &mut args.args, system_args.clone());
+        //     self.event_loop.wait();
+        // }
     }
 }
