@@ -10,8 +10,8 @@ use crate::{
         storage::{Storage, StorageReadGuard, StorageWriteGuard},
     },
     dispatchers::{
-        dispatchers::DispatcherArgs,
-        system_registry::{BoxedExclusiveSystem, BoxedSystem, SystemRegistry},
+        dispatchers::{DispatcherArgs, ExclusiveBoxedData},
+        system_registry::{BoxedAsyncSystem, BoxedExclusiveSystem, SystemRegistry},
         systems::{AsyncSystem, ExclusiveSystem, SystemArgs},
     },
     events::Events,
@@ -58,7 +58,7 @@ impl Scene {
     ) -> &mut Self
 where {
         self.system_registry_mut()
-            .add_startup_system(BoxedSystem::new(sys));
+            .add_startup_system(BoxedAsyncSystem::new(sys));
         self
     }
 
@@ -68,7 +68,8 @@ where {
             + 'static,
     ) -> &mut Self
 where {
-        self.system_registry_mut().add_system(BoxedSystem::new(sys));
+        self.system_registry_mut()
+            .add_system(BoxedAsyncSystem::new(sys));
         self
     }
 
@@ -78,6 +79,7 @@ where {
                 'a,
                 DispatchArgs = DispatcherArgs<'a>,
                 RunArgs = Arc<SystemArgs>,
+                BoxedData = ExclusiveBoxedData,
             > + 'static,
     ) -> &mut Self {
         self.system_registry_mut()

@@ -2,7 +2,7 @@ use std::{collections::VecDeque, io, sync::Arc};
 
 use crate::dispatchers::{
     dispatchers::DispatcherArgs,
-    system_registry::{BoxedSystem, SystemGroup},
+    system_registry::{BoxedAsyncSystem, SystemGroup},
     systems::SystemArgs,
 };
 
@@ -12,9 +12,9 @@ use super::{
 };
 
 pub struct MultiThreadedScheduler {
-    pool: ThreadPool<BoxedSystem>,
-    done: VecDeque<BoxedSystem>,
-    pending: VecDeque<BoxedSystem>,
+    pool: ThreadPool<BoxedAsyncSystem>,
+    done: VecDeque<BoxedAsyncSystem>,
+    pending: VecDeque<BoxedAsyncSystem>,
     // access_state: Access,
 }
 
@@ -32,11 +32,11 @@ impl MultiThreadedScheduler {
     }
 
     fn send_dispatcher<'a>(
-        sender: &ThreadPoolSender<BoxedSystem>,
-        mut dis: BoxedSystem,
+        sender: &ThreadPoolSender<BoxedAsyncSystem>,
+        mut dis: BoxedAsyncSystem,
         args: &mut DispatcherArgs,
         system_args: Arc<SystemArgs>,
-    ) -> Result<(), BoxedSystem> {
+    ) -> Result<(), BoxedAsyncSystem> {
         let mut data = match dis.as_mut().dispatch(args) {
             Ok(data) => data,
             Err(_) => return Err(dis),

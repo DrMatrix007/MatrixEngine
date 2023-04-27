@@ -29,7 +29,6 @@ pub struct StorageWriteGuard<T> {
 impl<T> StorageWriteGuard<T> {
     pub fn get(&self) -> &T {
                 self.data.as_ref().expect("this should not be empty")
-
     }
     pub fn get_mut(&mut self) -> &mut T {
         self.data.as_mut().expect("this should not be empty")
@@ -47,7 +46,6 @@ impl<T> Drop for StorageWriteGuard<T> {
     fn drop(&mut self) {
         let mut m = self.data_ref.lock().unwrap();
         let _ = m.insert(Arc::new(self.data.take().expect("this sould not be empty")));
-        println!("removed!");
     }
 }
 

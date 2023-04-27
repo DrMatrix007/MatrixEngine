@@ -58,10 +58,18 @@ pub struct DispatchError;
 pub trait Dispatcher<'a> {
     type DispatchArgs: 'a;
     type RunArgs;
+    type BoxedData;
 
-    fn dispatch(&mut self, args: &mut Self::DispatchArgs) -> Result<BoxedData, DispatchError>;
+    fn dispatch(
+        &mut self,
+        args: &mut Self::DispatchArgs,
+    ) -> Result<Self::BoxedData, DispatchError>;
 
-    fn try_run(&mut self, args: Self::RunArgs, b: &'a mut BoxedData) -> Result<(), DispatchError>;
+    fn try_run(
+        &mut self,
+        args: Self::RunArgs,
+        b: &'a mut Self::BoxedData,
+    ) -> Result<(), DispatchError>;
 
     fn access() -> Access
     where
@@ -84,24 +92,87 @@ pub trait DispatchData<'a>: 'a {
         Self: Sized;
 }
 
-pub trait ExclusiveDispatchData<'a> {
-    type DispatchArgs: 'a;
+pub trait ExclusiveDispatchData<'a>: DispatchData<'a> {
+    type DispatcherArgs: 'a;
     type Target: 'static;
 
-    unsafe fn dispatch(args: &mut DispatcherArgs<'a>) -> Self::Target
+    fn dispatch(
+        args: &mut DispatcherArgs<'a>,
+    ) -> Result<<Self as ExclusiveDispatchData<'a>>::Target, DispatchError>
     where
         Self: Sized;
 
-    unsafe fn from_target_to_data(data: &Self::Target) -> Self
+    fn from_target_to_data<'b: 'a>(
+        data: &'b mut <Self as ExclusiveDispatchData<'a>>::Target,
+    ) -> Self
     where
         Self: Sized;
 }
 
-pub struct BoxedData {
+impl<'a, T: DispatchData<'a>> ExclusiveDispatchData<'a> for T {
+    type DispatcherArgs = <Self as DispatchData<'a>>::DispatcherArgs;
+
+    type Target = <Self as DispatchData<'a>>::Target;
+
+    fn dispatch(
+        args: &mut DispatcherArgs<'a>,
+    ) -> Result<<Self as ExclusiveDispatchData<'a>>::Target, DispatchError>
+    where
+        Self: Sized,
+    {
+        <Self as DispatchData<'a>>::dispatch(args)
+    }
+
+    fn from_target_to_data<'b: 'a>(data: &'b mut <Self as DispatchData<'a>>::Target) -> Self
+    where
+        Self: Sized,
+    {
+        <Self as DispatchData<'a>>::from_target_to_data(data)
+    }
+}
+
+pub trait AsyncDispatchData<'a>: ExclusiveDispatchData<'a> + Send + Sync {
+    type DispatcherArgs: 'a;
+    type Target: 'static;
+
+    fn dispatch(
+        args: &mut DispatcherArgs<'a>,
+    ) -> Result<<Self as AsyncDispatchData<'a>>::Target, DispatchError>
+    where
+        Self: Sized;
+
+    fn from_target_to_data<'b: 'a>(data: &'b mut <Self as AsyncDispatchData<'a>>::Target) -> Self
+    where
+        Self: Sized;
+}
+
+impl<'a, T: Send + Sync + ExclusiveDispatchData<'a>> AsyncDispatchData<'a> for T {
+    type DispatcherArgs = <Self as ExclusiveDispatchData<'a>>::DispatcherArgs;
+
+    type Target = <Self as ExclusiveDispatchData<'a>>::Target;
+
+    fn dispatch(
+        args: &mut DispatcherArgs<'a>,
+    ) -> Result<<Self as AsyncDispatchData<'a>>::Target, DispatchError>
+    where
+        Self: Sized,
+    {
+        <Self as ExclusiveDispatchData<'a>>::dispatch(args)
+    }
+
+    fn from_target_to_data<'b: 'a>(data: &'b mut <Self as AsyncDispatchData<'a>>::Target) -> Self
+    where
+        Self: Sized,
+    {
+        <Self as ExclusiveDispatchData<'a>>::from_target_to_data(data)
+    }
+}
+
+pub struct ExclusiveBoxedData {
     pub data: Box<dyn Any>,
 }
 
-impl BoxedData {
+impl ExclusiveBoxedData {
     pub fn downcast_mut<T: 'static>(&mut self) -> Option<&mut T> {
         self.data.downcast_mut::<T>()
     }
@@ -113,7 +184,21 @@ impl BoxedData {
     }
 }
 
-unsafe impl Send for BoxedData {}
+pub struct AsyncBoxedData {
+    pub data: Box<dyn Any + Send + Sync>,
+}
+
+impl AsyncBoxedData {
+    pub fn downcast_mut<T: 'static>(&mut self) -> Option<&mut T> {
+        self.data.downcast_mut::<T>()
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.data.downcast_ref::<T>()
+    }
+    pub fn new(t: impl Any + Send + Sync) -> Self {
+        Self { data: Box::new(t) }
+    }
+}
 
 impl<'a, T: Component + Sync + 'static> DispatchData<'a> for &'a ComponentCollection<T> {
     type DispatcherArgs = DispatcherArgs<'a>;
