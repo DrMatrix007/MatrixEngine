@@ -73,7 +73,7 @@ pub trait Dispatcher<'a,BoxedData> {
         Self: Sized;
 }
 
-pub trait DispatchData<'a>: 'a {
+pub trait DispatchedData<'a>: 'a {
     type DispatcherArgs: 'a;
     type Target: 'static;
 
@@ -89,7 +89,7 @@ pub trait DispatchData<'a>: 'a {
         Self: Sized;
 }
 
-pub trait DispatchedExclusiveData<'a>: DispatchData<'a> {
+pub trait DispatchedExclusiveData<'a>: DispatchedData<'a> {
     type DispatcherArgs: 'a;
     type Target: 'static;
 
@@ -106,10 +106,10 @@ pub trait DispatchedExclusiveData<'a>: DispatchData<'a> {
         Self: Sized;
 }
 
-impl<'a, T: DispatchData<'a>> DispatchedExclusiveData<'a> for T {
-    type DispatcherArgs = <Self as DispatchData<'a>>::DispatcherArgs;
+impl<'a, T: DispatchedData<'a>> DispatchedExclusiveData<'a> for T {
+    type DispatcherArgs = <Self as DispatchedData<'a>>::DispatcherArgs;
 
-    type Target = <Self as DispatchData<'a>>::Target;
+    type Target = <Self as DispatchedData<'a>>::Target;
 
     fn dispatch(
         args: &mut DispatcherArgs<'a>,
@@ -117,14 +117,14 @@ impl<'a, T: DispatchData<'a>> DispatchedExclusiveData<'a> for T {
     where
         Self: Sized,
     {
-        <Self as DispatchData<'a>>::dispatch(args)
+        <Self as DispatchedData<'a>>::dispatch(args)
     }
 
-    fn from_target_to_data<'b: 'a>(data: &'b mut <Self as DispatchData<'a>>::Target) -> Self
+    fn from_target_to_data<'b: 'a>(data: &'b mut <Self as DispatchedData<'a>>::Target) -> Self
     where
         Self: Sized,
     {
-        <Self as DispatchData<'a>>::from_target_to_data(data)
+        <Self as DispatchedData<'a>>::from_target_to_data(data)
     }
 }
 
@@ -200,7 +200,7 @@ impl BoxedAsyncData {
     }
 }
 
-impl<'a, T: Component + Sync + 'static> DispatchData<'a> for &'a ComponentCollection<T> {
+impl<'a, T: Component + Sync + 'static> DispatchedData<'a> for &'a ComponentCollection<T> {
     type DispatcherArgs = DispatcherArgs<'a>;
 
     type Target = StorageReadGuard<ComponentCollection<T>>;
@@ -227,7 +227,7 @@ impl<'a, T: Component + Sync + 'static> DispatchData<'a> for &'a ComponentCollec
     }
 }
 
-impl<'a, T: Component + 'static> DispatchData<'a> for &'a mut ComponentCollection<T> {
+impl<'a, T: Component + 'static> DispatchedData<'a> for &'a mut ComponentCollection<T> {
     type DispatcherArgs = DispatcherArgs<'a>;
     type Target = StorageWriteGuard<ComponentCollection<T>>;
 
@@ -253,7 +253,7 @@ impl<'a, T: Component + 'static> DispatchData<'a> for &'a mut ComponentCollectio
     }
 }
 
-impl<'a, T: Resource + Sync + 'static> DispatchData<'a> for &'a ResourceHolder<T> {
+impl<'a, T: Resource + Sync + 'static> DispatchedData<'a> for &'a ResourceHolder<T> {
     type DispatcherArgs = DispatcherArgs<'a>;
 
     type Target = StorageReadGuard<ResourceHolder<T>>;
@@ -280,7 +280,7 @@ impl<'a, T: Resource + Sync + 'static> DispatchData<'a> for &'a ResourceHolder<T
     }
 }
 
-impl<'a, T: Resource + 'static> DispatchData<'a> for &'a mut ResourceHolder<T> {
+impl<'a, T: Resource + 'static> DispatchedData<'a> for &'a mut ResourceHolder<T> {
     type DispatcherArgs = DispatcherArgs<'a>;
     type Target = StorageWriteGuard<ResourceHolder<T>>;
 
@@ -306,7 +306,7 @@ impl<'a, T: Resource + 'static> DispatchData<'a> for &'a mut ResourceHolder<T> {
     }
 }
 
-impl<'a> DispatchData<'a> for &'a Events {
+impl<'a> DispatchedData<'a> for &'a Events {
     type DispatcherArgs = DispatcherArgs<'a>;
 
     type Target = StorageReadGuard<Events>;
@@ -333,7 +333,7 @@ impl<'a> DispatchData<'a> for &'a Events {
     }
 }
 
-trait SingleDispatchData<'a>: DispatchData<'a> {}
+trait SingleDispatchData<'a>: DispatchedData<'a> {}
 
 impl<'a, T: Component + Sync + 'static> SingleDispatchData<'a> for &'a ComponentCollection<T> {}
 impl<'a, T: Component + Sync + 'static> SingleDispatchData<'a> for &'a mut ComponentCollection<T> {}
@@ -354,7 +354,7 @@ macro_rules! impl_tuple_dispatch_data {
     ($($t:ident),*) => {
 
         #[allow(non_snake_case)]
-        impl<'a,$($t: SingleDispatchData<'a,DispatcherArgs=DispatcherArgs<'a>>,)*> DispatchData<'a> for ($($t,)*) {
+        impl<'a,$($t: SingleDispatchData<'a,DispatcherArgs=DispatcherArgs<'a>>,)*> DispatchedData<'a> for ($($t,)*) {
             type Target = ($($t::Target,)*);
             type DispatcherArgs = DispatcherArgs<'a>;
             fn dispatch(scene:&mut Self::DispatcherArgs) -> Result<Self::Target,DispatchError> {
@@ -414,7 +414,7 @@ pub struct RegistryData<'a> {
     pub resources: &'a mut ResourceRegistry,
 }
 
-impl<'a> DispatchData<'a> for RegistryData<'a> {
+impl<'a> DispatchedData<'a> for RegistryData<'a> {
     type DispatcherArgs = DispatcherArgs<'a>;
 
     type Target = (
@@ -452,7 +452,7 @@ impl<'a> DispatchData<'a> for RegistryData<'a> {
         }
     }
 }
-impl<'a> DispatchData<'a> for () {
+impl<'a> DispatchedData<'a> for () {
     type DispatcherArgs = DispatcherArgs<'a>;
 
     type Target = ();
@@ -483,7 +483,7 @@ mod tests {
     #[test]
     fn test_dispatchers() {
         use crate::components::components::{Component, ComponentCollection};
-        use crate::dispatchers::dispatchers::DispatchData;
+        use crate::dispatchers::dispatchers::DispatchedData;
         struct A;
         impl Component for A {}
 

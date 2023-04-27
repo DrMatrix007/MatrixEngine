@@ -5,12 +5,9 @@ use std::sync::{
 
 use crate::schedulers::access::Access;
 
-use super::{
-    dispatchers::{
-        DispatchedAsyncData, BoxedAsyncData, BoxedExclusiveData, DispatchData, DispatchError,
-        Dispatcher, DispatcherArgs, DispatchedExclusiveData,
-    },
-    system_registry::BoxedAsyncSystem,
+use super::dispatchers::{
+    BoxedAsyncData, BoxedExclusiveData, DispatchError, DispatchedAsyncData,
+    DispatchedExclusiveData, Dispatcher, DispatcherArgs, DispatchedData,
 };
 
 pub struct SystemArgs {
@@ -55,14 +52,21 @@ impl<'a, T: ExclusiveSystem<'a>> Dispatcher<'a, BoxedExclusiveData> for T {
         args: Self::RunArgs,
         b: &'a mut BoxedExclusiveData,
     ) -> Result<(), DispatchError> {
-        todo!()
+        let Some(data) = b.downcast_mut::<<T::Query as DispatchedExclusiveData<'a>>::Target>() else {
+            return Err(DispatchError);
+        };
+        self.run(
+            args.as_ref(),
+            <T::Query as DispatchedExclusiveData<'a>>::from_target_to_data(data),
+        );
+        Ok(())
     }
 
     fn access() -> Access
     where
         Self: Sized,
     {
-        todo!()
+        <T::Query as DispatchedData<'a>>::access()
     }
 }
 
@@ -92,13 +96,20 @@ impl<'a, T: AsyncSystem<'a>> Dispatcher<'a, BoxedAsyncData> for T {
         args: Self::RunArgs,
         b: &'a mut BoxedAsyncData,
     ) -> Result<(), DispatchError> {
-        todo!()
+        let Some(data) = b.downcast_mut::<<T::Query as DispatchedAsyncData<'a>>::Target>() else {
+            return Err(DispatchError);
+        };
+        self.run(
+            args.as_ref(),
+            <T::Query as DispatchedAsyncData<'a>>::from_target_to_data(data),
+        );
+        Ok(())
     }
 
     fn access() -> Access
     where
         Self: Sized,
     {
-        todo!()
+        <T::Query as DispatchedData<'a>>::access()
     }
 }

@@ -76,7 +76,7 @@ impl<'a> AsyncSystem<'a> for EventReader {
 
     fn run(
         &mut self,
-        args: &matrix_engine::dispatchers::systems::SystemArgs,
+        _: &matrix_engine::dispatchers::systems::SystemArgs,
         comps: <Self as AsyncSystem<'a>>::Query,
     ) {
         if comps.is_pressed_down(winit::event::VirtualKeyCode::A) {
@@ -90,7 +90,7 @@ struct ExclusiveTest;
 impl<'a> ExclusiveSystem<'a> for ExclusiveTest {
     type Query = ();
 
-    fn run(&mut self, args: &matrix_engine::dispatchers::systems::SystemArgs, comps: <Self as ExclusiveSystem<'a>>::Query) {
+    fn run(&mut self, _: &matrix_engine::dispatchers::systems::SystemArgs, _: <Self as ExclusiveSystem<'a>>::Query) {
         todo!()
     }
 }

@@ -10,7 +10,7 @@ use crate::{
         storage::{Storage, StorageReadGuard, StorageWriteGuard},
     },
     dispatchers::{
-        dispatchers::{BoxedExclusiveData, DispatcherArgs},
+        dispatchers::{DispatcherArgs},
         system_registry::{BoxedAsyncSystem, BoxedExclusiveSystem, SystemRegistry},
         systems::{AsyncSystem, ExclusiveSystem, SystemArgs},
     },

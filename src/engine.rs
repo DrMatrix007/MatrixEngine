@@ -47,7 +47,7 @@ impl Engine {
     }
 
     pub fn run(mut self) -> ! {
-        self.event_loop.run(move |event, target, control_flow| {
+        self.event_loop.run(move |event, _, control_flow| {
             
             
             if let Event::MainEventsCleared = event {
