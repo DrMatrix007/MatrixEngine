@@ -55,20 +55,17 @@ impl<'a> DispatcherArgs<'a> {
 #[derive(Debug, Clone, Copy, Default)]
 pub struct DispatchError;
 
-pub trait Dispatcher<'a> {
+pub trait Dispatcher<'a,BoxedData> {
     type DispatchArgs: 'a;
     type RunArgs;
-    type BoxedData;
 
-    fn dispatch(
-        &mut self,
-        args: &mut Self::DispatchArgs,
-    ) -> Result<Self::BoxedData, DispatchError>;
+    fn dispatch(&mut self, args: &mut Self::DispatchArgs)
+        -> Result<BoxedData, DispatchError>;
 
     fn try_run(
         &mut self,
         args: Self::RunArgs,
-        b: &'a mut Self::BoxedData,
+        b: &'a mut BoxedData,
     ) -> Result<(), DispatchError>;
 
     fn access() -> Access
@@ -92,31 +89,31 @@ pub trait DispatchData<'a>: 'a {
         Self: Sized;
 }
 
-pub trait ExclusiveDispatchData<'a>: DispatchData<'a> {
+pub trait DispatchedExclusiveData<'a>: DispatchData<'a> {
     type DispatcherArgs: 'a;
     type Target: 'static;
 
     fn dispatch(
         args: &mut DispatcherArgs<'a>,
-    ) -> Result<<Self as ExclusiveDispatchData<'a>>::Target, DispatchError>
+    ) -> Result<<Self as DispatchedExclusiveData<'a>>::Target, DispatchError>
     where
         Self: Sized;
 
     fn from_target_to_data<'b: 'a>(
-        data: &'b mut <Self as ExclusiveDispatchData<'a>>::Target,
+        data: &'b mut <Self as DispatchedExclusiveData<'a>>::Target,
     ) -> Self
     where
         Self: Sized;
 }
 
-impl<'a, T: DispatchData<'a>> ExclusiveDispatchData<'a> for T {
+impl<'a, T: DispatchData<'a>> DispatchedExclusiveData<'a> for T {
     type DispatcherArgs = <Self as DispatchData<'a>>::DispatcherArgs;
 
     type Target = <Self as DispatchData<'a>>::Target;
 
     fn dispatch(
         args: &mut DispatcherArgs<'a>,
-    ) -> Result<<Self as ExclusiveDispatchData<'a>>::Target, DispatchError>
+    ) -> Result<<Self as DispatchedExclusiveData<'a>>::Target, DispatchError>
     where
         Self: Sized,
     {
@@ -131,48 +128,51 @@ impl<'a, T: DispatchData<'a>> ExclusiveDispatchData<'a> for T {
     }
 }
 
-pub trait AsyncDispatchData<'a>: ExclusiveDispatchData<'a> + Send + Sync {
+pub trait DispatchedAsyncData<'a>: DispatchedExclusiveData<'a> + Send + Sync {
     type DispatcherArgs: 'a;
-    type Target: 'static;
+    type Target: 'static + Send + Sync;
 
     fn dispatch(
         args: &mut DispatcherArgs<'a>,
-    ) -> Result<<Self as AsyncDispatchData<'a>>::Target, DispatchError>
+    ) -> Result<<Self as DispatchedAsyncData<'a>>::Target, DispatchError>
     where
         Self: Sized;
 
-    fn from_target_to_data<'b: 'a>(data: &'b mut <Self as AsyncDispatchData<'a>>::Target) -> Self
+    fn from_target_to_data<'b: 'a>(data: &'b mut <Self as DispatchedAsyncData<'a>>::Target) -> Self
     where
         Self: Sized;
 }
 
-impl<'a, T: Send + Sync + ExclusiveDispatchData<'a>> AsyncDispatchData<'a> for T {
-    type DispatcherArgs = <Self as ExclusiveDispatchData<'a>>::DispatcherArgs;
+impl<'a, T: Send + Sync + DispatchedExclusiveData<'a>> DispatchedAsyncData<'a> for T
+where
+    <T as DispatchedExclusiveData<'a>>::Target: Send + Sync,
+{
+    type DispatcherArgs = <Self as DispatchedExclusiveData<'a>>::DispatcherArgs;
 
-    type Target = <Self as ExclusiveDispatchData<'a>>::Target;
+    type Target = <Self as DispatchedExclusiveData<'a>>::Target;
 
     fn dispatch(
         args: &mut DispatcherArgs<'a>,
-    ) -> Result<<Self as AsyncDispatchData<'a>>::Target, DispatchError>
+    ) -> Result<<Self as DispatchedAsyncData<'a>>::Target, DispatchError>
     where
         Self: Sized,
     {
-        <Self as ExclusiveDispatchData<'a>>::dispatch(args)
+        <Self as DispatchedExclusiveData<'a>>::dispatch(args)
     }
 
-    fn from_target_to_data<'b: 'a>(data: &'b mut <Self as AsyncDispatchData<'a>>::Target) -> Self
+    fn from_target_to_data<'b: 'a>(data: &'b mut <Self as DispatchedAsyncData<'a>>::Target) -> Self
     where
         Self: Sized,
     {
-        <Self as ExclusiveDispatchData<'a>>::from_target_to_data(data)
+        <Self as DispatchedExclusiveData<'a>>::from_target_to_data(data)
     }
 }
 
-pub struct ExclusiveBoxedData {
+pub struct BoxedExclusiveData {
     pub data: Box<dyn Any>,
 }
 
-impl ExclusiveBoxedData {
+impl BoxedExclusiveData {
     pub fn downcast_mut<T: 'static>(&mut self) -> Option<&mut T> {
         self.data.downcast_mut::<T>()
     }
@@ -184,11 +184,11 @@ impl ExclusiveBoxedData {
     }
 }
 
-pub struct AsyncBoxedData {
+pub struct BoxedAsyncData {
     pub data: Box<dyn Any + Send + Sync>,
 }
 
-impl AsyncBoxedData {
+impl BoxedAsyncData {
     pub fn downcast_mut<T: 'static>(&mut self) -> Option<&mut T> {
         self.data.downcast_mut::<T>()
     }

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::schedulers::access::Access;
 
 use super::{
-    dispatchers::{AsyncBoxedData, Dispatcher, DispatcherArgs, ExclusiveBoxedData},
+    dispatchers::{BoxedAsyncData, Dispatcher, DispatcherArgs, BoxedExclusiveData},
     systems::{AsyncSystem, ExclusiveSystem, SystemArgs},
 };
 
@@ -11,9 +11,9 @@ pub struct BoxedAsyncSystem {
     system: Box<
         dyn for<'a> Dispatcher<
                 'a,
+                BoxedAsyncData,
                 DispatchArgs = DispatcherArgs<'a>,
                 RunArgs = Arc<SystemArgs>,
-                BoxedData = AsyncBoxedData,
             > + Send
             + Sync,
     >,
@@ -22,11 +22,8 @@ pub struct BoxedAsyncSystem {
 
 impl BoxedAsyncSystem {
     pub fn new<
-        T: for<'a> AsyncSystem<
-                'a,
-                DispatchArgs = DispatcherArgs<'a>,
-                RunArgs = Arc<SystemArgs>,
-            > + 'static,
+        T: for<'a> AsyncSystem<'a, DispatchArgs = DispatcherArgs<'a>, RunArgs = Arc<SystemArgs>>
+            + 'static,
     >(
         system: T,
     ) -> Self {
@@ -41,9 +38,9 @@ impl BoxedAsyncSystem {
         &mut self,
     ) -> &mut dyn for<'a> Dispatcher<
         'a,
+        BoxedAsyncData,
         DispatchArgs = DispatcherArgs<'a>,
         RunArgs = Arc<SystemArgs>,
-        BoxedData = AsyncBoxedData,
     > {
         self.system.as_mut()
     }
@@ -52,9 +49,9 @@ impl BoxedAsyncSystem {
         &self,
     ) -> &(dyn for<'a> Dispatcher<
         'a,
+        BoxedAsyncData,
         DispatchArgs = DispatcherArgs<'a>,
         RunArgs = Arc<SystemArgs>,
-        BoxedData = AsyncBoxedData,
     >) {
         self.system.as_ref()
     }
@@ -63,9 +60,9 @@ impl BoxedAsyncSystem {
         &mut self,
     ) -> &mut (dyn for<'a> Dispatcher<
         'a,
+        BoxedAsyncData,
         DispatchArgs = DispatcherArgs<'a>,
         RunArgs = Arc<SystemArgs>,
-        BoxedData = AsyncBoxedData,
     >) {
         self.system.as_mut()
     }
@@ -78,9 +75,9 @@ pub struct BoxedExclusiveSystem {
     system: Box<
         dyn for<'a> Dispatcher<
             'a,
+            BoxedExclusiveData,
             DispatchArgs = DispatcherArgs<'a>,
             RunArgs = Arc<SystemArgs>,
-            BoxedData = ExclusiveBoxedData,
         >,
     >,
 }
@@ -91,7 +88,6 @@ impl BoxedExclusiveSystem {
                 'a,
                 DispatchArgs = DispatcherArgs<'a>,
                 RunArgs = Arc<SystemArgs>,
-                BoxedData = ExclusiveBoxedData,
             > + 'static,
     >(
         system: T,
@@ -105,9 +101,9 @@ impl BoxedExclusiveSystem {
         &mut self,
     ) -> &mut dyn for<'a> Dispatcher<
         'a,
+        BoxedExclusiveData,
         DispatchArgs = DispatcherArgs<'a>,
         RunArgs = Arc<SystemArgs>,
-        BoxedData = ExclusiveBoxedData,
     > {
         self.system.as_mut()
     }
@@ -116,9 +112,9 @@ impl BoxedExclusiveSystem {
         &self,
     ) -> &(dyn for<'a> Dispatcher<
         'a,
+        BoxedExclusiveData,
         DispatchArgs = DispatcherArgs<'a>,
         RunArgs = Arc<SystemArgs>,
-        BoxedData = ExclusiveBoxedData,
     >) {
         self.system.as_ref()
     }
@@ -127,9 +123,9 @@ impl BoxedExclusiveSystem {
         &mut self,
     ) -> &mut (dyn for<'a> Dispatcher<
         'a,
+        BoxedExclusiveData,
         DispatchArgs = DispatcherArgs<'a>,
         RunArgs = Arc<SystemArgs>,
-        BoxedData = ExclusiveBoxedData,
     >) {
         self.system.as_mut()
     }

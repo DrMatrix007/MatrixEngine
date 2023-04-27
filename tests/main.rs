@@ -1,6 +1,6 @@
 use matrix_engine::{
     components::components::{Component, ComponentCollection},
-    dispatchers::systems::AsyncSystem,
+    dispatchers::systems::{AsyncSystem, ExclusiveSystem},
     engine::{Engine, EngineArgs},
     entity::Entity,
     events::Events,
@@ -85,14 +85,24 @@ impl<'a> AsyncSystem<'a> for EventReader {
     }
 }
 
+struct ExclusiveTest;
+
+impl<'a> ExclusiveSystem<'a> for ExclusiveTest {
+    type Query = ();
+
+    fn run(&mut self, args: &matrix_engine::dispatchers::systems::SystemArgs, comps: <Self as ExclusiveSystem<'a>>::Query) {
+        todo!()
+    }
+}
+
 fn main() {
     let mut scene = Scene::default();
 
     scene
-        .add_system(TakeA)
-        .add_exclusive_system(TakeA)
-        .add_exclusive_startup_system(AddA)
-        .add_startup_system(PrintSystem);
+        .add_async_system(TakeA)
+        .add_async_system(TakeA)
+        .add_startup_async_system(AddA)
+        .add_startup_async_system(PrintSystem);
 
     let engine = Engine::new(EngineArgs {
         scene,
