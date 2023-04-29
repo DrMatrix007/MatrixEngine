@@ -1,207 +1,233 @@
-use std::any::Any;
+use winit::event_loop::EventLoopWindowTarget;
 
 use crate::{
     components::{
         components::{Component, ComponentCollection, ComponentRegistry},
         resources::{Resource, ResourceHolder, ResourceRegistry},
+        storage::{Storage, StorageReadGuard, StorageWriteGuard},
     },
-    schedulers::access::{Access, AccessAction, AccessType},
+    events::Events,
 };
 
 pub struct DispatcherArgs<'a> {
-    components: &'a mut ComponentRegistry,
-    resources: &'a mut ResourceRegistry,
+    components: &'a mut Storage<ComponentRegistry>,
+    resources: &'a mut Storage<ResourceRegistry>,
+    events: &'a mut Storage<Events>,
+    target: &'a EventLoopWindowTarget<()>,
 }
 
 impl<'a> DispatcherArgs<'a> {
-    pub fn new(components: &'a mut ComponentRegistry, resources: &'a mut ResourceRegistry) -> Self {
+    pub fn new(
+        components: &'a mut Storage<ComponentRegistry>,
+        resources: &'a mut Storage<ResourceRegistry>,
+        events: &'a mut Storage<Events>,
+        target: &'a EventLoopWindowTarget<()>,
+    ) -> Self {
         Self {
             components,
             resources,
+            events,
+            target,
         }
     }
 
-    pub unsafe fn get_components_ptr<T: Component + 'static>(
+    pub fn get_components<T: Component + 'static>(
         &mut self,
-    ) -> *const ComponentCollection<T> {
-        self.components.get_ptr::<T>()
+    ) -> Option<StorageReadGuard<ComponentCollection<T>>> {
+        self.components.write()?.get_mut().get::<T>()
     }
-    pub unsafe fn get_components_ptr_mut<T: Component + 'static>(
+    pub fn get_components_mut<T: Component + 'static>(
         &mut self,
-    ) -> *mut ComponentCollection<T> {
-        self.components.get_ptr_mut::<T>()
+    ) -> Option<StorageWriteGuard<ComponentCollection<T>>> {
+        self.components.write()?.get_mut().get_mut::<T>()
     }
 
-    pub unsafe fn get_resource_ptr<T: Resource + 'static>(&mut self) -> *const ResourceHolder<T> {
-        self.resources.get_ptr::<T>()
+    pub fn get_resource<T: Resource + 'static>(
+        &mut self,
+    ) -> Option<StorageReadGuard<ResourceHolder<T>>> {
+        self.resources.write()?.get_mut().get::<T>()
     }
-    pub unsafe fn get_resource_ptr_mut<T: Resource + 'static>(&mut self) -> *mut ResourceHolder<T> {
-        self.resources.get_ptr_mut::<T>()
+    pub fn get_resource_mut<T: Resource + 'static>(
+        &mut self,
+    ) -> Option<StorageWriteGuard<ResourceHolder<T>>> {
+        self.resources.write()?.get_mut().get_mut::<T>()
+    }
+    pub fn get_window_target(&self) -> &EventLoopWindowTarget<()> {
+        self.target.clone()
     }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct DispatchError;
+pub trait Dispatcher<BoxedData, RunArgs> {
+    fn dispatch<'a>(&mut self, args: &mut DispatcherArgs<'a>) -> Result<BoxedData, DispatchError>;
 
-pub trait Dispatcher<'a> {
-    type DispatchArgs: 'a;
-    type RunArgs;
-
-    unsafe fn dispatch(&mut self, args: &mut Self::DispatchArgs) -> BoxedData;
-
-    fn try_run(&mut self, args: Self::RunArgs, b: BoxedData) -> Result<(), BoxedData>;
-
-    fn access() -> Access
-    where
-        Self: Sized;
+    fn try_run(&mut self, args: RunArgs, b: &mut BoxedData) -> Result<(), DispatchError>;
 }
 
-pub trait DispatchData<'a> {
-    type DispatcherArgs: 'a;
+pub trait DispatchedData<'a> {
     type Target: 'static;
 
-    unsafe fn dispatch(args: &mut DispatcherArgs<'a>) -> Self::Target
+    fn dispatch(args: &mut DispatcherArgs<'a>) -> Result<Self::Target, DispatchError>
     where
         Self: Sized;
 
-    fn access() -> Access
+    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
     where
         Self: Sized;
-    unsafe fn from_target_to_data(data: Self::Target) -> Self
+}
+impl<'a, T: Component + Sync + 'static> DispatchedData<'a> for &'a ComponentCollection<T> {
+    type Target = StorageReadGuard<ComponentCollection<T>>;
+
+    fn dispatch<'b>(args: &mut DispatcherArgs<'b>) -> Result<Self::Target, DispatchError> {
+        args.get_components::<T>().ok_or(DispatchError)
+    }
+
+    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
+    where
+        Self: Sized,
+    {
+        data.get()
+    }
+}
+
+pub trait DispatchedSendData<'a>: DispatchedData<'a> {
+    type Target: 'static + Send + Sync;
+
+    fn dispatch(
+        args: &mut DispatcherArgs<'a>,
+    ) -> Result<<Self as DispatchedSendData<'a>>::Target, DispatchError>
+    where
+        Self: Sized;
+
+    fn from_target_to_data<'b: 'a>(data: &'b mut <Self as DispatchedSendData<'a>>::Target) -> Self
     where
         Self: Sized;
 }
 
-pub trait ExclusiveDispatchData<'a> {
-    type DispatchArgs: 'a;
-    type Target: 'static;
+impl<'a, T: DispatchedData<'a>> DispatchedSendData<'a> for T
+where
+    T::Target: Send + Sync,
+{
+    type Target = <Self as DispatchedData<'a>>::Target;
 
-    unsafe fn dispatch(args: &mut DispatcherArgs<'a>) -> Self::Target
+    fn dispatch(
+        args: &mut DispatcherArgs<'a>,
+    ) -> Result<<Self as DispatchedSendData<'a>>::Target, DispatchError>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        <Self as DispatchedData<'a>>::dispatch(args)
+    }
 
-    unsafe fn from_target_to_data(data: Self::Target) -> Self
+    fn from_target_to_data<'b: 'a>(data: &'b mut <Self as DispatchedSendData<'a>>::Target) -> Self
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        <Self as DispatchedData<'a>>::from_target_to_data(data)
+    }
 }
 
-pub struct BoxedData {
-    pub data: Box<dyn Any>,
+impl<'a, T: Component + 'static> DispatchedData<'a> for &'a mut ComponentCollection<T> {
+    type Target = StorageWriteGuard<ComponentCollection<T>>;
+
+    fn dispatch<'b>(args: &mut DispatcherArgs<'a>) -> Result<Self::Target, DispatchError> {
+        args.get_components_mut().ok_or(DispatchError)
+    }
+
+    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
+    where
+        Self: Sized,
+    {
+        data.get_mut()
+    }
 }
 
-impl BoxedData {
-    pub fn downcast<T: 'static>(self) -> Result<Box<T>, BoxedData> {
-        match self.data.downcast::<T>() {
-            Ok(data) => Ok(data),
-            Err(data) => Err(Self { data }),
+impl<'a, T: Resource + Sync + 'static> DispatchedData<'a> for &'a ResourceHolder<T> {
+    type Target = StorageReadGuard<ResourceHolder<T>>;
+
+    fn dispatch<'b>(args: &mut DispatcherArgs<'b>) -> Result<Self::Target, DispatchError> {
+        args.get_resource::<T>().ok_or(DispatchError)
+    }
+
+    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
+    where
+        Self: Sized,
+    {
+        data.get()
+    }
+}
+
+impl<'a, T: Resource + 'static> DispatchedData<'a> for &'a mut ResourceHolder<T> {
+    type Target = StorageWriteGuard<ResourceHolder<T>>;
+
+    fn dispatch<'b>(args: &mut DispatcherArgs<'b>) -> Result<Self::Target, DispatchError> {
+        match args.get_resource_mut::<T>() {
+            Some(data) => Ok(data),
+            None => Err(DispatchError),
         }
     }
-    pub fn new<T: 'static>(t: T) -> Self {
-        Self { data: Box::new(t) }
+
+    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
+    where
+        Self: Sized,
+    {
+        data.get_mut()
     }
 }
 
-unsafe impl Send for BoxedData {}
+impl<'a> DispatchedData<'a> for &'a Events {
+    type Target = StorageReadGuard<Events>;
 
-impl<'a, T: Component + Sync + 'static> DispatchData<'a> for &'a ComponentCollection<T> {
-    type DispatcherArgs = DispatcherArgs<'a>;
-
-    type Target = *const ComponentCollection<T>;
-
-    unsafe fn dispatch<'b>(args: &mut Self::DispatcherArgs) -> Self::Target {
-        args.get_components_ptr::<T>()
-    }
-
-    fn access() -> Access
+    fn dispatch(args: &mut DispatcherArgs<'a>) -> Result<Self::Target, DispatchError>
     where
         Self: Sized,
     {
-        Access::from_iter([(AccessType::component::<T>(), AccessAction::Read(1))])
+        args.events.read().ok_or(DispatchError)
     }
 
-    unsafe fn from_target_to_data(data: Self::Target) -> Self
+    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
     where
         Self: Sized,
     {
-        &*data as Self
+        data.get()
     }
 }
 
-impl<'a, T: Component + 'static> DispatchData<'a> for &'a mut ComponentCollection<T> {
-    type DispatcherArgs = DispatcherArgs<'a>;
-    type Target = *mut ComponentCollection<T>;
+impl<'a> DispatchedData<'a> for () {
+    type Target = ();
 
-    unsafe fn dispatch<'b>(args: &mut Self::DispatcherArgs) -> Self::Target {
-        args.get_components_ptr_mut::<T>()
-    }
-
-    fn access() -> Access
+    fn dispatch(_: &mut DispatcherArgs<'a>) -> Result<Self::Target, DispatchError>
     where
         Self: Sized,
     {
-        Access::from_iter([(AccessType::component::<T>(), AccessAction::Write)])
+        Ok(())
     }
 
-    unsafe fn from_target_to_data(data: Self::Target) -> Self
+    fn from_target_to_data<'b: 'a>(_: &'b mut Self::Target) -> Self
     where
         Self: Sized,
     {
-        &mut *data as Self
     }
 }
 
-impl<'a, T: Resource + Sync + 'static> DispatchData<'a> for &'a ResourceHolder<T> {
-    type DispatcherArgs = DispatcherArgs<'a>;
+impl<'a> DispatchedData<'a> for &'a EventLoopWindowTarget<()> {
+    type Target = *const EventLoopWindowTarget<()>;
 
-    type Target = *const ResourceHolder<T>;
-
-    unsafe fn dispatch<'b>(args: &mut Self::DispatcherArgs) -> Self::Target {
-        args.get_resource_ptr::<T>()
-    }
-
-    fn access() -> Access
+    fn dispatch(args: &mut DispatcherArgs<'a>) -> Result<Self::Target, DispatchError>
     where
         Self: Sized,
     {
-        Access::from_iter([(AccessType::resource::<T>(), AccessAction::Read(1))])
+        Ok(&*args.get_window_target())
     }
 
-    unsafe fn from_target_to_data(data: Self::Target) -> Self
+    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
     where
         Self: Sized,
     {
-        &*data as Self
+        unsafe { &*(data.to_owned()) }
     }
 }
-
-impl<'a, T: Resource + 'static> DispatchData<'a> for &'a mut ResourceHolder<T> {
-    type DispatcherArgs = DispatcherArgs<'a>;
-    type Target = *mut ResourceHolder<T>;
-
-    unsafe fn dispatch<'b>(args: &mut Self::DispatcherArgs) -> Self::Target {
-        args.get_resource_ptr_mut::<T>()
-    }
-
-    fn access() -> Access
-    where
-        Self: Sized,
-    {
-        Access::from_iter([(AccessType::resource::<T>(), AccessAction::Write)])
-    }
-
-    unsafe fn from_target_to_data(data: Self::Target) -> Self
-    where
-        Self: Sized,
-    {
-        &mut *data as Self
-    }
-}
-trait SingleDispatchData<'a>: DispatchData<'a> {}
-
-impl<'a, T: Component + Sync + 'static> SingleDispatchData<'a> for &'a ComponentCollection<T> {}
-impl<'a, T: Component + Sync + 'static> SingleDispatchData<'a> for &'a mut ComponentCollection<T> {}
-impl<'a, T: Resource + Sync + 'static> SingleDispatchData<'a> for &'a ResourceHolder<T> {}
-impl<'a, T: Resource + Sync + 'static> SingleDispatchData<'a> for &'a mut ResourceHolder<T> {}
 
 macro_rules! impl_all {
     ($mac:ident, $t:ident, $($ts:ident),+) => {
@@ -217,18 +243,13 @@ macro_rules! impl_tuple_dispatch_data {
     ($($t:ident),*) => {
 
         #[allow(non_snake_case)]
-        impl<'a,$($t: SingleDispatchData<'a,DispatcherArgs=DispatcherArgs<'a>>,)*> DispatchData<'a> for ($($t,)*) {
+        impl<'a,$($t: DispatchedData<'a>,)*> DispatchedData<'a> for ($($t,)*) {
             type Target = ($($t::Target,)*);
-            type DispatcherArgs = DispatcherArgs<'a>;
-            unsafe fn dispatch(scene:&mut Self::DispatcherArgs) -> Self::Target {
-                ($($t::dispatch(scene),)*)
+            fn dispatch(scene:&mut DispatcherArgs<'a>) -> Result<Self::Target,DispatchError> {
+                Ok(($($t::dispatch(scene)?,)*))
             }
-            fn access()-> Access where Self:Sized {
-                let mut ans = Access::default();
-                $(ans.try_combine(&$t::access()).expect("the access should not overlap");)*
-                ans
-            }
-            unsafe fn from_target_to_data(data: Self::Target) -> Self
+
+            fn from_target_to_data<'b:'a>(data: &'b mut Self::Target) -> Self
             where
                 Self: Sized,
             {
@@ -269,89 +290,3 @@ impl_all!(
     Y,
     Z
 );
-// impl_tuple_dispatch_data!(A,B,C);
-// impl_all!(impl_tuple_dispatch_data, A, B, C);
-
-pub struct RegistryData<'a> {
-    pub components: &'a mut ComponentRegistry,
-    pub resources: &'a mut ResourceRegistry,
-}
-pub struct RegistryDataUnsafe {
-    pub components: *mut ComponentRegistry,
-    pub resources: *mut ResourceRegistry,
-}
-
-impl<'a> DispatchData<'a> for RegistryData<'a> {
-    type DispatcherArgs = DispatcherArgs<'a>;
-
-    type Target = RegistryDataUnsafe;
-
-    unsafe fn dispatch<'b>(args: &mut Self::DispatcherArgs) -> Self::Target {
-        Self::Target {
-            resources: args.resources,
-            components: args.components,
-        }
-    }
-
-    fn access() -> Access
-    where
-        Self: Sized,
-    {
-        Access::all()
-    }
-
-    unsafe fn from_target_to_data(data: Self::Target) -> Self
-    where
-        Self: Sized,
-    {
-        Self {
-            components: &mut *data.components,
-            resources: &mut *data.resources,
-        }
-    }
-}
-impl<'a> DispatchData<'a> for () {
-    type DispatcherArgs = DispatcherArgs<'a>;
-
-    type Target = ();
-
-    unsafe fn dispatch(_: &mut DispatcherArgs<'a>) -> Self::Target
-    where
-        Self: Sized,
-    {
-    }
-
-    fn access() -> Access
-    where
-        Self: Sized,
-    {
-        Access::empty()
-    }
-
-    unsafe fn from_target_to_data(_: Self::Target) -> Self
-    where
-        Self: Sized,
-    {
-    }
-}
-
-mod tests {
-
-    #[test]
-    fn test_dispatchers() {
-        use crate::components::components::{Component, ComponentCollection};
-        struct A;
-        impl Component for A {}
-
-        struct B;
-        impl Component for B {}
-
-        type Q1 = (
-            &'static mut ComponentCollection<A>,
-            &'static ComponentCollection<B>,
-        );
-        type Q2 = (&'static ComponentCollection<B>,);
-
-        // Q1::access().try_combine(&Q2::access()).unwrap();
-    }
-}

@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
-use crate::dispatchers::{
-    dispatchers::DispatcherArgs, system_registry::SystemGroup, systems::SystemArgs,
-};
+use crate::dispatchers::{system_registry::SystemGroup, systems::SystemArgs, dispatchers::DispatcherArgs};
 
 use super::schedulers::Scheduler;
 
@@ -16,16 +14,22 @@ impl Scheduler for SingleThreadScheduler {
         system_args: Arc<SystemArgs>,
     ) {
         for i in dis.iter_normal() {
-            let data = unsafe { i.as_mut().dispatch(args) };
+            let mut data = i
+                .as_mut()
+                .dispatch(args)
+                .expect("this runs only on the main thread and its should not crash");
             i.as_mut()
-                .try_run(system_args.clone(), data)
+                .try_run(system_args.clone(), &mut data)
                 .map_err(|_| ())
                 .expect("this function should not return Err(())");
         }
         for i in dis.iter_exclusive() {
-            let data = unsafe { i.as_mut().dispatch(args) };
+            let mut data = i
+                .as_mut()
+                .dispatch(args)
+                .expect("this runs only on the main thread and its should not crash");
             i.as_mut()
-                .try_run(system_args.clone(), data)
+                .try_run(system_args.clone(), &mut data)
                 .map_err(|_| ())
                 .expect("this function should not return Err(())");
         }

@@ -1,120 +1,149 @@
-use std::time::Duration;
-
 use matrix_engine::{
     components::{
-        components::{Component, ComponentCollection, ComponentRegistry},
+        components::{Component, ComponentCollection},
         resources::{Resource, ResourceHolder},
     },
-    dispatchers::{
-        dispatchers::RegistryData,
-        systems::{AsyncSystem, ExclusiveSystem, SystemArgs},
-    },
+    dispatchers::systems::{AsyncSystem, ExclusiveSystem},
     engine::{Engine, EngineArgs},
     entity::Entity,
+    events::Events,
+    scene::Scene,
     schedulers::multi_threaded_scheduler::MultiThreadedScheduler,
-    world::World,
 };
+use winit::{event_loop::EventLoopWindowTarget, window::WindowBuilder};
 
-#[derive(Debug)]
-struct A(pub i128);
-impl Component for A {}
+struct PanicSystem;
 
-#[derive(Debug)]
-struct B;
-impl Component for B {}
+impl AsyncSystem for PanicSystem {
+    type Query<'a> = ();
 
-struct D;
-impl<'a> AsyncSystem<'a> for D {
-    type Query = (&'a ComponentCollection<A>, &'a ResourceHolder<Data>);
-
-    fn run(&mut self, _args: &SystemArgs, (_a, b): <Self as AsyncSystem<'a>>::Query) {
-        let _b = b.get().unwrap();
-        println!("start D");
-        spin_sleep::sleep(Duration::from_secs_f64(1.0));
-        println!("end D");
+    fn run<'a>(
+        &mut self,
+        _: &matrix_engine::dispatchers::systems::SystemArgs,
+        _: <Self as AsyncSystem>::Query<'a>,
+    ) {
+        // panic!()
     }
 }
 
-struct C;
-impl<'a> AsyncSystem<'a> for C {
-    type Query = (&'a ComponentCollection<A>, &'a ResourceHolder<Data>);
+struct PrintSystem;
 
-    fn run(&mut self, args: &SystemArgs, (_a, b): <Self as AsyncSystem<'a>>::Query) {
-        let b = b.get().unwrap();
-        println!("start C");
+impl AsyncSystem for PrintSystem {
+    type Query<'a> = ();
 
-        spin_sleep::sleep(Duration::from_secs_f64(1.0));
-        //println!("DATA: {}", b.0);
-        println!("end C");
-        if b.0 > 15 {
-            args.stop();
+    fn run<'a>(
+        &mut self,
+        _: &matrix_engine::dispatchers::systems::SystemArgs,
+        _: <Self as AsyncSystem>::Query<'a>,
+    ) {
+        println!("print");
+    }
+}
+
+struct A;
+impl Component for A {}
+
+struct TakeA;
+
+impl AsyncSystem for TakeA {
+    type Query<'a> = &'a ComponentCollection<A>;
+
+    fn run<'a>(
+        &mut self,
+        _args: &matrix_engine::dispatchers::systems::SystemArgs,
+        comps: <Self as AsyncSystem>::Query<'a>,
+    ) {
+        assert!(comps.iter().count() > 0);
+    }
+}
+
+struct AddA;
+
+impl AsyncSystem for AddA {
+    type Query<'a> = &'a mut ComponentCollection<A>;
+
+    fn run<'a>(
+        &mut self,
+        _args: &matrix_engine::dispatchers::systems::SystemArgs,
+        comps: <Self as AsyncSystem>::Query<'a>,
+    ) {
+        for _ in 0..10 {
+            comps.insert(Entity::new(), A);
         }
     }
 }
-struct E;
-impl<'a> AsyncSystem<'a> for E {
-    type Query = (&'a mut ComponentCollection<A>, &'a mut ResourceHolder<Data>);
 
-    fn run(&mut self, _args: &SystemArgs, (_a, b): <Self as AsyncSystem<'a>>::Query) {
-        let b = b.get_mut().unwrap();
-        println!("start E");
-        b.0 += 1;
-        println!("end E");
+struct EventReader;
+
+impl AsyncSystem for EventReader {
+    type Query<'a> = &'a Events;
+
+    fn run<'a>(
+        &mut self,
+        _: &matrix_engine::dispatchers::systems::SystemArgs,
+        comps: <Self as AsyncSystem>::Query<'a>,
+    ) {
+        if comps.is_pressed_down(winit::event::VirtualKeyCode::A) {
+            println!("A");
+        }
     }
 }
 
-struct Data(pub i32);
-impl Resource for Data {}
+struct ExclusiveTest;
 
-struct Test(*const ());
+impl ExclusiveSystem for ExclusiveTest {
+    type Query<'a> = &'a EventLoopWindowTarget<()>;
 
-impl<'a> ExclusiveSystem<'a> for Test {
-    type Query = RegistryData<'a>;
-
-    fn run(&mut self, _: &SystemArgs, q: <Self as ExclusiveSystem<'a>>::Query) {
-        println!("start ex");
-        unsafe { q.components.get_ptr::<A>() };
-        spin_sleep::sleep(Duration::from_secs_f64(1.0));
-        println!("end ex");
+    fn run<'a>(
+        &mut self,
+        _: &matrix_engine::dispatchers::systems::SystemArgs,
+        _: <Self as ExclusiveSystem>::Query<'a>,
+    ) {
     }
 }
 
-struct Other;
+struct Window {
+    pub w: winit::window::Window,
+}
 
-impl<'a> AsyncSystem<'a> for Other {
-    type Query = RegistryData<'a>;
+impl Resource for Window {}
 
-    fn run(&mut self, _: &SystemArgs, _: <Self as AsyncSystem<'a>>::Query) {
-        println!("start other");
-        spin_sleep::sleep(Duration::from_secs_f64(3.0));
-        println!("end other");
+struct CreateWindow;
+
+impl ExclusiveSystem for CreateWindow {
+    type Query<'a> = (
+        &'a EventLoopWindowTarget<()>,
+        &'a mut ResourceHolder<Window>,
+    );
+
+    fn run(
+        &mut self,
+        _args: &matrix_engine::dispatchers::systems::SystemArgs,
+        (target, window): <Self as ExclusiveSystem>::Query<'_>,
+    ) {
+        window.get_or_insert_with(|| {
+            let w = WindowBuilder::new().build(target).unwrap();
+            Window { w }
+        });
     }
 }
 
 fn main() {
-    let mut world = World::default();
+    let mut scene = Scene::default();
 
-    let scene = world.scene_mut();
-    let reg = scene.component_registry_mut();
+    scene
+        .add_startup_exclusive_system(CreateWindow)
+        .add_async_system(TakeA)
+        .add_async_system(TakeA)
+        .add_startup_async_system(AddA)
+        .add_startup_async_system(PrintSystem);
 
-    for i in 0..100 {
-        reg.insert(Entity::default(), A(i));
-    }
-    let resources = world.resource_registry_mut();
-
-    resources.insert(Data(10));
-
-    // world.add_startup(D {}).add_startup(D {});
-    world
-        .add_system(C {})
-        .add_system(E {})
-        .add_system(D {})
-        .add_system(Other {})
-        .add_exclusive_system(Test(std::ptr::null()));
-    let mut engine = Engine::new(EngineArgs {
-        fps: 1,
-        world,
+    let engine = Engine::new(EngineArgs {
+        scene,
         scheduler: MultiThreadedScheduler::with_amount_of_cpu_cores().unwrap(),
+        fps: 144,
+        resources: None,
     });
+
     engine.run();
 }

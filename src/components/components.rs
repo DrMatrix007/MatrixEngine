@@ -5,6 +5,8 @@ use std::{
 
 use crate::entity::Entity;
 
+use super::storage::{Storage, StorageReadGuard, StorageWriteGuard};
+
 pub trait Component: Send {}
 
 pub struct ComponentCollection<T: Component> {
@@ -100,31 +102,55 @@ impl<'a, T, A: Iterator<Item = (&'a Entity, &'a mut T)>> From<A>
 
 #[derive(Default)]
 pub struct ComponentRegistry {
-    data: HashMap<TypeId, Box<dyn Any>>,
+    data: HashMap<TypeId, BoxedCollection>,
+}
+
+struct BoxedCollection(Box<dyn Any>);
+
+impl BoxedCollection {
+    pub fn new<T: Component + 'static>() -> Self {
+        Self(Box::new(Storage::new(ComponentCollection::<T>::default())))
+    }
+    pub fn downcast_ref<T: Component + 'static>(&self) -> Option<&Storage<ComponentCollection<T>>> {
+        self.0.downcast_ref::<Storage<ComponentCollection<T>>>()
+    }
+    pub fn downcast_mut<T: Component + 'static>(
+        &mut self,
+    ) -> Option<&mut Storage<ComponentCollection<T>>> {
+        self.0.downcast_mut::<Storage<ComponentCollection<T>>>()
+    }
 }
 
 impl ComponentRegistry {
-    pub unsafe fn get_ptr_mut<T: Component + 'static>(&mut self) -> *mut ComponentCollection<T> {
+    pub fn get<T: Component + 'static>(
+        &mut self,
+    ) -> Option<StorageReadGuard<ComponentCollection<T>>> {
         self.data
             .entry(TypeId::of::<T>())
-            .or_insert(Box::new(ComponentCollection::<T>::default()))
-            .downcast_mut::<ComponentCollection<T>>()
-            .expect("this value should be of this type") as *mut ComponentCollection<T>
+            .or_insert(BoxedCollection::new::<T>())
+            .downcast_ref::<T>()
+            .expect("this value should be of this type")
+            .read()
     }
 
-    pub unsafe fn get_ptr<T: Component + 'static>(&mut self) -> *const ComponentCollection<T> {
+    pub fn get_mut<T: Component + 'static>(
+        &mut self,
+    ) -> Option<StorageWriteGuard<ComponentCollection<T>>> {
         self.data
             .entry(TypeId::of::<T>())
-            .or_insert(Box::new(ComponentCollection::<T>::default()))
-            .downcast_ref::<ComponentCollection<T>>()
-            .expect("this value should be of this type") as *const ComponentCollection<T>
+            .or_insert(BoxedCollection::new::<T>())
+            .downcast_ref::<T>()
+            .expect("this value should be of this type")
+            .write()
     }
-    pub fn insert<T: Component + 'static>(&mut self, e: Entity, c: T) {
-        self.data
-            .entry(TypeId::of::<T>())
-            .or_insert(Box::new(ComponentCollection::<T>::default()))
-            .downcast_mut::<ComponentCollection<T>>()
-            .expect("this value should be this type")
-            .insert(e, c);
+
+    pub fn insert<T: Component + 'static>(&mut self, e: Entity, c: T) -> Result<(), T> {
+        let Some(mut data) = self.get_mut() else {
+            return Err(c);
+        };
+
+        data.get_mut().insert(e, c);
+
+        Ok(())
     }
 }
