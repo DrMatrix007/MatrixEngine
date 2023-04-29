@@ -7,33 +7,24 @@ use winit::event_loop::EventLoopWindowTarget;
 
 use crate::{
     components::{
-        components::ComponentRegistry,
+        component::ComponentRegistry,
         resources::ResourceRegistry,
         storage::{Storage, StorageReadGuard, StorageWriteGuard},
     },
     dispatchers::{
-        dispatchers::DispatcherArgs,
+        dispatcher::DispatcherArgs,
         system_registry::{BoxedAsyncSystem, BoxedExclusiveSystem, SystemRegistry},
         systems::{AsyncSystem, ExclusiveSystem, SystemArgs},
     },
     events::Events,
-    schedulers::schedulers::Scheduler,
+    schedulers::scheduler::Scheduler,
 };
 
+#[derive(Default)]
 pub struct Scene {
     pub(crate) components: Storage<ComponentRegistry>,
     pub(crate) systems: SystemRegistry,
     is_started: bool,
-}
-
-impl Default for Scene {
-    fn default() -> Self {
-        Self {
-            components: Default::default(),
-            systems: Default::default(),
-            is_started: false,
-        }
-    }
 }
 
 impl Scene {

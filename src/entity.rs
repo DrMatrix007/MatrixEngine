@@ -10,3 +10,9 @@ impl Entity {
         Self(COUNTER.fetch_add(1, std::sync::atomic::Ordering::Acquire))
     }
 }
+
+impl Default for Entity {
+    fn default() -> Self {
+        Self::new()
+    }
+}

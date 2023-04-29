@@ -12,7 +12,7 @@ use crate::{
     components::{resources::ResourceRegistry, storage::Storage},
     events::Events,
     scene::{Scene, SceneUpdateArgs},
-    schedulers::schedulers::Scheduler,
+    schedulers::scheduler::Scheduler,
 };
 
 pub struct EngineArgs<S: Scheduler> {
@@ -39,7 +39,7 @@ impl Engine {
             scene: args.scene,
             quit: Arc::new(false.into()),
             scheduler: Box::new(args.scheduler),
-            target_fps: target_fps.clone(),
+            target_fps,
             event_loop: EventLoop::new(),
             resources: args.resources.unwrap_or_default().into(),
             events: Storage::default(),

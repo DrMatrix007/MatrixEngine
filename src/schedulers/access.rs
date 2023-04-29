@@ -5,7 +5,7 @@ use std::{
 
 use lazy_static::lazy_static;
 
-use crate::components::{components::Component, resources::Resource};
+use crate::components::{component::Component, resources::Resource};
 
 #[derive(Debug, Clone, Copy)]
 pub enum AccessAction {
@@ -31,11 +31,10 @@ impl AccessType {
 
 impl AccessAction {
     pub fn is_compatible(&self, other: &Self) -> bool {
-        if let (AccessAction::Read(_), AccessAction::Read(_)) = (self, other) {
-            true
-        } else {
-            false
-        }
+        matches!(
+            (self, other),
+            (AccessAction::Read(_), AccessAction::Read(_))
+        )
     }
 }
 
@@ -143,13 +142,13 @@ impl Access {
                 }
                 true
             }
-            (Ok(a), Err(_)) => return a.is_empty(),
+            (Ok(a), Err(_)) => a.is_empty(),
             _ => false,
         }
     }
 
     /// trys to combine 2 access value to save the current state.
-    pub fn try_combine(&mut self, other: &Self) -> Result<(), ()> {
+    pub fn try_combine(&mut self, other: &Self) -> Result<(), AccessIsAllErr> {
         let candidate = match (self.get_map(), other.get_map()) {
             (Err(_), Err(_)) => Some(Self::empty()),
             (Ok(map_a), Ok(map_b)) => {
@@ -163,7 +162,7 @@ impl Access {
                                 *b += a;
                             }
                             _ => {
-                                return Err(());
+                                return Err(AccessIsAllErr);
                             }
                         }
                     } else {
@@ -189,7 +188,7 @@ impl Access {
                 *self = a;
                 Ok(())
             }
-            None => Err(()),
+            None => Err(AccessIsAllErr),
         }
     }
     fn insert(
@@ -245,7 +244,7 @@ mod tests {
     #[test]
     fn test_access() {
         use crate::schedulers::access::{Access, AccessAction};
-        use crate::{components::components::Component, schedulers::access::AccessType};
+        use crate::{components::component::Component, schedulers::access::AccessType};
 
         trait AccessAccessor {
             fn read() -> (AccessType, AccessAction);

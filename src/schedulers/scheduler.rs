@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use crate::dispatchers::{
-    dispatchers::DispatcherArgs, system_registry::SystemGroup, systems::SystemArgs,
+    dispatcher::DispatcherArgs, system_registry::SystemGroup, systems::SystemArgs,
 };
 
 pub trait Scheduler {
-    fn run<'a>(
+    fn run(
         &mut self,
         dis: &mut SystemGroup,
-        args: &mut DispatcherArgs<'a>,
+        args: &mut DispatcherArgs<'_>,
         system_args: Arc<SystemArgs>,
     );
 }

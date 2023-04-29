@@ -42,7 +42,7 @@ impl BoxedSendData {
     }
 }
 
-use super::dispatchers::{
+use super::dispatcher::{
     DispatchError, DispatchedData, DispatchedSendData, Dispatcher, DispatcherArgs,
 };
 
@@ -94,7 +94,7 @@ impl<T: ExclusiveSystem> Dispatcher<BoxedData, Arc<SystemArgs>> for T {
 pub trait AsyncSystem: Dispatcher<BoxedSendData, Arc<SystemArgs>> + Send + Sync {
     type Query<'a>: DispatchedSendData<'a>;
 
-    fn run<'a>(&mut self, args: &SystemArgs, comps: <Self as AsyncSystem>::Query<'a>);
+    fn run(&mut self, args: &SystemArgs, comps: <Self as AsyncSystem>::Query<'_>);
 }
 
 impl<T: AsyncSystem> Dispatcher<BoxedSendData, Arc<SystemArgs>> for T {

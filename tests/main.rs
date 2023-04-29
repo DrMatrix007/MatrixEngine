@@ -1,6 +1,6 @@
 use matrix_engine::{
     components::{
-        components::{Component, ComponentCollection},
+        component::{Component, ComponentCollection},
         resources::{Resource, ResourceHolder},
     },
     dispatchers::systems::{AsyncSystem, ExclusiveSystem},
@@ -17,10 +17,10 @@ struct PanicSystem;
 impl AsyncSystem for PanicSystem {
     type Query<'a> = ();
 
-    fn run<'a>(
+    fn run(
         &mut self,
         _: &matrix_engine::dispatchers::systems::SystemArgs,
-        _: <Self as AsyncSystem>::Query<'a>,
+        _: <Self as AsyncSystem>::Query<'_>,
     ) {
         // panic!()
     }
@@ -31,10 +31,10 @@ struct PrintSystem;
 impl AsyncSystem for PrintSystem {
     type Query<'a> = ();
 
-    fn run<'a>(
+    fn run(
         &mut self,
         _: &matrix_engine::dispatchers::systems::SystemArgs,
-        _: <Self as AsyncSystem>::Query<'a>,
+        _: <Self as AsyncSystem>::Query<'_>,
     ) {
         println!("print");
     }
@@ -48,10 +48,10 @@ struct TakeA;
 impl AsyncSystem for TakeA {
     type Query<'a> = &'a ComponentCollection<A>;
 
-    fn run<'a>(
+    fn run(
         &mut self,
         _args: &matrix_engine::dispatchers::systems::SystemArgs,
-        comps: <Self as AsyncSystem>::Query<'a>,
+        comps: <Self as AsyncSystem>::Query<'_>,
     ) {
         assert!(comps.iter().count() > 0);
     }
@@ -62,10 +62,10 @@ struct AddA;
 impl AsyncSystem for AddA {
     type Query<'a> = &'a mut ComponentCollection<A>;
 
-    fn run<'a>(
+    fn run(
         &mut self,
         _args: &matrix_engine::dispatchers::systems::SystemArgs,
-        comps: <Self as AsyncSystem>::Query<'a>,
+        comps: <Self as AsyncSystem>::Query<'_>,
     ) {
         for _ in 0..10 {
             comps.insert(Entity::new(), A);
@@ -78,10 +78,10 @@ struct EventReader;
 impl AsyncSystem for EventReader {
     type Query<'a> = &'a Events;
 
-    fn run<'a>(
+    fn run(
         &mut self,
         _: &matrix_engine::dispatchers::systems::SystemArgs,
-        comps: <Self as AsyncSystem>::Query<'a>,
+        comps: <Self as AsyncSystem>::Query<'_>,
     ) {
         if comps.is_pressed_down(winit::event::VirtualKeyCode::A) {
             println!("A");
@@ -94,16 +94,16 @@ struct ExclusiveTest;
 impl ExclusiveSystem for ExclusiveTest {
     type Query<'a> = &'a EventLoopWindowTarget<()>;
 
-    fn run<'a>(
+    fn run(
         &mut self,
         _: &matrix_engine::dispatchers::systems::SystemArgs,
-        _: <Self as ExclusiveSystem>::Query<'a>,
+        _: <Self as ExclusiveSystem>::Query<'_>,
     ) {
     }
 }
 
 struct Window {
-    pub w: winit::window::Window,
+    pub _w: winit::window::Window,
 }
 
 impl Resource for Window {}
@@ -123,7 +123,7 @@ impl ExclusiveSystem for CreateWindow {
     ) {
         window.get_or_insert_with(|| {
             let w = WindowBuilder::new().build(target).unwrap();
-            Window { w }
+            Window { _w: w }
         });
     }
 }

@@ -2,7 +2,7 @@ use winit::event_loop::EventLoopWindowTarget;
 
 use crate::{
     components::{
-        components::{Component, ComponentCollection, ComponentRegistry},
+        component::{Component, ComponentCollection, ComponentRegistry},
         resources::{Resource, ResourceHolder, ResourceRegistry},
         storage::{Storage, StorageReadGuard, StorageWriteGuard},
     },
@@ -53,14 +53,14 @@ impl<'a> DispatcherArgs<'a> {
         self.resources.write()?.get_mut().get_mut::<T>()
     }
     pub fn get_window_target(&self) -> &EventLoopWindowTarget<()> {
-        self.target.clone()
+        self.target
     }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct DispatchError;
 pub trait Dispatcher<BoxedData, RunArgs> {
-    fn dispatch<'a>(&mut self, args: &mut DispatcherArgs<'a>) -> Result<BoxedData, DispatchError>;
+    fn dispatch(&mut self, args: &mut DispatcherArgs<'_>) -> Result<BoxedData, DispatchError>;
 
     fn try_run(&mut self, args: RunArgs, b: &mut BoxedData) -> Result<(), DispatchError>;
 }
@@ -79,7 +79,7 @@ pub trait DispatchedData<'a> {
 impl<'a, T: Component + Sync + 'static> DispatchedData<'a> for &'a ComponentCollection<T> {
     type Target = StorageReadGuard<ComponentCollection<T>>;
 
-    fn dispatch<'b>(args: &mut DispatcherArgs<'b>) -> Result<Self::Target, DispatchError> {
+    fn dispatch(args: &mut DispatcherArgs) -> Result<Self::Target, DispatchError> {
         args.get_components::<T>().ok_or(DispatchError)
     }
 
@@ -146,7 +146,7 @@ impl<'a, T: Component + 'static> DispatchedData<'a> for &'a mut ComponentCollect
 impl<'a, T: Resource + Sync + 'static> DispatchedData<'a> for &'a ResourceHolder<T> {
     type Target = StorageReadGuard<ResourceHolder<T>>;
 
-    fn dispatch<'b>(args: &mut DispatcherArgs<'b>) -> Result<Self::Target, DispatchError> {
+    fn dispatch(args: &mut DispatcherArgs) -> Result<Self::Target, DispatchError> {
         args.get_resource::<T>().ok_or(DispatchError)
     }
 
@@ -161,7 +161,7 @@ impl<'a, T: Resource + Sync + 'static> DispatchedData<'a> for &'a ResourceHolder
 impl<'a, T: Resource + 'static> DispatchedData<'a> for &'a mut ResourceHolder<T> {
     type Target = StorageWriteGuard<ResourceHolder<T>>;
 
-    fn dispatch<'b>(args: &mut DispatcherArgs<'b>) -> Result<Self::Target, DispatchError> {
+    fn dispatch(args: &mut DispatcherArgs) -> Result<Self::Target, DispatchError> {
         match args.get_resource_mut::<T>() {
             Some(data) => Ok(data),
             None => Err(DispatchError),
@@ -218,7 +218,7 @@ impl<'a> DispatchedData<'a> for &'a EventLoopWindowTarget<()> {
     where
         Self: Sized,
     {
-        Ok(&*args.get_window_target())
+        Ok(args.get_window_target())
     }
 
     fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self

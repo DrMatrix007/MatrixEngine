@@ -67,9 +67,8 @@ impl<T: Send + 'static> Worker<T> {
                 Ok(job) => match job {
                     Job::Work(job) => {
                         let ans = job();
-                        match done.send(Ok(ans)) {
-                            Err(_) => return,
-                            Ok(_) => {}
+                        if done.send(Ok(ans)).is_err() {
+                            return;
                         }
                     }
                     Job::Close => {
@@ -189,10 +188,7 @@ impl<'a, T> Iterator for ThreadPoolRecvIter<'a, T> {
             assert!(self.job_counter.fetch_add(1, Ordering::SeqCst) == -1);
             return None;
         }
-        match self.recv.recv().ok() {
-            Some(data) => Some(data),
-            None => None,
-        }
+        self.recv.recv().ok()
     }
 }
 

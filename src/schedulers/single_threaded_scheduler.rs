@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
-use crate::dispatchers::{system_registry::SystemGroup, systems::SystemArgs, dispatchers::DispatcherArgs};
+use crate::dispatchers::{system_registry::SystemGroup, systems::SystemArgs, dispatcher::DispatcherArgs};
 
-use super::schedulers::Scheduler;
+use super::scheduler::Scheduler;
 
 pub struct SingleThreadScheduler;
 
 impl Scheduler for SingleThreadScheduler {
-    fn run<'a>(
+    fn run(
         &mut self,
         dis: &mut SystemGroup,
-        args: &mut DispatcherArgs<'a>,
+        args: &mut DispatcherArgs<'_>,
         system_args: Arc<SystemArgs>,
     ) {
         for i in dis.iter_normal() {

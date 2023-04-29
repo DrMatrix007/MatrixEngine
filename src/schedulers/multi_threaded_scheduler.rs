@@ -2,11 +2,11 @@ use std::{collections::VecDeque, io, sync::Arc};
 
 use crate::dispatchers::{
     system_registry::{BoxedAsyncSystem, SystemGroup},
-    systems::SystemArgs, dispatchers::DispatcherArgs,
+    systems::SystemArgs, dispatcher::DispatcherArgs,
 };
 
 use super::{
-    schedulers::Scheduler,
+    scheduler::Scheduler,
     thread_pool::{ThreadPool, ThreadPoolSender},
 };
 
@@ -30,10 +30,10 @@ impl MultiThreadedScheduler {
         Ok(Self::new(std::thread::available_parallelism()?.get()))
     }
 
-    fn send_dispatcher<'a>(
+    fn send_dispatcher(
         sender: &ThreadPoolSender<BoxedAsyncSystem>,
         mut dis: BoxedAsyncSystem,
-        args: &mut DispatcherArgs<'a>,
+        args: &mut DispatcherArgs<'_>,
         system_args: Arc<SystemArgs>,
     ) -> Result<(), BoxedAsyncSystem> {
         let mut data = match dis.as_mut().dispatch(args) {
@@ -55,10 +55,10 @@ impl MultiThreadedScheduler {
 }
 
 impl Scheduler for MultiThreadedScheduler {
-    fn run<'a>(
+    fn run(
         &mut self,
         dispatchers: &mut SystemGroup,
-        args: &mut DispatcherArgs<'a>,
+        args: &mut DispatcherArgs<'_>,
         system_args: Arc<SystemArgs>,
     ) {
         let sender = self.pool.sender();

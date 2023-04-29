@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 
 use super::{
-    dispatchers::{Dispatcher},
+    dispatcher::{Dispatcher},
     systems::{AsyncSystem, BoxedData, BoxedSendData, ExclusiveSystem, SystemArgs},
 };
 
