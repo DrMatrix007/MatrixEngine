@@ -5,7 +5,7 @@ use std::{
 
 use super::storage::{Storage, StorageReadGuard, StorageWriteGuard};
 
-pub trait Resource: Send {}
+pub trait Resource {}
 
 pub struct ResourceHolder<T> {
     data: Option<T>,
@@ -29,6 +29,12 @@ impl<T> ResourceHolder<T> {
             Some(data) => Some(data),
             None => None,
         }
+    }
+    pub fn get_or_insert(&mut self, data: T) -> &mut T {
+        self.data.get_or_insert(data)
+    }
+    pub fn get_or_insert_with(&mut self, data: impl FnOnce() -> T) -> &mut T {
+        self.data.get_or_insert_with(data)
     }
 }
 
@@ -61,9 +67,7 @@ impl ResourceRegistry {
             .write()
     }
 
-    pub fn get<T: Resource + 'static>(
-        &mut self,
-    ) -> Option<StorageReadGuard<ResourceHolder<T>>> {
+    pub fn get<T: Resource + 'static>(&mut self) -> Option<StorageReadGuard<ResourceHolder<T>>> {
         self.data
             .entry(TypeId::of::<T>())
             .or_insert(Box::new(Storage::new(ResourceHolder::<T>::default())))

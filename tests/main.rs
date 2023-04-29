@@ -1,5 +1,8 @@
 use matrix_engine::{
-    components::components::{Component, ComponentCollection},
+    components::{
+        components::{Component, ComponentCollection},
+        resources::{Resource, ResourceHolder},
+    },
     dispatchers::systems::{AsyncSystem, ExclusiveSystem},
     engine::{Engine, EngineArgs},
     entity::Entity,
@@ -7,16 +10,17 @@ use matrix_engine::{
     scene::Scene,
     schedulers::multi_threaded_scheduler::MultiThreadedScheduler,
 };
+use winit::{event_loop::EventLoopWindowTarget, window::WindowBuilder};
 
 struct PanicSystem;
 
-impl<'a> AsyncSystem<'a> for PanicSystem {
-    type Query = ();
+impl AsyncSystem for PanicSystem {
+    type Query<'a> = ();
 
-    fn run(
+    fn run<'a>(
         &mut self,
         _: &matrix_engine::dispatchers::systems::SystemArgs,
-        _: <Self as AsyncSystem<'a>>::Query,
+        _: <Self as AsyncSystem>::Query<'a>,
     ) {
         // panic!()
     }
@@ -24,13 +28,13 @@ impl<'a> AsyncSystem<'a> for PanicSystem {
 
 struct PrintSystem;
 
-impl<'a> AsyncSystem<'a> for PrintSystem {
-    type Query = ();
+impl AsyncSystem for PrintSystem {
+    type Query<'a> = ();
 
-    fn run(
+    fn run<'a>(
         &mut self,
         _: &matrix_engine::dispatchers::systems::SystemArgs,
-        _: <Self as AsyncSystem<'a>>::Query,
+        _: <Self as AsyncSystem>::Query<'a>,
     ) {
         println!("print");
     }
@@ -41,13 +45,13 @@ impl Component for A {}
 
 struct TakeA;
 
-impl<'a> AsyncSystem<'a> for TakeA {
-    type Query = &'a ComponentCollection<A>;
+impl AsyncSystem for TakeA {
+    type Query<'a> = &'a ComponentCollection<A>;
 
-    fn run(
+    fn run<'a>(
         &mut self,
         _args: &matrix_engine::dispatchers::systems::SystemArgs,
-        comps: <Self as AsyncSystem<'a>>::Query,
+        comps: <Self as AsyncSystem>::Query<'a>,
     ) {
         assert!(comps.iter().count() > 0);
     }
@@ -55,13 +59,13 @@ impl<'a> AsyncSystem<'a> for TakeA {
 
 struct AddA;
 
-impl<'a> AsyncSystem<'a> for AddA {
-    type Query = &'a mut ComponentCollection<A>;
+impl AsyncSystem for AddA {
+    type Query<'a> = &'a mut ComponentCollection<A>;
 
-    fn run(
+    fn run<'a>(
         &mut self,
         _args: &matrix_engine::dispatchers::systems::SystemArgs,
-        comps: <Self as AsyncSystem<'a>>::Query,
+        comps: <Self as AsyncSystem>::Query<'a>,
     ) {
         for _ in 0..10 {
             comps.insert(Entity::new(), A);
@@ -71,13 +75,13 @@ impl<'a> AsyncSystem<'a> for AddA {
 
 struct EventReader;
 
-impl<'a> AsyncSystem<'a> for EventReader {
-    type Query = &'a Events;
+impl AsyncSystem for EventReader {
+    type Query<'a> = &'a Events;
 
-    fn run(
+    fn run<'a>(
         &mut self,
         _: &matrix_engine::dispatchers::systems::SystemArgs,
-        comps: <Self as AsyncSystem<'a>>::Query,
+        comps: <Self as AsyncSystem>::Query<'a>,
     ) {
         if comps.is_pressed_down(winit::event::VirtualKeyCode::A) {
             println!("A");
@@ -87,11 +91,40 @@ impl<'a> AsyncSystem<'a> for EventReader {
 
 struct ExclusiveTest;
 
-impl<'a> ExclusiveSystem<'a> for ExclusiveTest {
-    type Query = ();
+impl ExclusiveSystem for ExclusiveTest {
+    type Query<'a> = &'a EventLoopWindowTarget<()>;
 
-    fn run(&mut self, _: &matrix_engine::dispatchers::systems::SystemArgs, _: <Self as ExclusiveSystem<'a>>::Query) {
-        todo!()
+    fn run<'a>(
+        &mut self,
+        _: &matrix_engine::dispatchers::systems::SystemArgs,
+        _: <Self as ExclusiveSystem>::Query<'a>,
+    ) {
+    }
+}
+
+struct Window {
+    pub w: winit::window::Window,
+}
+
+impl Resource for Window {}
+
+struct CreateWindow;
+
+impl ExclusiveSystem for CreateWindow {
+    type Query<'a> = (
+        &'a EventLoopWindowTarget<()>,
+        &'a mut ResourceHolder<Window>,
+    );
+
+    fn run(
+        &mut self,
+        _args: &matrix_engine::dispatchers::systems::SystemArgs,
+        (target, window): <Self as ExclusiveSystem>::Query<'_>,
+    ) {
+        window.get_or_insert_with(|| {
+            let w = WindowBuilder::new().build(target).unwrap();
+            Window { w }
+        });
     }
 }
 
@@ -99,6 +132,7 @@ fn main() {
     let mut scene = Scene::default();
 
     scene
+        .add_startup_exclusive_system(CreateWindow)
         .add_async_system(TakeA)
         .add_async_system(TakeA)
         .add_startup_async_system(AddA)

@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
-use crate::dispatchers::{
-    dispatchers::DispatcherArgs, system_registry::SystemGroup, systems::SystemArgs,
-};
+use crate::dispatchers::{system_registry::SystemGroup, systems::SystemArgs, dispatchers::DispatcherArgs};
 
 use super::schedulers::Scheduler;
 

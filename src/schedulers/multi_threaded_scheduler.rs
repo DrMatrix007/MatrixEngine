@@ -1,9 +1,8 @@
 use std::{collections::VecDeque, io, sync::Arc};
 
 use crate::dispatchers::{
-    dispatchers::DispatcherArgs,
     system_registry::{BoxedAsyncSystem, SystemGroup},
-    systems::SystemArgs,
+    systems::SystemArgs, dispatchers::DispatcherArgs,
 };
 
 use super::{
@@ -34,7 +33,7 @@ impl MultiThreadedScheduler {
     fn send_dispatcher<'a>(
         sender: &ThreadPoolSender<BoxedAsyncSystem>,
         mut dis: BoxedAsyncSystem,
-        args: &mut DispatcherArgs,
+        args: &mut DispatcherArgs<'a>,
         system_args: Arc<SystemArgs>,
     ) -> Result<(), BoxedAsyncSystem> {
         let mut data = match dis.as_mut().dispatch(args) {

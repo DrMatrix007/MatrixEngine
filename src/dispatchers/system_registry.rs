@@ -1,133 +1,48 @@
 use std::sync::Arc;
 
-use crate::schedulers::access::Access;
 
 use super::{
-    dispatchers::{BoxedAsyncData, Dispatcher, DispatcherArgs, BoxedExclusiveData},
-    systems::{AsyncSystem, ExclusiveSystem, SystemArgs},
+    dispatchers::{Dispatcher},
+    systems::{AsyncSystem, BoxedData, BoxedSendData, ExclusiveSystem, SystemArgs},
 };
 
 pub struct BoxedAsyncSystem {
-    system: Box<
-        dyn for<'a> Dispatcher<
-                'a,
-                BoxedAsyncData,
-                DispatchArgs = DispatcherArgs<'a>,
-                RunArgs = Arc<SystemArgs>,
-            > + Send
-            + Sync,
-    >,
-    access: Access,
+    system: Box<dyn Dispatcher<BoxedSendData, Arc<SystemArgs>> + Send + Sync>,
 }
 
 impl BoxedAsyncSystem {
-    pub fn new<
-        T: for<'a> AsyncSystem<'a, DispatchArgs = DispatcherArgs<'a>, RunArgs = Arc<SystemArgs>>
-            + 'static,
-    >(
-        system: T,
-    ) -> Self {
-        let access = T::access();
+    pub fn new<T: AsyncSystem+'static>(system: T) -> Self {
         Self {
             system: Box::new(system),
-            access,
         }
     }
 
-    pub(crate) fn get_mut(
-        &mut self,
-    ) -> &mut dyn for<'a> Dispatcher<
-        'a,
-        BoxedAsyncData,
-        DispatchArgs = DispatcherArgs<'a>,
-        RunArgs = Arc<SystemArgs>,
-    > {
-        self.system.as_mut()
-    }
-
-    pub(crate) fn as_ref(
-        &self,
-    ) -> &(dyn for<'a> Dispatcher<
-        'a,
-        BoxedAsyncData,
-        DispatchArgs = DispatcherArgs<'a>,
-        RunArgs = Arc<SystemArgs>,
-    >) {
+    pub(crate) fn as_ref(&self) -> &dyn Dispatcher<BoxedSendData, Arc<SystemArgs>> {
         self.system.as_ref()
     }
 
-    pub(crate) fn as_mut(
-        &mut self,
-    ) -> &mut (dyn for<'a> Dispatcher<
-        'a,
-        BoxedAsyncData,
-        DispatchArgs = DispatcherArgs<'a>,
-        RunArgs = Arc<SystemArgs>,
-    >) {
+    pub(crate) fn as_mut(&mut self) -> &mut dyn Dispatcher<BoxedSendData, Arc<SystemArgs>> {
         self.system.as_mut()
-    }
-    pub(crate) fn as_access(&self) -> &Access {
-        &self.access
     }
 }
 
 pub struct BoxedExclusiveSystem {
-    system: Box<
-        dyn for<'a> Dispatcher<
-            'a,
-            BoxedExclusiveData,
-            DispatchArgs = DispatcherArgs<'a>,
-            RunArgs = Arc<SystemArgs>,
-        >,
-    >,
+    system: Box<dyn Dispatcher<BoxedData, Arc<SystemArgs>>>,
 }
 
 impl BoxedExclusiveSystem {
-    pub fn new<
-        T: for<'a> ExclusiveSystem<
-                'a,
-                DispatchArgs = DispatcherArgs<'a>,
-                RunArgs = Arc<SystemArgs>,
-            > + 'static,
-    >(
-        system: T,
-    ) -> Self {
+    pub fn new<T: for<'a> ExclusiveSystem + 'static>(system: T) -> Self {
         Self {
             system: Box::new(system),
         }
     }
 
-    pub(crate) fn get_mut(
-        &mut self,
-    ) -> &mut dyn for<'a> Dispatcher<
-        'a,
-        BoxedExclusiveData,
-        DispatchArgs = DispatcherArgs<'a>,
-        RunArgs = Arc<SystemArgs>,
-    > {
+    pub(crate) fn as_mut(&mut self) -> &mut dyn Dispatcher<BoxedData, Arc<SystemArgs>> {
         self.system.as_mut()
     }
 
-    pub(crate) fn as_ref(
-        &self,
-    ) -> &(dyn for<'a> Dispatcher<
-        'a,
-        BoxedExclusiveData,
-        DispatchArgs = DispatcherArgs<'a>,
-        RunArgs = Arc<SystemArgs>,
-    >) {
+    pub(crate) fn as_ref(&self) -> &dyn Dispatcher<BoxedData, Arc<SystemArgs>> {
         self.system.as_ref()
-    }
-
-    pub(crate) fn as_mut(
-        &mut self,
-    ) -> &mut (dyn for<'a> Dispatcher<
-        'a,
-        BoxedExclusiveData,
-        DispatchArgs = DispatcherArgs<'a>,
-        RunArgs = Arc<SystemArgs>,
-    >) {
-        self.system.as_mut()
     }
 }
 

@@ -47,9 +47,7 @@ impl Engine {
     }
 
     pub fn run(mut self) -> ! {
-        self.event_loop.run(move |event, _, control_flow| {
-            
-            
+        self.event_loop.run(move |event, target, control_flow| {
             if let Event::MainEventsCleared = event {
                 self.scene.update(SceneUpdateArgs {
                     fps: self.target_fps.clone(),
@@ -57,6 +55,7 @@ impl Engine {
                     resources: &mut self.resources,
                     scheduler: self.scheduler.as_mut(),
                     events: &mut self.events,
+                    window_target: target,
                 });
                 self.events
                     .write()
