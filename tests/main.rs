@@ -6,7 +6,6 @@ use matrix_engine::{
     dispatchers::systems::{AsyncSystem, ExclusiveSystem},
     engine::{Engine, EngineArgs},
     entity::Entity,
-    events::Events,
     scene::Scene,
     schedulers::multi_threaded_scheduler::MultiThreadedScheduler,
 };
@@ -19,7 +18,7 @@ impl AsyncSystem for PanicSystem {
 
     fn run(
         &mut self,
-        _: &matrix_engine::dispatchers::systems::SystemArgs,
+        _: &matrix_engine::dispatchers::systems::SystemContext,
         _: <Self as AsyncSystem>::Query<'_>,
     ) {
         // panic!()
@@ -33,7 +32,7 @@ impl AsyncSystem for PrintSystem {
 
     fn run(
         &mut self,
-        _: &matrix_engine::dispatchers::systems::SystemArgs,
+        _: &matrix_engine::dispatchers::systems::SystemContext,
         _: <Self as AsyncSystem>::Query<'_>,
     ) {
         println!("print");
@@ -50,7 +49,7 @@ impl AsyncSystem for TakeA {
 
     fn run(
         &mut self,
-        _args: &matrix_engine::dispatchers::systems::SystemArgs,
+        _args: &matrix_engine::dispatchers::systems::SystemContext,
         comps: <Self as AsyncSystem>::Query<'_>,
     ) {
         assert!(comps.iter().count() > 0);
@@ -64,7 +63,7 @@ impl AsyncSystem for AddA {
 
     fn run(
         &mut self,
-        _args: &matrix_engine::dispatchers::systems::SystemArgs,
+        _args: &matrix_engine::dispatchers::systems::SystemContext,
         comps: <Self as AsyncSystem>::Query<'_>,
     ) {
         for _ in 0..10 {
@@ -73,21 +72,6 @@ impl AsyncSystem for AddA {
     }
 }
 
-struct EventReader;
-
-impl AsyncSystem for EventReader {
-    type Query<'a> = &'a Events;
-
-    fn run(
-        &mut self,
-        _: &matrix_engine::dispatchers::systems::SystemArgs,
-        comps: <Self as AsyncSystem>::Query<'_>,
-    ) {
-        if comps.is_pressed_down(winit::event::VirtualKeyCode::A) {
-            println!("A");
-        }
-    }
-}
 
 struct ExclusiveTest;
 
@@ -96,7 +80,7 @@ impl ExclusiveSystem for ExclusiveTest {
 
     fn run(
         &mut self,
-        _: &matrix_engine::dispatchers::systems::SystemArgs,
+        _: &matrix_engine::dispatchers::systems::SystemContext,
         _: <Self as ExclusiveSystem>::Query<'_>,
     ) {
     }
@@ -118,13 +102,14 @@ impl ExclusiveSystem for CreateWindow {
 
     fn run(
         &mut self,
-        _args: &matrix_engine::dispatchers::systems::SystemArgs,
+        _args: &matrix_engine::dispatchers::systems::SystemContext,
         (target, window): <Self as ExclusiveSystem>::Query<'_>,
     ) {
         window.get_or_insert_with(|| {
             let w = WindowBuilder::new().build(target).unwrap();
             Window { _w: w }
         });
+
     }
 }
 

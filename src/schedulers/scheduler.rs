@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::dispatchers::{
-    dispatcher::DispatcherArgs, system_registry::SystemGroup, systems::SystemArgs,
+    dispatcher::DispatcherArgs, system_registry::SystemGroup, systems::SystemContext,
 };
 
 pub trait Scheduler {
@@ -9,6 +9,5 @@ pub trait Scheduler {
         &mut self,
         dis: &mut SystemGroup,
         args: &mut DispatcherArgs<'_>,
-        system_args: Arc<SystemArgs>,
     );
 }

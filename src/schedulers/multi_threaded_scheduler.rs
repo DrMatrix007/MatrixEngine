@@ -1,8 +1,9 @@
 use std::{collections::VecDeque, io, sync::Arc};
 
 use crate::dispatchers::{
+    dispatcher::DispatcherArgs,
     system_registry::{BoxedAsyncSystem, SystemGroup},
-    systems::SystemArgs, dispatcher::DispatcherArgs,
+    systems::SystemContext,
 };
 
 use super::{
@@ -34,7 +35,6 @@ impl MultiThreadedScheduler {
         sender: &ThreadPoolSender<BoxedAsyncSystem>,
         mut dis: BoxedAsyncSystem,
         args: &mut DispatcherArgs<'_>,
-        system_args: Arc<SystemArgs>,
     ) -> Result<(), BoxedAsyncSystem> {
         let mut data = match dis.as_mut().dispatch(args) {
             Ok(data) => data,
@@ -43,9 +43,7 @@ impl MultiThreadedScheduler {
 
         sender
             .send(move || {
-                dis.as_mut()
-                    .try_run(system_args, &mut data)
-                    .expect("this function should work");
+                dis.try_run(&mut data).expect("this function should work");
                 dis
             })
             .expect("this value should be sent");
@@ -55,16 +53,11 @@ impl MultiThreadedScheduler {
 }
 
 impl Scheduler for MultiThreadedScheduler {
-    fn run(
-        &mut self,
-        dispatchers: &mut SystemGroup,
-        args: &mut DispatcherArgs<'_>,
-        system_args: Arc<SystemArgs>,
-    ) {
+    fn run(&mut self, dispatchers: &mut SystemGroup, args: &mut DispatcherArgs<'_>) {
         let sender = self.pool.sender();
 
         while let Some(dis) = dispatchers.pop_normal() {
-            if let Err(dis) = Self::send_dispatcher(&sender, dis, args, system_args.clone()) {
+            if let Err(dis) = Self::send_dispatcher(&sender, dis, args) {
                 self.pending.push_back(dis)
             };
 
@@ -74,8 +67,7 @@ impl Scheduler for MultiThreadedScheduler {
 
                 for _ in 0..self.pending.len() {
                     let dis = self.pending.pop_back().expect("this should work");
-                    if let Err(dis) = Self::send_dispatcher(&sender, dis, args, system_args.clone())
-                    {
+                    if let Err(dis) = Self::send_dispatcher(&sender, dis, args) {
                         self.pending.push_back(dis);
                     };
                 }
@@ -87,7 +79,7 @@ impl Scheduler for MultiThreadedScheduler {
             for _ in 0..self.pending.len() {
                 let dis = self.pending.pop_back().expect("this should work");
 
-                if let Err(dis) = Self::send_dispatcher(&sender, dis, args, system_args.clone()) {
+                if let Err(dis) = Self::send_dispatcher(&sender, dis, args) {
                     self.pending.push_back(dis);
                 };
             }
@@ -102,8 +94,8 @@ impl Scheduler for MultiThreadedScheduler {
                 .dispatch(args)
                 .expect("this should not crash because it is on the same thread");
 
-            let Ok(_) = b.as_mut().try_run(system_args.clone(), &mut data) else {
-                panic!("Uknown error");
+            let Ok(_) = b.try_run(&mut data) else {
+                panic!("Unknown error");
             };
             drop(data);
         }

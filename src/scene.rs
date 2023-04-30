@@ -14,9 +14,9 @@ use crate::{
     dispatchers::{
         dispatcher::DispatcherArgs,
         system_registry::{BoxedAsyncSystem, BoxedExclusiveSystem, SystemRegistry},
-        systems::{AsyncSystem, ExclusiveSystem, SystemArgs},
+        systems::{AsyncSystem, ExclusiveSystem, SystemContext},
     },
-    events::Events,
+    events::event_registry::EventRegistry,
     schedulers::scheduler::Scheduler,
 };
 
@@ -44,35 +44,87 @@ impl Scene {
         (&mut self.systems, &mut self.components)
     }
 
-    pub fn add_startup_async_system(&mut self, sys: impl AsyncSystem + 'static) -> &mut Self
+    pub fn add_startup_async_system(
+        &mut self,
+        sys: impl AsyncSystem + 'static,
+        ctx: SystemContext,
+    ) -> &mut Self
 where {
         self.system_registry_mut()
-            .add_startup_system(BoxedAsyncSystem::new(sys));
+            .add_startup_system(BoxedAsyncSystem::new(sys, ctx));
         self
     }
 
-    pub fn add_async_system(&mut self, sys: impl AsyncSystem + 'static) -> &mut Self
+    pub fn add_async_system(
+        &mut self,
+        sys: impl AsyncSystem + 'static,
+        ctx: SystemContext,
+    ) -> &mut Self
 where {
         self.system_registry_mut()
-            .add_system(BoxedAsyncSystem::new(sys));
+            .add_system(BoxedAsyncSystem::new(sys, ctx));
         self
     }
 
     pub fn add_exclusive_system(
         &mut self,
         sys: impl for<'a> ExclusiveSystem + 'static,
+        ctx: SystemContext,
     ) -> &mut Self {
         self.system_registry_mut()
-            .add_exclusive_system(BoxedExclusiveSystem::new(sys));
+            .add_exclusive_system(BoxedExclusiveSystem::new(sys, ctx));
         self
     }
 
     pub fn add_startup_exclusive_system(
         &mut self,
         sys: impl ExclusiveSystem + 'static,
+        ctx: SystemContext,
     ) -> &mut Self {
         self.system_registry_mut()
-            .add_exclusive_startup_system(BoxedExclusiveSystem::new(sys));
+            .add_exclusive_startup_system(BoxedExclusiveSystem::new(sys, ctx));
+        self
+    }
+
+    pub fn with_startup_async_system(
+        mut self,
+        sys: impl AsyncSystem + 'static,
+        ctx: SystemContext,
+    ) -> Self
+where {
+        self.system_registry_mut()
+            .add_startup_system(BoxedAsyncSystem::new(sys, ctx));
+        self
+    }
+
+    pub fn with_async_system(
+        mut self,
+        sys: impl AsyncSystem + 'static,
+        ctx: SystemContext,
+    ) -> Self
+where {
+        self.system_registry_mut()
+            .add_system(BoxedAsyncSystem::new(sys, ctx));
+        self
+    }
+
+    pub fn with_exclusive_system(
+        mut self,
+        sys: impl for<'a> ExclusiveSystem + 'static,
+        ctx: SystemContext,
+    ) -> Self {
+        self.system_registry_mut()
+            .add_exclusive_system(BoxedExclusiveSystem::new(sys, ctx));
+        self
+    }
+
+    pub fn with_startup_exclusive_system(
+        mut self,
+        sys: impl ExclusiveSystem + 'static,
+        ctx: SystemContext,
+    ) -> Self {
+        self.system_registry_mut()
+            .add_exclusive_startup_system(BoxedExclusiveSystem::new(sys, ctx));
         self
     }
 
@@ -86,7 +138,6 @@ where {
                     args.events,
                     args.window_target,
                 ),
-                Arc::new(SystemArgs::new(args.quit, args.fps)),
             );
             self.is_started = true;
         } else {
@@ -98,7 +149,6 @@ where {
                     args.events,
                     args.window_target,
                 ),
-                Arc::new(SystemArgs::new(args.quit, args.fps)),
             );
         }
     }
@@ -109,6 +159,6 @@ pub struct SceneUpdateArgs<'a> {
     pub fps: Arc<AtomicU64>,
     pub scheduler: &'a mut dyn Scheduler,
     pub resources: &'a mut Storage<ResourceRegistry>,
-    pub events: &'a mut Storage<Events>,
+    pub events: &'a mut Storage<EventRegistry>,
     pub window_target: &'a EventLoopWindowTarget<()>,
 }

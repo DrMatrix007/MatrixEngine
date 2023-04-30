@@ -10,9 +10,8 @@ use winit::{
 
 use crate::{
     components::{resources::ResourceRegistry, storage::Storage},
-    events::Events,
     scene::{Scene, SceneUpdateArgs},
-    schedulers::scheduler::Scheduler,
+    schedulers::scheduler::Scheduler, events::{event_registry::EventRegistry, matrix_event::{MatrixEventSender, MatrixEventReceiver, channel_matrix_event}},
 };
 
 pub struct EngineArgs<S: Scheduler> {
@@ -29,20 +28,30 @@ pub struct Engine {
     scheduler: Box<dyn Scheduler>,
     resources: Storage<ResourceRegistry>,
     event_loop: EventLoop<()>,
-    events: Storage<Events>,
+    events: Storage<EventRegistry>,
+    event_sender: MatrixEventSender,
+    event_receiver: MatrixEventReceiver,
+
 }
 
 impl Engine {
     pub fn new<S: Scheduler + 'static>(args: EngineArgs<S>) -> Self {
         let target_fps = Arc::new(AtomicU64::from(args.fps));
+        let events = EventRegistry::default();
+        let (event_sender, event_receiver) = channel_matrix_event();
         Self {
             scene: args.scene,
             quit: Arc::new(false.into()),
             scheduler: Box::new(args.scheduler),
             target_fps,
             event_loop: EventLoop::new(),
-            resources: args.resources.unwrap_or_default().into(),
-            events: Storage::default(),
+            resources: args
+                .resources
+                .unwrap_or_else(|| ResourceRegistry::empty(event_sender.clone()))
+                .into(),
+            event_receiver,
+            event_sender,
+            events: Storage::from(events),
         }
     }
 
@@ -61,7 +70,7 @@ impl Engine {
                     .write()
                     .expect("nothing should be holding the Events value")
                     .get_mut()
-                    .update();
+                    .update(&self.event_receiver);
                 if self.quit.load(Ordering::Acquire) {
                     *control_flow = ControlFlow::Exit;
                 }
