@@ -30,7 +30,7 @@ impl AsyncSystem for PanicSystem {
 struct PrintSystem;
 
 impl AsyncSystem for PrintSystem {
-    type Query<'a> = (&'a EventRegistry);
+    type Query<'a> = &'a EventRegistry;
 
     fn run(&mut self, _: &Context, e: <Self as AsyncSystem>::Query<'_>) {
 
@@ -126,5 +126,6 @@ fn main() {
         .add_async_system(TakeA)
         .add_async_system(PrintSystem)
         .add_startup_async_system(AddA);
+
     engine.run(scene);
 }

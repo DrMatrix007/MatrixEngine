@@ -1,8 +1,9 @@
-
+use std::collections::VecDeque;
 
 use super::{
+    context::Context,
     dispatcher::Dispatcher,
-    systems::{AsyncSystem, BoxedAsyncData, BoxedData, ExclusiveSystem}, context::Context,
+    systems::{AsyncSystem, BoxedAsyncData, BoxedData, ExclusiveSystem},
 };
 
 type AsyncDispatcher = dyn Dispatcher<BoxedAsyncData, Context> + Send + Sync;
@@ -35,6 +36,10 @@ impl BoxedAsyncSystem {
     ) -> Result<(), super::dispatcher::DispatchError> {
         self.system.try_run(&self.ctx, b)
     }
+
+    pub(crate) fn ctx_ref(&self) -> &Context {
+        &self.ctx
+    }
 }
 
 pub struct BoxedExclusiveSystem {
@@ -63,32 +68,31 @@ impl BoxedExclusiveSystem {
     ) -> Result<(), super::dispatcher::DispatchError> {
         self.system.try_run(&self.ctx, b)
     }
+
+    pub(crate) fn ctx_ref(&self) -> &Context {
+        &self.ctx
+    }
 }
 
 #[derive(Default)]
 pub struct SystemGroup {
-    normal: Vec<BoxedAsyncSystem>,
-    exclusives: Vec<BoxedExclusiveSystem>,
+    async_systems: VecDeque<BoxedAsyncSystem>,
+    exclusive_system: VecDeque<BoxedExclusiveSystem>,
 }
 
 impl SystemGroup {
-    pub fn push_normal(&mut self, b: BoxedAsyncSystem) {
-        self.normal.push(b);
+    pub fn push_async(&mut self, b: BoxedAsyncSystem) {
+        self.async_systems.push_back(b);
     }
     pub fn push_exclusive(&mut self, b: BoxedExclusiveSystem) {
-        self.exclusives.push(b);
+        self.exclusive_system.push_back(b);
     }
 
-    pub fn iter_normal(&mut self) -> impl Iterator<Item = &mut BoxedAsyncSystem> {
-        self.normal.iter_mut()
+    pub(crate) fn pop_async(&mut self) -> Option<BoxedAsyncSystem> {
+        self.async_systems.pop_front()
     }
-
-    pub fn iter_exclusive(&mut self) -> impl Iterator<Item = &mut BoxedExclusiveSystem> {
-        self.exclusives.iter_mut()
-    }
-
-    pub(crate) fn pop_normal(&mut self) -> Option<BoxedAsyncSystem> {
-        self.normal.pop()
+    pub(crate) fn pop_exclusive(&mut self) -> Option<BoxedExclusiveSystem> {
+        self.exclusive_system.pop_front()
     }
 }
 
@@ -105,10 +109,10 @@ pub struct SystemRegistry {
 
 impl SystemRegistry {
     pub(crate) fn add_system(&mut self, dispatcher: BoxedAsyncSystem) {
-        self.runtime_systems.push_normal(dispatcher);
+        self.runtime_systems.push_async(dispatcher);
     }
     pub(crate) fn add_startup_system(&mut self, dispatcher: BoxedAsyncSystem) {
-        self.startup_systems.push_normal(dispatcher);
+        self.startup_systems.push_async(dispatcher);
     }
     pub(crate) fn add_exclusive_system(&mut self, dispatcher: BoxedExclusiveSystem) {
         self.runtime_systems.push_exclusive(dispatcher);

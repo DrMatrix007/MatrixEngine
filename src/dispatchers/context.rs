@@ -12,19 +12,35 @@ use crate::{
     scenes::scene::Scene,
 };
 
-#[derive(Clone)]
 pub struct Context {
     pub(crate) quit: Arc<AtomicBool>,
     pub(crate) fps: Arc<AtomicU64>,
     pub(crate) sender: MatrixEventSender,
+    pub(crate) destroy: AtomicBool,
+}
+
+impl Clone for Context {
+    fn clone(&self) -> Self {
+        Self {
+            quit: self.quit.clone(),
+            fps: self.fps.clone(),
+            sender: self.sender.clone(),
+            destroy: false.into(),
+        }
+    }
 }
 
 impl Context {
     pub fn new(quit: Arc<AtomicBool>, fps: Arc<AtomicU64>, sender: MatrixEventSender) -> Self {
-        Self { quit, fps, sender }
+        Self {
+            quit,
+            fps,
+            sender,
+            destroy: false.into(),
+        }
     }
 
-    pub fn stop(&self) {
+    pub fn quit(&self) {
         self.quit.store(true, std::sync::atomic::Ordering::Relaxed);
     }
     pub(crate) fn send_event(
@@ -32,6 +48,14 @@ impl Context {
         e: MatrixEvent,
     ) -> Result<(), std::sync::mpsc::SendError<MatrixEvent>> {
         self.sender.send(e)
+    }
+
+    pub fn destroy(&self) {
+        self.destroy
+            .store(true, std::sync::atomic::Ordering::Release);
+    }
+    pub fn is_destroyed(&self) -> bool {
+        self.destroy.load(std::sync::atomic::Ordering::Acquire)
     }
 }
 

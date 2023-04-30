@@ -44,7 +44,7 @@ impl BoxedAsyncData {
 pub trait ExclusiveSystem: Dispatcher<BoxedData, Context> {
     type Query<'a>: DispatchedData<'a>;
 
-    fn run(&mut self, args: &Context, comps: <Self as ExclusiveSystem>::Query<'_>);
+    fn run(&mut self, ctx: &Context, comps: <Self as ExclusiveSystem>::Query<'_>);
 }
 
 impl<T: ExclusiveSystem> Dispatcher<BoxedData, Context> for T {
@@ -70,7 +70,7 @@ impl<T: ExclusiveSystem> Dispatcher<BoxedData, Context> for T {
 pub trait AsyncSystem: Dispatcher<BoxedAsyncData, Context> + Send + Sync {
     type Query<'a>: DispatchedSendData<'a>;
 
-    fn run(&mut self, args: &Context, comps: <Self as AsyncSystem>::Query<'_>);
+    fn run(&mut self, ctx: &Context, comps: <Self as AsyncSystem>::Query<'_>);
 }
 
 impl<T: AsyncSystem> Dispatcher<BoxedAsyncData, Context> for T {
