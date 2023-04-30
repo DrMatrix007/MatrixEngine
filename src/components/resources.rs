@@ -1,10 +1,11 @@
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
-    sync::Arc,
 };
 
-use crate::{events::matrix_event::{MatrixEvent, MatrixEventSender}, dispatchers::systems::SystemContext};
+use crate::{
+    events::matrix_event::{MatrixEventSender},
+};
 
 use super::storage::{Storage, StorageReadGuard, StorageWriteGuard};
 
@@ -22,11 +23,10 @@ impl<T: Resource + 'static> ResourceHolder<T> {
         ResourceHolder { data: Some(data) }
     }
 
-    pub fn get_or_default(&mut self,ctx:SystemContext) -> &mut T
+    pub fn get_or_default(&mut self) -> &mut T
     where
         T: Default,
     {
-        // ctx..
         self.data.get_or_insert_with(Default::default)
     }
     pub fn get_mut(&mut self) -> Option<&mut T> {
@@ -41,13 +41,13 @@ impl<T: Resource + 'static> ResourceHolder<T> {
             None => None,
         }
     }
-    pub fn get_or_insert(&mut self, data: T) -> &mut T {
+    pub(crate) fn get_or_insert(&mut self, data: T) -> &mut T {
         self.data.get_or_insert(data)
     }
-    pub fn get_or_insert_with(&mut self, data: impl FnOnce() -> T) -> &mut T {
+    pub(crate) fn get_or_insert_with(&mut self, data: impl FnOnce() -> T) -> &mut T {
         self.data.get_or_insert_with(data)
     }
-    pub fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         self.data.take();
     }
 }

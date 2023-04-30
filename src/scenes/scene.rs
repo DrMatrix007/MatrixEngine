@@ -1,8 +1,3 @@
-use std::sync::{
-    atomic::{AtomicBool, AtomicU64},
-    Arc,
-};
-
 use winit::event_loop::EventLoopWindowTarget;
 
 use crate::{
@@ -12,22 +7,32 @@ use crate::{
         storage::{Storage, StorageReadGuard, StorageWriteGuard},
     },
     dispatchers::{
+        context::Context,
         dispatcher::DispatcherArgs,
         system_registry::{BoxedAsyncSystem, BoxedExclusiveSystem, SystemRegistry},
-        systems::{AsyncSystem, ExclusiveSystem, SystemContext},
+        systems::{AsyncSystem, ExclusiveSystem},
     },
     events::event_registry::EventRegistry,
     schedulers::scheduler::Scheduler,
 };
 
-#[derive(Default)]
 pub struct Scene {
     pub(crate) components: Storage<ComponentRegistry>,
     pub(crate) systems: SystemRegistry,
+    ctx: Context,
     is_started: bool,
 }
 
 impl Scene {
+    pub(crate) fn empty(ctx: Context) -> Self {
+        Self {
+            components: Default::default(),
+            systems: Default::default(),
+            ctx,
+            is_started: false,
+        }
+    }
+
     pub fn component_registry_mut(&self) -> Option<StorageWriteGuard<ComponentRegistry>> {
         self.components.write()
     }
@@ -44,89 +49,75 @@ impl Scene {
         (&mut self.systems, &mut self.components)
     }
 
-    pub fn add_startup_async_system(
-        &mut self,
-        sys: impl AsyncSystem + 'static,
-        ctx: SystemContext,
-    ) -> &mut Self
+    pub fn add_startup_async_system(&mut self, sys: impl AsyncSystem + 'static) -> &mut Self
 where {
-        self.system_registry_mut()
-            .add_startup_system(BoxedAsyncSystem::new(sys, ctx));
+        self.systems
+            .add_startup_system(BoxedAsyncSystem::new(sys, self.ctx.clone()));
         self
     }
 
-    pub fn add_async_system(
-        &mut self,
-        sys: impl AsyncSystem + 'static,
-        ctx: SystemContext,
-    ) -> &mut Self
+    pub fn add_async_system(&mut self, sys: impl AsyncSystem + 'static) -> &mut Self
 where {
-        self.system_registry_mut()
-            .add_system(BoxedAsyncSystem::new(sys, ctx));
+        self.systems
+            .add_system(BoxedAsyncSystem::new(sys, self.ctx.clone()));
         self
     }
 
     pub fn add_exclusive_system(
         &mut self,
         sys: impl for<'a> ExclusiveSystem + 'static,
-        ctx: SystemContext,
     ) -> &mut Self {
-        self.system_registry_mut()
-            .add_exclusive_system(BoxedExclusiveSystem::new(sys, ctx));
+        self.systems
+            .add_exclusive_system(BoxedExclusiveSystem::new(sys, self.ctx.clone()));
         self
     }
 
     pub fn add_startup_exclusive_system(
         &mut self,
         sys: impl ExclusiveSystem + 'static,
-        ctx: SystemContext,
     ) -> &mut Self {
-        self.system_registry_mut()
-            .add_exclusive_startup_system(BoxedExclusiveSystem::new(sys, ctx));
+        self.systems
+            .add_exclusive_startup_system(BoxedExclusiveSystem::new(sys, self.ctx.clone()));
         self
     }
 
-    pub fn with_startup_async_system(
-        mut self,
-        sys: impl AsyncSystem + 'static,
-        ctx: SystemContext,
-    ) -> Self
-where {
-        self.system_registry_mut()
-            .add_startup_system(BoxedAsyncSystem::new(sys, ctx));
-        self
-    }
+    //     pub fn with_startup_async_system(
+    //         mut self,
+    //         sys: impl AsyncSystem + 'static,
+    //     ) -> Self
+    // where {
+    //         self.system_registry_mut()
+    //             .add_startup_system(BoxedAsyncSystem::new(sys, ctx));
+    //         self
+    //     }
 
-    pub fn with_async_system(
-        mut self,
-        sys: impl AsyncSystem + 'static,
-        ctx: SystemContext,
-    ) -> Self
-where {
-        self.system_registry_mut()
-            .add_system(BoxedAsyncSystem::new(sys, ctx));
-        self
-    }
+    //     pub fn with_async_system(
+    //         mut self,
+    //         sys: impl AsyncSystem + 'static,
+    //     ) -> Self
+    // where {
+    //         self.system_registry_mut()
+    //             .add_system(BoxedAsyncSystem::new(sys, ctx));
+    //         self
+    //     }
 
-    pub fn with_exclusive_system(
-        mut self,
-        sys: impl for<'a> ExclusiveSystem + 'static,
-        ctx: SystemContext,
-    ) -> Self {
-        self.system_registry_mut()
-            .add_exclusive_system(BoxedExclusiveSystem::new(sys, ctx));
-        self
-    }
+    //     pub fn with_exclusive_system(
+    //         mut self,
+    //         sys: impl for<'a> ExclusiveSystem + 'static,
+    //     ) -> Self {
+    //         self.system_registry_mut()
+    //             .add_exclusive_system(BoxedExclusiveSystem::new(sys, self.ctx));
+    //         self
+    //     }
 
-    pub fn with_startup_exclusive_system(
-        mut self,
-        sys: impl ExclusiveSystem + 'static,
-        ctx: SystemContext,
-    ) -> Self {
-        self.system_registry_mut()
-            .add_exclusive_startup_system(BoxedExclusiveSystem::new(sys, ctx));
-        self
-    }
+    //     pub fn with_startup_exclusive_system(
+    //         mut self,
+    //         sys: impl ExclusiveSystem + 'static,
+    //     ) -> Self {
+    //         self.system_registry_mut()
+    //             .add_exclusive_startup_system(BoxedExclusiveSystem::new(sys, ctx));
+    //         self
+    //     }
 
     pub(crate) fn update(&mut self, args: SceneUpdateArgs) {
         if !self.is_started {
@@ -155,8 +146,6 @@ where {
 }
 
 pub struct SceneUpdateArgs<'a> {
-    pub quit: Arc<AtomicBool>,
-    pub fps: Arc<AtomicU64>,
     pub scheduler: &'a mut dyn Scheduler,
     pub resources: &'a mut Storage<ResourceRegistry>,
     pub events: &'a mut Storage<EventRegistry>,

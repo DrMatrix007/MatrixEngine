@@ -1,20 +1,20 @@
-use std::sync::Arc;
+
 
 use super::{
-    dispatcher::{Dispatcher, DispatcherArgs},
-    systems::{AsyncSystem, BoxedAsyncData, BoxedData, ExclusiveSystem, SystemContext},
+    dispatcher::Dispatcher,
+    systems::{AsyncSystem, BoxedAsyncData, BoxedData, ExclusiveSystem}, context::Context,
 };
 
-type AsyncDispatcher = dyn Dispatcher<BoxedAsyncData, SystemContext> + Send + Sync;
-type ExclusiveDispatcher = dyn Dispatcher<BoxedData, SystemContext>;
+type AsyncDispatcher = dyn Dispatcher<BoxedAsyncData, Context> + Send + Sync;
+type ExclusiveDispatcher = dyn Dispatcher<BoxedData, Context>;
 
 pub struct BoxedAsyncSystem {
     system: Box<AsyncDispatcher>,
-    ctx: SystemContext,
+    ctx: Context,
 }
 
 impl BoxedAsyncSystem {
-    pub fn new<T: AsyncSystem + 'static>(system: T, ctx: SystemContext) -> Self {
+    pub fn new<T: AsyncSystem + 'static>(system: T, ctx: Context) -> Self {
         Self {
             system: Box::new(system),
             ctx,
@@ -39,11 +39,11 @@ impl BoxedAsyncSystem {
 
 pub struct BoxedExclusiveSystem {
     system: Box<ExclusiveDispatcher>,
-    ctx: SystemContext,
+    ctx: Context,
 }
 
 impl BoxedExclusiveSystem {
-    pub fn new<T: for<'a> ExclusiveSystem + 'static>(system: T, ctx: SystemContext) -> Self {
+    pub fn new<T: for<'a> ExclusiveSystem + 'static>(system: T, ctx: Context) -> Self {
         Self {
             system: Box::new(system),
             ctx,
@@ -57,7 +57,10 @@ impl BoxedExclusiveSystem {
     pub(crate) fn as_ref(&self) -> &ExclusiveDispatcher {
         self.system.as_ref()
     }
-    pub(crate) fn try_run(&mut self,b:&mut BoxedData) -> Result<(), super::dispatcher::DispatchError> {
+    pub(crate) fn try_run(
+        &mut self,
+        b: &mut BoxedData,
+    ) -> Result<(), super::dispatcher::DispatchError> {
         self.system.try_run(&self.ctx, b)
     }
 }

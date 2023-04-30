@@ -1,7 +1,6 @@
 use std::{
     any::TypeId,
     collections::{HashMap, HashSet, VecDeque},
-    sync::mpsc::{channel, Receiver, Sender},
 };
 
 use lazy_static::lazy_static;

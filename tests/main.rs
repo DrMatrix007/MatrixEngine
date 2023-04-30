@@ -3,11 +3,13 @@ use matrix_engine::{
         component::{Component, ComponentCollection},
         resources::{Resource, ResourceHolder},
     },
-    dispatchers::systems::{AsyncSystem, ExclusiveSystem},
+    dispatchers::{
+        context::{Context, ResourceHolderManager, SceneCreator},
+        systems::{AsyncSystem, ExclusiveSystem},
+    },
     engine::{Engine, EngineArgs},
     entity::Entity,
-    scene::Scene,
-    schedulers::multi_threaded_scheduler::MultiThreadedScheduler,
+    schedulers::multi_threaded_scheduler::MultiThreadedScheduler, events::event_registry::EventRegistry,
 };
 use winit::{event_loop::EventLoopWindowTarget, window::WindowBuilder};
 
@@ -18,7 +20,7 @@ impl AsyncSystem for PanicSystem {
 
     fn run(
         &mut self,
-        _: &matrix_engine::dispatchers::systems::SystemContext,
+        _: &matrix_engine::dispatchers::context::Context,
         _: <Self as AsyncSystem>::Query<'_>,
     ) {
         // panic!()
@@ -28,14 +30,13 @@ impl AsyncSystem for PanicSystem {
 struct PrintSystem;
 
 impl AsyncSystem for PrintSystem {
-    type Query<'a> = ();
+    type Query<'a> = (&'a EventRegistry);
 
-    fn run(
-        &mut self,
-        _: &matrix_engine::dispatchers::systems::SystemContext,
-        _: <Self as AsyncSystem>::Query<'_>,
-    ) {
-        println!("print");
+    fn run(&mut self, _: &Context, e: <Self as AsyncSystem>::Query<'_>) {
+
+        if e.is_resource_created::<Window>() {
+            println!("created");
+        }
     }
 }
 
@@ -49,7 +50,7 @@ impl AsyncSystem for TakeA {
 
     fn run(
         &mut self,
-        _args: &matrix_engine::dispatchers::systems::SystemContext,
+        _args: &matrix_engine::dispatchers::context::Context,
         comps: <Self as AsyncSystem>::Query<'_>,
     ) {
         assert!(comps.iter().count() > 0);
@@ -63,7 +64,7 @@ impl AsyncSystem for AddA {
 
     fn run(
         &mut self,
-        _args: &matrix_engine::dispatchers::systems::SystemContext,
+        _args: &matrix_engine::dispatchers::context::Context,
         comps: <Self as AsyncSystem>::Query<'_>,
     ) {
         for _ in 0..10 {
@@ -72,7 +73,6 @@ impl AsyncSystem for AddA {
     }
 }
 
-
 struct ExclusiveTest;
 
 impl ExclusiveSystem for ExclusiveTest {
@@ -80,7 +80,7 @@ impl ExclusiveSystem for ExclusiveTest {
 
     fn run(
         &mut self,
-        _: &matrix_engine::dispatchers::systems::SystemContext,
+        _: &matrix_engine::dispatchers::context::Context,
         _: <Self as ExclusiveSystem>::Query<'_>,
     ) {
     }
@@ -102,33 +102,29 @@ impl ExclusiveSystem for CreateWindow {
 
     fn run(
         &mut self,
-        _args: &matrix_engine::dispatchers::systems::SystemContext,
+        ctx: &matrix_engine::dispatchers::context::Context,
         (target, window): <Self as ExclusiveSystem>::Query<'_>,
     ) {
-        window.get_or_insert_with(|| {
+        ctx.get_or_insert_resource_with(window, || {
             let w = WindowBuilder::new().build(target).unwrap();
             Window { _w: w }
         });
-
     }
 }
 
 fn main() {
-    let mut scene = Scene::default();
-
-    scene
-        .add_startup_exclusive_system(CreateWindow)
-        .add_async_system(TakeA)
-        .add_async_system(TakeA)
-        .add_startup_async_system(AddA)
-        .add_startup_async_system(PrintSystem);
-
     let engine = Engine::new(EngineArgs {
-        scene,
         scheduler: MultiThreadedScheduler::with_amount_of_cpu_cores().unwrap(),
         fps: 144,
         resources: None,
     });
-
-    engine.run();
+    let ctx = engine.ctx();
+    let mut scene = ctx.create_scene();
+    scene
+        .add_startup_exclusive_system(CreateWindow)
+        .add_async_system(TakeA)
+        .add_async_system(TakeA)
+        .add_async_system(PrintSystem)
+        .add_startup_async_system(AddA);
+    engine.run(scene);
 }

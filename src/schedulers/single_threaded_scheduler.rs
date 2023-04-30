@@ -1,8 +1,4 @@
-use std::sync::Arc;
-
-use crate::dispatchers::{
-    dispatcher::DispatcherArgs, system_registry::SystemGroup, systems::SystemContext,
-};
+use crate::dispatchers::{dispatcher::DispatcherArgs, system_registry::SystemGroup};
 
 use super::scheduler::Scheduler;
 
