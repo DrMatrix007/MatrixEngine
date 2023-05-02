@@ -3,15 +3,26 @@ use std::{
     collections::HashMap,
 };
 
+use crate::{
+    events::matrix_event::{MatrixEventSender},
+};
+
 use super::storage::{Storage, StorageReadGuard, StorageWriteGuard};
 
 pub trait Resource {}
 
-pub struct ResourceHolder<T> {
+pub struct ResourceHolder<T: Resource> {
     data: Option<T>,
 }
 
-impl<T> ResourceHolder<T> {
+impl<T: Resource + 'static> ResourceHolder<T> {
+    pub fn new_empty() -> Self {
+        ResourceHolder { data: None }
+    }
+    pub fn new(data: T) -> Self {
+        ResourceHolder { data: Some(data) }
+    }
+
     pub fn get_or_default(&mut self) -> &mut T
     where
         T: Default,
@@ -30,38 +41,36 @@ impl<T> ResourceHolder<T> {
             None => None,
         }
     }
-    pub fn get_or_insert(&mut self, data: T) -> &mut T {
+    pub(crate) fn get_or_insert(&mut self, data: T) -> &mut T {
         self.data.get_or_insert(data)
     }
-    pub fn get_or_insert_with(&mut self, data: impl FnOnce() -> T) -> &mut T {
+    pub(crate) fn get_or_insert_with(&mut self, data: impl FnOnce() -> T) -> &mut T {
         self.data.get_or_insert_with(data)
     }
-}
-
-impl<T> From<T> for ResourceHolder<T> {
-    fn from(value: T) -> Self {
-        ResourceHolder { data: Some(value) }
+    pub(crate) fn clear(&mut self) {
+        self.data.take();
     }
 }
 
-impl<T> Default for ResourceHolder<T> {
-    fn default() -> Self {
-        Self { data: None }
-    }
-}
-
-#[derive(Default)]
 pub struct ResourceRegistry {
     data: HashMap<TypeId, Box<dyn Any>>,
+    event_handler: MatrixEventSender,
 }
 
 impl ResourceRegistry {
+    pub fn empty(event_handler: MatrixEventSender) -> Self {
+        Self {
+            data: Default::default(),
+            event_handler,
+        }
+    }
+
     pub fn get_mut<T: Resource + 'static>(
         &mut self,
     ) -> Option<StorageWriteGuard<ResourceHolder<T>>> {
         self.data
             .entry(TypeId::of::<T>())
-            .or_insert(Box::new(Storage::new(ResourceHolder::<T>::default())))
+            .or_insert(Box::new(Storage::new(ResourceHolder::<T>::new_empty())))
             .downcast_mut::<Storage<ResourceHolder<T>>>()
             .expect("this value should be of this type")
             .write()
@@ -70,14 +79,14 @@ impl ResourceRegistry {
     pub fn get<T: Resource + 'static>(&mut self) -> Option<StorageReadGuard<ResourceHolder<T>>> {
         self.data
             .entry(TypeId::of::<T>())
-            .or_insert(Box::new(Storage::new(ResourceHolder::<T>::default())))
+            .or_insert(Box::new(Storage::new(ResourceHolder::<T>::new_empty())))
             .downcast_ref::<Storage<ResourceHolder<T>>>()
             .expect("this value should be of this type")
             .read()
     }
     pub fn insert<T: Resource + 'static>(&mut self, resource: T) {
         self.data
-            .insert(TypeId::of::<T>(), Box::new(ResourceHolder::from(resource)));
+            .insert(TypeId::of::<T>(), Box::new(ResourceHolder::new(resource)));
     }
 }
 

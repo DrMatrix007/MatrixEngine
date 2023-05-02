@@ -1,8 +1,8 @@
-use std::{collections::VecDeque, io, sync::Arc};
+use std::{collections::VecDeque, io};
 
 use crate::dispatchers::{
-    system_registry::{BoxedAsyncSystem, SystemGroup},
-    systems::SystemArgs, dispatcher::DispatcherArgs,
+    dispatcher::DispatcherArgs,
+    system_registry::{BoxedAsyncSystem, BoxedExclusiveSystem, SystemGroup},
 };
 
 use super::{
@@ -12,7 +12,8 @@ use super::{
 
 pub struct MultiThreadedScheduler {
     pool: ThreadPool<BoxedAsyncSystem>,
-    done: VecDeque<BoxedAsyncSystem>,
+    done_async: VecDeque<BoxedAsyncSystem>,
+    done_exclusive: VecDeque<BoxedExclusiveSystem>,
     pending: VecDeque<BoxedAsyncSystem>,
     // access_state: Access,
 }
@@ -21,9 +22,9 @@ impl MultiThreadedScheduler {
     pub fn new(thread_count: usize) -> Self {
         Self {
             pool: ThreadPool::new(thread_count),
-            done: Default::default(),
+            done_async: Default::default(),
             pending: Default::default(),
-            // access_state: Default::default(),
+            done_exclusive: Default::default(), // access_state: Default::default(),
         }
     }
     pub fn with_amount_of_cpu_cores() -> io::Result<Self> {
@@ -34,7 +35,6 @@ impl MultiThreadedScheduler {
         sender: &ThreadPoolSender<BoxedAsyncSystem>,
         mut dis: BoxedAsyncSystem,
         args: &mut DispatcherArgs<'_>,
-        system_args: Arc<SystemArgs>,
     ) -> Result<(), BoxedAsyncSystem> {
         let mut data = match dis.as_mut().dispatch(args) {
             Ok(data) => data,
@@ -43,9 +43,7 @@ impl MultiThreadedScheduler {
 
         sender
             .send(move || {
-                dis.as_mut()
-                    .try_run(system_args, &mut data)
-                    .expect("this function should work");
+                dis.try_run(&mut data).expect("this function should work");
                 dis
             })
             .expect("this value should be sent");
@@ -55,27 +53,21 @@ impl MultiThreadedScheduler {
 }
 
 impl Scheduler for MultiThreadedScheduler {
-    fn run(
-        &mut self,
-        dispatchers: &mut SystemGroup,
-        args: &mut DispatcherArgs<'_>,
-        system_args: Arc<SystemArgs>,
-    ) {
+    fn run(&mut self, dispatchers: &mut SystemGroup, args: &mut DispatcherArgs<'_>) {
         let sender = self.pool.sender();
 
-        while let Some(dis) = dispatchers.pop_normal() {
-            if let Err(dis) = Self::send_dispatcher(&sender, dis, args, system_args.clone()) {
+        while let Some(dis) = dispatchers.pop_async() {
+            if let Err(dis) = Self::send_dispatcher(&sender, dis, args) {
                 self.pending.push_back(dis)
             };
 
             for dis in self.pool.try_recv_iter() {
                 let dis = dis.expect("thread panicked");
-                self.done.push_back(dis);
+                self.done_async.push_back(dis);
 
                 for _ in 0..self.pending.len() {
                     let dis = self.pending.pop_back().expect("this should work");
-                    if let Err(dis) = Self::send_dispatcher(&sender, dis, args, system_args.clone())
-                    {
+                    if let Err(dis) = Self::send_dispatcher(&sender, dis, args) {
                         self.pending.push_back(dis);
                     };
                 }
@@ -83,29 +75,40 @@ impl Scheduler for MultiThreadedScheduler {
         }
         for dis in self.pool.recv_iter() {
             let dis = dis.expect("thread panicked");
-            self.done.push_back(dis);
+
+            self.done_async.push_back(dis);
+
             for _ in 0..self.pending.len() {
                 let dis = self.pending.pop_back().expect("this should work");
 
-                if let Err(dis) = Self::send_dispatcher(&sender, dis, args, system_args.clone()) {
+                if let Err(dis) = Self::send_dispatcher(&sender, dis, args) {
                     self.pending.push_back(dis);
                 };
             }
         }
-        while let Some(dis) = self.done.pop_back() {
-            dispatchers.push_normal(dis);
-        }
 
-        for b in dispatchers.iter_exclusive() {
+        while let Some(mut b) = dispatchers.pop_exclusive() {
             let mut data = b
                 .as_mut()
                 .dispatch(args)
                 .expect("this should not crash because it is on the same thread");
 
-            let Ok(_) = b.as_mut().try_run(system_args.clone(), &mut data) else {
-                panic!("Uknown error");
-            };
+            let Ok(_) = b.try_run(&mut data) else {
+            panic!("Unknown error");
+        };
             drop(data);
+            self.done_exclusive.push_back(b);
+        }
+
+        while let Some(dis) = self.done_async.pop_back() {
+            if !dis.ctx_ref().is_destroyed() {
+                dispatchers.push_async(dis);
+            }
+        }
+        while let Some(dis) = self.done_exclusive.pop_back() {
+            if !dis.ctx_ref().is_destroyed() {
+                dispatchers.push_exclusive(dis);
+            }
         }
     }
 }

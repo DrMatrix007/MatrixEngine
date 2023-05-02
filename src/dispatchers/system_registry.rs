@@ -1,75 +1,98 @@
-use std::sync::Arc;
-
+use std::collections::VecDeque;
 
 use super::{
-    dispatcher::{Dispatcher},
-    systems::{AsyncSystem, BoxedData, BoxedSendData, ExclusiveSystem, SystemArgs},
+    context::Context,
+    dispatcher::Dispatcher,
+    systems::{AsyncSystem, BoxedAsyncData, BoxedData, ExclusiveSystem},
 };
 
+type AsyncDispatcher = dyn Dispatcher<BoxedAsyncData, Context> + Send + Sync;
+type ExclusiveDispatcher = dyn Dispatcher<BoxedData, Context>;
+
 pub struct BoxedAsyncSystem {
-    system: Box<dyn Dispatcher<BoxedSendData, Arc<SystemArgs>> + Send + Sync>,
+    system: Box<AsyncDispatcher>,
+    ctx: Context,
 }
 
 impl BoxedAsyncSystem {
-    pub fn new<T: AsyncSystem+'static>(system: T) -> Self {
+    pub fn new<T: AsyncSystem + 'static>(system: T, ctx: Context) -> Self {
         Self {
             system: Box::new(system),
+            ctx,
         }
     }
 
-    pub(crate) fn as_ref(&self) -> &dyn Dispatcher<BoxedSendData, Arc<SystemArgs>> {
+    pub(crate) fn as_ref(&self) -> &AsyncDispatcher {
         self.system.as_ref()
     }
 
-    pub(crate) fn as_mut(&mut self) -> &mut dyn Dispatcher<BoxedSendData, Arc<SystemArgs>> {
+    pub(crate) fn as_mut(&mut self) -> &mut AsyncDispatcher {
         self.system.as_mut()
+    }
+
+    pub(crate) fn try_run(
+        &mut self,
+        b: &mut BoxedAsyncData,
+    ) -> Result<(), super::dispatcher::DispatchError> {
+        self.system.try_run(&self.ctx, b)
+    }
+
+    pub(crate) fn ctx_ref(&self) -> &Context {
+        &self.ctx
     }
 }
 
 pub struct BoxedExclusiveSystem {
-    system: Box<dyn Dispatcher<BoxedData, Arc<SystemArgs>>>,
+    system: Box<ExclusiveDispatcher>,
+    ctx: Context,
 }
 
 impl BoxedExclusiveSystem {
-    pub fn new<T: for<'a> ExclusiveSystem + 'static>(system: T) -> Self {
+    pub fn new<T: for<'a> ExclusiveSystem + 'static>(system: T, ctx: Context) -> Self {
         Self {
             system: Box::new(system),
+            ctx,
         }
     }
 
-    pub(crate) fn as_mut(&mut self) -> &mut dyn Dispatcher<BoxedData, Arc<SystemArgs>> {
+    pub(crate) fn as_mut(&mut self) -> &mut ExclusiveDispatcher {
         self.system.as_mut()
     }
 
-    pub(crate) fn as_ref(&self) -> &dyn Dispatcher<BoxedData, Arc<SystemArgs>> {
+    pub(crate) fn as_ref(&self) -> &ExclusiveDispatcher {
         self.system.as_ref()
+    }
+    pub(crate) fn try_run(
+        &mut self,
+        b: &mut BoxedData,
+    ) -> Result<(), super::dispatcher::DispatchError> {
+        self.system.try_run(&self.ctx, b)
+    }
+
+    pub(crate) fn ctx_ref(&self) -> &Context {
+        &self.ctx
     }
 }
 
 #[derive(Default)]
 pub struct SystemGroup {
-    normal: Vec<BoxedAsyncSystem>,
-    exclusives: Vec<BoxedExclusiveSystem>,
+    async_systems: VecDeque<BoxedAsyncSystem>,
+    exclusive_system: VecDeque<BoxedExclusiveSystem>,
 }
 
 impl SystemGroup {
-    pub fn push_normal(&mut self, b: BoxedAsyncSystem) {
-        self.normal.push(b);
+    pub fn push_async(&mut self, b: BoxedAsyncSystem) {
+        self.async_systems.push_back(b);
     }
     pub fn push_exclusive(&mut self, b: BoxedExclusiveSystem) {
-        self.exclusives.push(b);
+        self.exclusive_system.push_back(b);
     }
 
-    pub fn iter_normal(&mut self) -> impl Iterator<Item = &mut BoxedAsyncSystem> {
-        self.normal.iter_mut()
+    pub(crate) fn pop_async(&mut self) -> Option<BoxedAsyncSystem> {
+        self.async_systems.pop_front()
     }
-
-    pub fn iter_exclusive(&mut self) -> impl Iterator<Item = &mut BoxedExclusiveSystem> {
-        self.exclusives.iter_mut()
-    }
-
-    pub(crate) fn pop_normal(&mut self) -> Option<BoxedAsyncSystem> {
-        self.normal.pop()
+    pub(crate) fn pop_exclusive(&mut self) -> Option<BoxedExclusiveSystem> {
+        self.exclusive_system.pop_front()
     }
 }
 
@@ -86,13 +109,13 @@ pub struct SystemRegistry {
 
 impl SystemRegistry {
     pub(crate) fn add_system(&mut self, dispatcher: BoxedAsyncSystem) {
-        self.runtime_systems.push_normal(dispatcher);
+        self.runtime_systems.push_async(dispatcher);
     }
     pub(crate) fn add_startup_system(&mut self, dispatcher: BoxedAsyncSystem) {
-        self.startup_systems.push_normal(dispatcher);
+        self.startup_systems.push_async(dispatcher);
     }
-    pub(crate) fn add_exclusive_system(&mut self, distpatcher: BoxedExclusiveSystem) {
-        self.runtime_systems.push_exclusive(distpatcher);
+    pub(crate) fn add_exclusive_system(&mut self, dispatcher: BoxedExclusiveSystem) {
+        self.runtime_systems.push_exclusive(dispatcher);
     }
     pub(crate) fn add_exclusive_startup_system(&mut self, dispatcher: BoxedExclusiveSystem) {
         self.startup_systems.push_exclusive(dispatcher);

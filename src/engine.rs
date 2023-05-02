@@ -1,5 +1,5 @@
 use std::sync::{
-    atomic::{AtomicBool, AtomicU64, Ordering},
+    atomic::{AtomicU64, Ordering},
     Arc,
 };
 
@@ -10,48 +10,55 @@ use winit::{
 
 use crate::{
     components::{resources::ResourceRegistry, storage::Storage},
-    events::Events,
-    scene::{Scene, SceneUpdateArgs},
+    dispatchers::context::Context,
+    events::{
+        event_registry::EventRegistry,
+        matrix_event::{channel_matrix_event, MatrixEventReceiver, MatrixEventSender},
+    },
+    scenes::scene::{Scene, SceneUpdateArgs},
     schedulers::scheduler::Scheduler,
 };
 
 pub struct EngineArgs<S: Scheduler> {
-    pub scene: Scene,
     pub scheduler: S,
     pub resources: Option<ResourceRegistry>,
     pub fps: u64,
 }
 
 pub struct Engine {
-    scene: Scene,
-    quit: Arc<AtomicBool>,
-    target_fps: Arc<AtomicU64>,
     scheduler: Box<dyn Scheduler>,
     resources: Storage<ResourceRegistry>,
     event_loop: EventLoop<()>,
-    events: Storage<Events>,
+    events: Storage<EventRegistry>,
+    event_sender: MatrixEventSender,
+    event_receiver: MatrixEventReceiver,
+    ctx: Context,
 }
 
 impl Engine {
     pub fn new<S: Scheduler + 'static>(args: EngineArgs<S>) -> Self {
         let target_fps = Arc::new(AtomicU64::from(args.fps));
+        let quit = Arc::new(false.into());
+        let events = EventRegistry::default();
+        let (event_sender, event_receiver) = channel_matrix_event();
         Self {
-            scene: args.scene,
-            quit: Arc::new(false.into()),
+            ctx: Context::new(quit, target_fps, event_sender.clone()),
             scheduler: Box::new(args.scheduler),
-            target_fps,
             event_loop: EventLoop::new(),
-            resources: args.resources.unwrap_or_default().into(),
-            events: Storage::default(),
+            resources: args
+                .resources
+                .unwrap_or_else(|| ResourceRegistry::empty(event_sender.clone()))
+                .into(),
+            event_sender,
+            event_receiver,
+            events: Storage::from(events),
         }
     }
 
-    pub fn run(mut self) -> ! {
+    pub fn run(mut self, mut scene: Scene) -> ! {
         self.event_loop.run(move |event, target, control_flow| {
             if let Event::MainEventsCleared = event {
-                self.scene.update(SceneUpdateArgs {
-                    fps: self.target_fps.clone(),
-                    quit: self.quit.clone(),
+                scene.update(SceneUpdateArgs {
                     resources: &mut self.resources,
                     scheduler: self.scheduler.as_mut(),
                     events: &mut self.events,
@@ -61,8 +68,8 @@ impl Engine {
                     .write()
                     .expect("nothing should be holding the Events value")
                     .get_mut()
-                    .update();
-                if self.quit.load(Ordering::Acquire) {
+                    .update(&self.event_receiver);
+                if self.ctx.quit.load(Ordering::Acquire) {
                     *control_flow = ControlFlow::Exit;
                 }
             } else {
@@ -73,5 +80,9 @@ impl Engine {
                     .push(event);
             }
         });
+    }
+
+    pub fn ctx(&self) -> Context {
+        self.ctx.clone()
     }
 }

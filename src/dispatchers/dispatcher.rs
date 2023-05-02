@@ -6,13 +6,13 @@ use crate::{
         resources::{Resource, ResourceHolder, ResourceRegistry},
         storage::{Storage, StorageReadGuard, StorageWriteGuard},
     },
-    events::Events,
+    impl_all, events::event_registry::EventRegistry,
 };
 
 pub struct DispatcherArgs<'a> {
     components: &'a mut Storage<ComponentRegistry>,
     resources: &'a mut Storage<ResourceRegistry>,
-    events: &'a mut Storage<Events>,
+    events: &'a mut Storage<EventRegistry>,
     target: &'a EventLoopWindowTarget<()>,
 }
 
@@ -20,7 +20,7 @@ impl<'a> DispatcherArgs<'a> {
     pub fn new(
         components: &'a mut Storage<ComponentRegistry>,
         resources: &'a mut Storage<ResourceRegistry>,
-        events: &'a mut Storage<Events>,
+        events: &'a mut Storage<EventRegistry>,
         target: &'a EventLoopWindowTarget<()>,
     ) -> Self {
         Self {
@@ -62,7 +62,7 @@ pub struct DispatchError;
 pub trait Dispatcher<BoxedData, RunArgs> {
     fn dispatch(&mut self, args: &mut DispatcherArgs<'_>) -> Result<BoxedData, DispatchError>;
 
-    fn try_run(&mut self, args: RunArgs, b: &mut BoxedData) -> Result<(), DispatchError>;
+    fn try_run(&mut self, args: &RunArgs, b: &mut BoxedData) -> Result<(), DispatchError>;
 }
 
 pub trait DispatchedData<'a> {
@@ -176,8 +176,8 @@ impl<'a, T: Resource + 'static> DispatchedData<'a> for &'a mut ResourceHolder<T>
     }
 }
 
-impl<'a> DispatchedData<'a> for &'a Events {
-    type Target = StorageReadGuard<Events>;
+impl<'a> DispatchedData<'a> for &'a EventRegistry {
+    type Target = StorageReadGuard<EventRegistry>;
 
     fn dispatch(args: &mut DispatcherArgs<'a>) -> Result<Self::Target, DispatchError>
     where
@@ -229,16 +229,6 @@ impl<'a> DispatchedData<'a> for &'a EventLoopWindowTarget<()> {
     }
 }
 
-macro_rules! impl_all {
-    ($mac:ident, $t:ident, $($ts:ident),+) => {
-        $mac!($t,$($ts),*);
-        impl_all!($mac,$($ts),+);
-    };
-    ($mac:ident, $t:ident) => {
-        $mac!($t);
-    }
-}
-
 macro_rules! impl_tuple_dispatch_data {
     ($($t:ident),*) => {
 
@@ -260,33 +250,4 @@ macro_rules! impl_tuple_dispatch_data {
     };
 }
 
-// impl_all!(impl_tuple_dispatch_data, A, B, C);
-impl_all!(
-    impl_tuple_dispatch_data,
-    A,
-    B,
-    C,
-    D,
-    E,
-    F,
-    G,
-    H,
-    I,
-    J,
-    K,
-    L,
-    M,
-    N,
-    O,
-    P,
-    Q,
-    R,
-    S,
-    T,
-    U,
-    V,
-    W,
-    X,
-    Y,
-    Z
-);
+impl_all!(impl_tuple_dispatch_data);
