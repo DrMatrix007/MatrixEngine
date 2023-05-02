@@ -1,6 +1,7 @@
 use std::{
     any::TypeId,
     collections::{HashMap, HashSet, VecDeque},
+    time::{Duration, Instant},
 };
 
 use lazy_static::lazy_static;
@@ -85,6 +86,7 @@ impl WindowEventRegistry {
 pub struct EventRegistry {
     windows: HashMap<WindowId, WindowEventRegistry>,
     matrix_events: VecDeque<MatrixEvent>,
+    start: Instant,
 }
 
 impl EventRegistry {
@@ -92,6 +94,7 @@ impl EventRegistry {
         Self {
             windows: Default::default(),
             matrix_events: Default::default(),
+            start: Instant::now(),
         }
     }
 
@@ -103,6 +106,7 @@ impl EventRegistry {
         for i in recv.iter_current() {
             self.matrix_events.push_back(i);
         }
+        self.start = Instant::now()
     }
 
     fn push_window_event(&mut self, id: WindowId, event: WindowEvent<'_>) {
@@ -129,6 +133,9 @@ impl EventRegistry {
             }
         }
         false
+    }
+    pub fn calculate_delta_time(&self) -> Duration {
+        Instant::now() - self.start
     }
 }
 

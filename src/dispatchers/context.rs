@@ -3,7 +3,7 @@ use std::{
     sync::{
         atomic::{AtomicBool, AtomicU64},
         Arc,
-    },
+    }, time::Instant,
 };
 
 use crate::{
@@ -62,6 +62,7 @@ impl Context {
 pub trait SceneCreator {
     fn create_scene(&self) -> Scene;
 }
+
 impl SceneCreator for Context {
     fn create_scene(&self) -> Scene {
         Scene::empty(self.clone())
