@@ -2,8 +2,8 @@ use std::marker::PhantomData;
 
 use super::{
     context::Context,
-    dispatcher::{DispatchError, DispatchedData, DispatchedSendData, Dispatcher},
-    systems::{AsyncSystem, BoxedData, ExclusiveSystem},
+    dispatcher::{DispatchedData, DispatchedSendData, Dispatcher},
+    systems::{AsyncSystem, ExclusiveSystem},
 };
 
 enum BoxedExclusiveFunction<Comps: DispatchedData> {

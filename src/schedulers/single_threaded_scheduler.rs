@@ -15,7 +15,7 @@ pub struct SingleThreadScheduler {
 impl Scheduler for SingleThreadScheduler {
     fn run(&mut self, dis: &mut SystemGroup, args: &mut DispatcherArgs<'_>) {
         while let Some(mut i) = dis.pop_async() {
-            let mut data = i
+            let data = i
                 .as_mut()
                 .dispatch(args)
                 .expect("this runs only on the main thread and its should not crash");
@@ -26,7 +26,7 @@ impl Scheduler for SingleThreadScheduler {
         }
 
         while let Some(mut i) = dis.pop_exclusive() {
-            let mut data = i
+            let data = i
                 .as_mut()
                 .dispatch(args)
                 .expect("this runs only on the main thread and its should not crash");

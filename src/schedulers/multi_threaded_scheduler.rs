@@ -36,7 +36,7 @@ impl MultiThreadedScheduler {
         mut dis: BoxedAsyncSystem,
         args: &mut DispatcherArgs<'_>,
     ) -> Result<(), BoxedAsyncSystem> {
-        let mut data = match dis.as_mut().dispatch(args) {
+        let data = match dis.as_mut().dispatch(args) {
             Ok(data) => data,
             Err(_) => return Err(dis),
         };

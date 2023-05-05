@@ -8,10 +8,9 @@ use crate::{
     },
     dispatchers::{
         context::Context,
-        dispatcher::{Dispatcher, DispatcherArgs},
-        function_systems::IntoBoxedSystem,
+        dispatcher::{DispatcherArgs},
         system_registry::{BoxedAsyncSystem, BoxedExclusiveSystem, SystemRegistry},
-        systems::{AsyncSystem, BoxedData, ExclusiveSystem},
+        systems::{AsyncSystem, ExclusiveSystem},
     },
     events::event_registry::EventRegistry,
     schedulers::scheduler::Scheduler,

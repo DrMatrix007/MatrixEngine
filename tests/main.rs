@@ -5,8 +5,8 @@ use matrix_engine::{
     },
     dispatchers::{
         context::{Context, ResourceHolderManager, SceneCreator},
-        dispatcher::{DispatchedData, ReadEventLoopWindowTarget, ReadStorage, WriteStorage},
-        function_systems::{IntoAsyncFunctionSystem, Wrappable},
+        dispatcher::{ReadEventLoopWindowTarget, ReadStorage, WriteStorage},
+        function_systems::{Wrappable},
         systems::{AsyncSystem, ExclusiveSystem},
     },
     engine::{Engine, EngineArgs},
@@ -14,7 +14,7 @@ use matrix_engine::{
     events::event_registry::EventRegistry,
     schedulers::multi_threaded_scheduler::MultiThreadedScheduler,
 };
-use winit::{event_loop::EventLoopWindowTarget, window::WindowBuilder};
+use winit::{window::WindowBuilder};
 
 struct PanicSystem;
 
@@ -103,7 +103,7 @@ impl ExclusiveSystem for CreateWindow {
 
 fn main() {
     // fn a(a: &Context, b: &ComponentCollection<A>) {}
-    let a = |a: &Context, b: ReadStorage<ComponentCollection<A>>| {
+    let a = |_a: &Context, _b: ReadStorage<ComponentCollection<A>>| {
         println!("bruh");
     };
     let engine = Engine::new(EngineArgs {
