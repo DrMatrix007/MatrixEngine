@@ -34,11 +34,7 @@ where
 {
     type Query = Comps;
 
-    fn run(
-        &mut self,
-        ctx: &Context,
-        comps: Self::Query,
-    ) {
+    fn run(&mut self, ctx: &Context, comps: Self::Query) {
         self.f.call(ctx, comps);
     }
 }
@@ -91,26 +87,20 @@ where
 }
 
 impl<Comps: DispatchedSendData> BoxedAsyncFunctionSystem<Comps> {
-    pub fn new_with_context(
-        f: impl FnMut(&Context, Comps) + Send + Sync + 'static,
-    ) -> Self {
+    pub fn new_with_context(f: impl FnMut(&Context, Comps) + Send + Sync + 'static) -> Self {
         Self {
             f: BoxedAsyncFunction::WithContext(Box::new(f)),
         }
     }
-    pub fn new_without_context(
-        f: impl FnMut(Comps) + Send + Sync + 'static,
-    ) -> Self {
+    pub fn new_without_context(f: impl FnMut(Comps) + Send + Sync + 'static) -> Self {
         Self {
             f: BoxedAsyncFunction::NoContext(Box::new(f)),
         }
     }
 }
 
-impl<
-        Comps: DispatchedSendData,
-        F: FnMut(&Context, Comps) + Send + Sync + 'static,
-    > From<F> for BoxedAsyncFunctionSystem<Comps>
+impl<Comps: DispatchedSendData, F: FnMut(&Context, Comps) + Send + Sync + 'static> From<F>
+    for BoxedAsyncFunctionSystem<Comps>
 {
     fn from(value: F) -> Self {
         BoxedAsyncFunctionSystem::new_with_context(value)
@@ -140,25 +130,40 @@ impl<T: Dispatcher<BoxedData, RunArgs> + 'static, RunArgs, BoxedData>
 }
 
 pub trait IntoAsyncFunctionSystem<Comps: DispatchedSendData> {
-    fn into_async_system(self) -> BoxedAsyncFunctionSystem<Comps>;
+    fn function_into_async_system(self) -> BoxedAsyncFunctionSystem<Comps>;
 }
-impl<
-        F: FnMut(&Context, Comps) + Send + Sync + 'static,
-        Comps: DispatchedSendData,
-    > IntoAsyncFunctionSystem<Comps> for F
+impl<F: FnMut(&Context, Comps) + Send + Sync + 'static, Comps: DispatchedSendData>
+    IntoAsyncFunctionSystem<Comps> for F
 {
-    fn into_async_system(self) -> BoxedAsyncFunctionSystem<Comps> {
+    fn function_into_async_system(self) -> BoxedAsyncFunctionSystem<Comps> {
         BoxedAsyncFunctionSystem::new_with_context(self)
     }
 }
 
-pub trait IntoExclusiveFunctionSystem<Comps: DispatchedData> {
-    fn into_exclusive_system(self) -> BoxedExclusiveFunctionSystem<Comps>;
+pub struct Wrapper<F, Comps>(F, PhantomData<Comps>);
+pub trait Wrappable<F, Comps> {
+    fn wrap(self) -> Wrapper<F, Comps>;
 }
-impl<F: FnMut(&Context, Comps) + 'static, Comps: DispatchedData>
-    IntoExclusiveFunctionSystem<Comps> for F
+impl<F: FnMut(&Context, C), C: DispatchedData> Wrappable<F, C> for F {
+    fn wrap(self) -> Wrapper<F, C> {
+        Wrapper(self, PhantomData)
+    }
+}
+
+impl<F: FnMut(&Context, Comps), Comps: DispatchedData> ExclusiveSystem for Wrapper<F, Comps> {
+    type Query = Comps;
+
+    fn run(&mut self, ctx: &Context, comps: Self::Query) {
+        self.0(ctx, comps);
+    }
+}
+
+impl<F: FnMut(&Context, Comps) + Send + Sync, Comps: DispatchedSendData> AsyncSystem
+    for Wrapper<F, Comps>
 {
-    fn into_exclusive_system(self) -> BoxedExclusiveFunctionSystem<Comps> {
-        BoxedExclusiveFunctionSystem::new_with_context(self)
+    type Query = Comps;
+
+    fn run(&mut self, ctx: &Context, comps: Self::Query) {
+        self.0(ctx, comps);
     }
 }

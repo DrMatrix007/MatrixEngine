@@ -5,8 +5,8 @@ use matrix_engine::{
     },
     dispatchers::{
         context::{Context, ResourceHolderManager, SceneCreator},
-        dispatcher::{ReadStorage, WriteStorage, DispatchedData, ReadEventLoopWindowTarget},
-        function_systems::IntoExclusiveFunctionSystem,
+        dispatcher::{DispatchedData, ReadEventLoopWindowTarget, ReadStorage, WriteStorage},
+        function_systems::{IntoAsyncFunctionSystem, Wrappable},
         systems::{AsyncSystem, ExclusiveSystem},
     },
     engine::{Engine, EngineArgs},
@@ -21,11 +21,7 @@ struct PanicSystem;
 impl AsyncSystem for PanicSystem {
     type Query = ();
 
-    fn run(
-        &mut self,
-        _: &matrix_engine::dispatchers::context::Context,
-        _: Self::Query,
-    ) {
+    fn run(&mut self, _: &matrix_engine::dispatchers::context::Context, _: Self::Query) {
         // panic!()
     }
 }
@@ -50,11 +46,7 @@ struct TakeA;
 impl AsyncSystem for TakeA {
     type Query = ReadStorage<ComponentCollection<A>>;
 
-    fn run(
-        &mut self,
-        _args: &matrix_engine::dispatchers::context::Context,
-        comps: Self::Query,
-    ) {
+    fn run(&mut self, _args: &matrix_engine::dispatchers::context::Context, comps: Self::Query) {
         assert!(comps.get().iter().count() > 0);
     }
 }
@@ -80,12 +72,7 @@ struct ExclusiveTest;
 impl ExclusiveSystem for ExclusiveTest {
     type Query = ReadEventLoopWindowTarget;
 
-    fn run(
-        &mut self,
-        _: &matrix_engine::dispatchers::context::Context,
-        _: Self::Query,
-    ) {
-    }
+    fn run(&mut self, _: &matrix_engine::dispatchers::context::Context, _: Self::Query) {}
 }
 
 struct Window {
@@ -116,7 +103,9 @@ impl ExclusiveSystem for CreateWindow {
 
 fn main() {
     // fn a(a: &Context, b: &ComponentCollection<A>) {}
-    let a = |a: &Context, b: ()| {};
+    let a = |a: &Context, b: ReadStorage<ComponentCollection<A>>| {
+        println!("bruh");
+    };
     let engine = Engine::new(EngineArgs {
         scheduler: MultiThreadedScheduler::with_amount_of_cpu_cores().unwrap(),
         fps: 144,
@@ -126,7 +115,7 @@ fn main() {
     let mut scene = ctx.create_scene();
     scene
         .add_startup_exclusive_system(CreateWindow)
-        .add_startup_exclusive_system(a.into_exclusive_system())
+        .add_startup_exclusive_system(a.wrap())
         .add_async_system(TakeA)
         .add_async_system(TakeA)
         .add_async_system(PrintSystem)

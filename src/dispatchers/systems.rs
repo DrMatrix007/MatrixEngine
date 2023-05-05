@@ -21,9 +21,7 @@ impl BoxedData {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.data.downcast_ref()
     }
-    fn downcast<T:'static>(
-        self,
-    ) -> Option<T> {
+    fn downcast<T: 'static>(self) -> Option<T> {
         Some(*(self.data.downcast().ok()?))
     }
 }
@@ -45,9 +43,7 @@ impl BoxedAsyncData {
         self.data.downcast_ref()
     }
 
-    fn downcast<T:'static>(
-        self,
-    ) -> Option<T> {
+    fn downcast<T: 'static>(self) -> Option<T> {
         Some(*(self.data.downcast().ok()?))
     }
 }
@@ -103,6 +99,26 @@ impl<T: AsyncSystem> Dispatcher<BoxedAsyncData, Context> for T {
         Ok(())
     }
 }
+
+// pub trait IntoAsyncSystem<Q: DispatchedSendData> {
+//     fn into_async_system(self) -> Box<dyn AsyncSystem<Query = Q>>;
+// }
+
+// impl<Sys: AsyncSystem> IntoAsyncSystem<Sys::Query> for Sys {
+//     fn into_async_system(self) -> Box<dyn AsyncSystem<Query = Sys::Query>> {
+//         Box::new(self)
+//     }
+// }
+
+// pub trait IntoExclusiveSystem<Q: DispatchedData> {
+//     fn into_exclusive_system(self) -> Box<dyn ExclusiveSystem<Query = Q>>;
+// }
+
+// impl<Sys: ExclusiveSystem> IntoExclusiveSystem<Sys::Query> for Sys {
+//     fn into_exclusive_system(self) -> Box<dyn ExclusiveSystem<Query = Sys::Query>> {
+//         Box::new(self)
+//     }
+// }
 
 mod tests {
 
