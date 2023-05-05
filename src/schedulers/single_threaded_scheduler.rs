@@ -19,7 +19,7 @@ impl Scheduler for SingleThreadScheduler {
                 .as_mut()
                 .dispatch(args)
                 .expect("this runs only on the main thread and its should not crash");
-            i.try_run(&mut data)
+            i.try_run(data)
                 .map_err(|_| ())
                 .expect("this function should not return Err(())");
             self.done_async.push_back(i);
@@ -30,7 +30,7 @@ impl Scheduler for SingleThreadScheduler {
                 .as_mut()
                 .dispatch(args)
                 .expect("this runs only on the main thread and its should not crash");
-            i.try_run(&mut data)
+            i.try_run(data)
                 .map_err(|_| ())
                 .expect("this function should not return Err(())");
             self.done_exclusive.push_back(i);

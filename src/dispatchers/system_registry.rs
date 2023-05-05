@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use super::{
     context::Context,
-    dispatcher::Dispatcher,
+    dispatcher::{Dispatcher},
     systems::{AsyncSystem, BoxedAsyncData, BoxedData, ExclusiveSystem},
 };
 
@@ -32,7 +32,7 @@ impl BoxedAsyncSystem {
 
     pub(crate) fn try_run(
         &mut self,
-        b: &mut BoxedAsyncData,
+        b: BoxedAsyncData,
     ) -> Result<(), super::dispatcher::DispatchError> {
         self.system.try_run(&self.ctx, b)
     }
@@ -54,6 +54,10 @@ impl BoxedExclusiveSystem {
             ctx,
         }
     }
+    pub fn with_box(system: Box<dyn Dispatcher<BoxedData, Context>>, ctx: Context) -> Self
+where {
+        Self { system, ctx }
+    }
 
     pub(crate) fn as_mut(&mut self) -> &mut ExclusiveDispatcher {
         self.system.as_mut()
@@ -64,7 +68,7 @@ impl BoxedExclusiveSystem {
     }
     pub(crate) fn try_run(
         &mut self,
-        b: &mut BoxedData,
+        b: BoxedData,
     ) -> Result<(), super::dispatcher::DispatchError> {
         self.system.try_run(&self.ctx, b)
     }

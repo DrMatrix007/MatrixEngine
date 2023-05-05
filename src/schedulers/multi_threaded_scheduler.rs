@@ -43,7 +43,7 @@ impl MultiThreadedScheduler {
 
         sender
             .send(move || {
-                dis.try_run(&mut data).expect("this function should work");
+                dis.try_run(data).expect("this function should work");
                 dis
             })
             .expect("this value should be sent");
@@ -88,15 +88,14 @@ impl Scheduler for MultiThreadedScheduler {
         }
 
         while let Some(mut b) = dispatchers.pop_exclusive() {
-            let mut data = b
+            let data = b
                 .as_mut()
                 .dispatch(args)
                 .expect("this should not crash because it is on the same thread");
 
-            let Ok(_) = b.try_run(&mut data) else {
+            let Ok(_) = b.try_run(data) else {
             panic!("Unknown error");
         };
-            drop(data);
             self.done_exclusive.push_back(b);
         }
 

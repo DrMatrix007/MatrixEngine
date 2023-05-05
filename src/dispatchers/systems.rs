@@ -1,4 +1,4 @@
-use std::any::Any;
+use std::{any::Any, marker::PhantomData};
 
 use super::{
     context::Context,
@@ -21,6 +21,11 @@ impl BoxedData {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.data.downcast_ref()
     }
+    fn downcast<T:'static>(
+        self,
+    ) -> Option<T> {
+        Some(*(self.data.downcast().ok()?))
+    }
 }
 
 pub struct BoxedAsyncData {
@@ -39,63 +44,79 @@ impl BoxedAsyncData {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.data.downcast_ref()
     }
+
+    fn downcast<T:'static>(
+        self,
+    ) -> Option<T> {
+        Some(*(self.data.downcast().ok()?))
+    }
 }
 
 pub trait ExclusiveSystem: Dispatcher<BoxedData, Context> {
-    type Query<'a>: DispatchedData<'a>;
+    type Query: DispatchedData;
 
-    fn run(&mut self, ctx: &Context, comps: <Self as ExclusiveSystem>::Query<'_>);
+    fn run(&mut self, ctx: &Context, comps: Self::Query);
 }
 
 impl<T: ExclusiveSystem> Dispatcher<BoxedData, Context> for T {
-    fn dispatch<'b>(&mut self, args: &mut DispatcherArgs<'b>) -> Result<BoxedData, DispatchError> {
-        match <T::Query<'b> as DispatchedData<'b>>::dispatch(args) {
+    fn dispatch(&mut self, args: &mut DispatcherArgs<'_>) -> Result<BoxedData, DispatchError> {
+        match <T::Query as DispatchedData>::dispatch(args) {
             Ok(data) => Ok(BoxedData::new(data)),
             Err(err) => Err(err),
         }
     }
 
-    fn try_run<'a>(&mut self, args: &Context, b: &'a mut BoxedData) -> Result<(), DispatchError> {
-        let Some(data) = b.downcast_mut::<<T::Query<'a> as DispatchedData<'a>>::Target>() else {
+    fn try_run<'a>(&mut self, args: &Context, b: BoxedData) -> Result<(), DispatchError> {
+        let Some(data) = b.downcast::<<T::Query as DispatchedData>::Target>() else {
             return Err(DispatchError);
         };
         self.run(
             args,
-            <T::Query<'a> as DispatchedData<'a>>::from_target_to_data(data),
+            <T::Query as DispatchedData>::from_target_to_data(data),
         );
         Ok(())
     }
 }
 
 pub trait AsyncSystem: Dispatcher<BoxedAsyncData, Context> + Send + Sync {
-    type Query<'a>: DispatchedSendData<'a>;
+    type Query: DispatchedSendData;
 
-    fn run(&mut self, ctx: &Context, comps: <Self as AsyncSystem>::Query<'_>);
+    fn run(&mut self, ctx: &Context, comps: <Self as AsyncSystem>::Query);
 }
 
 impl<T: AsyncSystem> Dispatcher<BoxedAsyncData, Context> for T {
-    fn dispatch<'b>(
-        &mut self,
-        args: &mut DispatcherArgs<'b>,
-    ) -> Result<BoxedAsyncData, DispatchError> {
-        match <T::Query<'b> as DispatchedSendData<'b>>::dispatch(args) {
+    fn dispatch(&mut self, args: &mut DispatcherArgs<'_>) -> Result<BoxedAsyncData, DispatchError> {
+        match <T::Query as DispatchedSendData>::dispatch(args) {
             Ok(data) => Ok(BoxedAsyncData::new(data)),
             Err(err) => Err(err),
         }
     }
 
-    fn try_run<'a>(
-        &mut self,
-        args: &Context,
-        b: &'a mut BoxedAsyncData,
-    ) -> Result<(), DispatchError> {
-        let Some(data) = b.downcast_mut::<<T::Query<'a> as DispatchedSendData<'a>>::Target>() else {
+    fn try_run<'a>(&mut self, args: &Context, b: BoxedAsyncData) -> Result<(), DispatchError> {
+        let Some(data) = b.downcast::<<T::Query as DispatchedSendData>::Target>() else {
             return Err(DispatchError);
         };
         self.run(
             args,
-            <T::Query<'a> as DispatchedSendData<'a>>::from_target_to_data(data),
+            <T::Query as DispatchedSendData>::from_target_to_data(data),
         );
         Ok(())
+    }
+}
+
+mod tests {
+
+    #[test]
+    #[allow(unused)]
+    fn test() {
+        use crate::components::component::{Component, ComponentCollection};
+
+        use crate::dispatchers::context::Context;
+
+        struct A;
+        impl Component for A {}
+
+        // fn a(a: &Context, b: &ComponentCollection<A>) {}
+        let a = |a: &Context, b: &ComponentCollection<A>| {};
     }
 }

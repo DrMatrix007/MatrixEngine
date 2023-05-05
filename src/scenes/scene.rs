@@ -8,9 +8,10 @@ use crate::{
     },
     dispatchers::{
         context::Context,
-        dispatcher::DispatcherArgs,
+        dispatcher::{Dispatcher, DispatcherArgs},
+        function_systems::IntoBoxedSystem,
         system_registry::{BoxedAsyncSystem, BoxedExclusiveSystem, SystemRegistry},
-        systems::{AsyncSystem, ExclusiveSystem},
+        systems::{AsyncSystem, BoxedData, ExclusiveSystem},
     },
     events::event_registry::EventRegistry,
     schedulers::scheduler::Scheduler,
@@ -74,7 +75,7 @@ where {
 
     pub fn add_startup_exclusive_system(
         &mut self,
-        sys: impl ExclusiveSystem + 'static,
+        sys: impl for<'a> ExclusiveSystem + 'static,
     ) -> &mut Self {
         self.systems
             .add_exclusive_startup_system(BoxedExclusiveSystem::new(sys, self.ctx.clone()));
