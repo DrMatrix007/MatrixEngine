@@ -1,3 +1,5 @@
+
+
 use winit::event_loop::EventLoopWindowTarget;
 
 use crate::{
@@ -6,7 +8,8 @@ use crate::{
         resources::{Resource, ResourceHolder, ResourceRegistry},
         storage::{Storage, StorageReadGuard, StorageWriteGuard},
     },
-    impl_all, events::event_registry::EventRegistry,
+    events::event_registry::EventRegistry,
+    impl_all,
 };
 
 pub struct DispatcherArgs<'a> {
@@ -62,103 +65,141 @@ pub struct DispatchError;
 pub trait Dispatcher<BoxedData, RunArgs> {
     fn dispatch(&mut self, args: &mut DispatcherArgs<'_>) -> Result<BoxedData, DispatchError>;
 
-    fn try_run(&mut self, args: &RunArgs, b: &mut BoxedData) -> Result<(), DispatchError>;
+    fn try_run(&mut self, args: &RunArgs, b: BoxedData) -> Result<(), DispatchError>;
 }
 
-pub trait DispatchedData<'a> {
+pub struct ReadStorage<T> {
+    data: StorageReadGuard<T>,
+}
+
+impl<T> From<StorageReadGuard<T>> for ReadStorage<T> {
+    fn from(value: StorageReadGuard<T>) -> Self {
+        ReadStorage { data: value }
+    }
+}
+
+impl<T> ReadStorage<T> {
+    pub fn new(data: StorageReadGuard<T>) -> Self {
+        Self { data }
+    }
+
+    pub fn get(&self) -> &T {
+        self.data.get()
+    }
+}
+pub struct WriteStorage<T> {
+    data: StorageWriteGuard<T>,
+}
+
+impl<T> WriteStorage<T> {
+    pub fn new(data: StorageWriteGuard<T>) -> Self {
+        Self { data }
+    }
+
+    pub fn get(&self) -> &T {
+        self.data.get()
+    }
+    pub fn get_mut(&mut self) -> &mut T {
+        self.data.get_mut()
+    }
+}
+
+impl<T> From<StorageWriteGuard<T>> for WriteStorage<T> {
+    fn from(value: StorageWriteGuard<T>) -> Self {
+        WriteStorage { data: value }
+    }
+}
+
+pub trait DispatchedData {
     type Target: 'static;
 
-    fn dispatch(args: &mut DispatcherArgs<'a>) -> Result<Self::Target, DispatchError>
+    fn dispatch(args: &mut DispatcherArgs<'_>) -> Result<Self::Target, DispatchError>
     where
         Self: Sized;
 
-    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
+    fn from_target_to_data<'b>(data: Self::Target) -> Self
     where
         Self: Sized;
 }
-impl<'a, T: Component + Sync + 'static> DispatchedData<'a> for &'a ComponentCollection<T> {
+impl<T: Component + Sync + 'static> DispatchedData for ReadStorage<ComponentCollection<T>> {
     type Target = StorageReadGuard<ComponentCollection<T>>;
-
     fn dispatch(args: &mut DispatcherArgs) -> Result<Self::Target, DispatchError> {
         args.get_components::<T>().ok_or(DispatchError)
     }
 
-    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
+    fn from_target_to_data<'b>(data: Self::Target) -> Self
     where
         Self: Sized,
     {
-        data.get()
+        data.into()
     }
 }
 
-pub trait DispatchedSendData<'a>: DispatchedData<'a> {
+pub trait DispatchedSendData: DispatchedData + Send + Sync {
     type Target: 'static + Send + Sync;
-
     fn dispatch(
-        args: &mut DispatcherArgs<'a>,
-    ) -> Result<<Self as DispatchedSendData<'a>>::Target, DispatchError>
+        args: &mut DispatcherArgs<'_>,
+    ) -> Result<<Self as DispatchedSendData>::Target, DispatchError>
     where
         Self: Sized;
 
-    fn from_target_to_data<'b: 'a>(data: &'b mut <Self as DispatchedSendData<'a>>::Target) -> Self
+    fn from_target_to_data<'b>(data: <Self as DispatchedSendData>::Target) -> Self
     where
         Self: Sized;
 }
 
-impl<'a, T: DispatchedData<'a>> DispatchedSendData<'a> for T
+impl<T: DispatchedData + Send + Sync> DispatchedSendData for T
 where
     T::Target: Send + Sync,
 {
-    type Target = <Self as DispatchedData<'a>>::Target;
+    type Target = <Self as DispatchedData>::Target;
 
     fn dispatch(
-        args: &mut DispatcherArgs<'a>,
-    ) -> Result<<Self as DispatchedSendData<'a>>::Target, DispatchError>
+        args: &mut DispatcherArgs<'_>,
+    ) -> Result<<Self as DispatchedSendData>::Target, DispatchError>
     where
         Self: Sized,
     {
-        <Self as DispatchedData<'a>>::dispatch(args)
+        <Self as DispatchedData>::dispatch(args)
     }
 
-    fn from_target_to_data<'b: 'a>(data: &'b mut <Self as DispatchedSendData<'a>>::Target) -> Self
+    fn from_target_to_data<'b>(data: <Self as DispatchedSendData>::Target) -> Self
     where
         Self: Sized,
     {
-        <Self as DispatchedData<'a>>::from_target_to_data(data)
+        <Self as DispatchedData>::from_target_to_data(data)
     }
 }
 
-impl<'a, T: Component + 'static> DispatchedData<'a> for &'a mut ComponentCollection<T> {
+impl<T: Component + 'static> DispatchedData for WriteStorage<ComponentCollection<T>> {
     type Target = StorageWriteGuard<ComponentCollection<T>>;
-
-    fn dispatch<'b>(args: &mut DispatcherArgs<'a>) -> Result<Self::Target, DispatchError> {
+    fn dispatch<'b>(args: &mut DispatcherArgs<'_>) -> Result<Self::Target, DispatchError> {
         args.get_components_mut().ok_or(DispatchError)
     }
 
-    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
+    fn from_target_to_data<'b>(data: Self::Target) -> Self
     where
         Self: Sized,
     {
-        data.get_mut()
+        data.into()
     }
 }
 
-impl<'a, T: Resource + Sync + 'static> DispatchedData<'a> for &'a ResourceHolder<T> {
+impl<T: Resource + Sync + 'static> DispatchedData for ReadStorage<ResourceHolder<T>> {
     type Target = StorageReadGuard<ResourceHolder<T>>;
-
     fn dispatch(args: &mut DispatcherArgs) -> Result<Self::Target, DispatchError> {
         args.get_resource::<T>().ok_or(DispatchError)
     }
 
-    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
+    fn from_target_to_data<'b>(data: Self::Target) -> Self
     where
         Self: Sized,
     {
-        data.get()
+        data.into()
     }
 }
 
-impl<'a, T: Resource + 'static> DispatchedData<'a> for &'a mut ResourceHolder<T> {
+impl<T: Resource + 'static> DispatchedData for WriteStorage<ResourceHolder<T>> {
     type Target = StorageWriteGuard<ResourceHolder<T>>;
 
     fn dispatch(args: &mut DispatcherArgs) -> Result<Self::Target, DispatchError> {
@@ -168,64 +209,79 @@ impl<'a, T: Resource + 'static> DispatchedData<'a> for &'a mut ResourceHolder<T>
         }
     }
 
-    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
+    fn from_target_to_data<'b>(data: Self::Target) -> Self
     where
         Self: Sized,
     {
-        data.get_mut()
+        data.into()
     }
 }
 
-impl<'a> DispatchedData<'a> for &'a EventRegistry {
+impl DispatchedData for ReadStorage<EventRegistry> {
     type Target = StorageReadGuard<EventRegistry>;
 
-    fn dispatch(args: &mut DispatcherArgs<'a>) -> Result<Self::Target, DispatchError>
+    fn dispatch(args: &mut DispatcherArgs<'_>) -> Result<Self::Target, DispatchError>
     where
         Self: Sized,
     {
         args.events.read().ok_or(DispatchError)
     }
 
-    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
+    fn from_target_to_data<'b>(data: Self::Target) -> Self
     where
         Self: Sized,
     {
-        data.get()
+        data.into()
     }
 }
 
-impl<'a> DispatchedData<'a> for () {
+impl DispatchedData for () {
     type Target = ();
 
-    fn dispatch(_: &mut DispatcherArgs<'a>) -> Result<Self::Target, DispatchError>
+    fn dispatch(_: &mut DispatcherArgs<'_>) -> Result<Self::Target, DispatchError>
     where
         Self: Sized,
     {
         Ok(())
     }
 
-    fn from_target_to_data<'b: 'a>(_: &'b mut Self::Target) -> Self
+    fn from_target_to_data<'b>(_: Self::Target) -> Self
     where
         Self: Sized,
     {
     }
 }
 
-impl<'a> DispatchedData<'a> for &'a EventLoopWindowTarget<()> {
+pub struct ReadEventLoopWindowTarget {
+    value: *const EventLoopWindowTarget<()>,
+}
+impl ReadEventLoopWindowTarget {
+    pub fn get<'a>(&'a self) -> &'a EventLoopWindowTarget<()> {
+        unsafe { &*self.value }
+    }
+}
+
+impl From<*const EventLoopWindowTarget<()>> for ReadEventLoopWindowTarget {
+    fn from(value: *const EventLoopWindowTarget<()>) -> Self {
+        Self { value }
+    }
+}
+
+impl DispatchedData for ReadEventLoopWindowTarget {
     type Target = *const EventLoopWindowTarget<()>;
 
-    fn dispatch(args: &mut DispatcherArgs<'a>) -> Result<Self::Target, DispatchError>
+    fn dispatch(args: &mut DispatcherArgs<'_>) -> Result<Self::Target, DispatchError>
     where
         Self: Sized,
     {
         Ok(args.get_window_target())
     }
 
-    fn from_target_to_data<'b: 'a>(data: &'b mut Self::Target) -> Self
+    fn from_target_to_data<'b>(data: Self::Target) -> Self
     where
         Self: Sized,
     {
-        unsafe { &*(data.to_owned()) }
+        data.into()
     }
 }
 
@@ -233,13 +289,13 @@ macro_rules! impl_tuple_dispatch_data {
     ($($t:ident),*) => {
 
         #[allow(non_snake_case)]
-        impl<'a,$($t: DispatchedData<'a>,)*> DispatchedData<'a> for ($($t,)*) {
+        impl<$($t: DispatchedData,)*> DispatchedData for ($($t,)*) {
             type Target = ($($t::Target,)*);
-            fn dispatch(scene:&mut DispatcherArgs<'a>) -> Result<Self::Target,DispatchError> {
+            fn dispatch(scene:&mut DispatcherArgs<'_>) -> Result<Self::Target,DispatchError> {
                 Ok(($($t::dispatch(scene)?,)*))
             }
 
-            fn from_target_to_data<'b:'a>(data: &'b mut Self::Target) -> Self
+            fn from_target_to_data<'b>(data: Self::Target) -> Self
             where
                 Self: Sized,
             {

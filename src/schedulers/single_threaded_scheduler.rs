@@ -15,22 +15,22 @@ pub struct SingleThreadScheduler {
 impl Scheduler for SingleThreadScheduler {
     fn run(&mut self, dis: &mut SystemGroup, args: &mut DispatcherArgs<'_>) {
         while let Some(mut i) = dis.pop_async() {
-            let mut data = i
+            let data = i
                 .as_mut()
                 .dispatch(args)
                 .expect("this runs only on the main thread and its should not crash");
-            i.try_run(&mut data)
+            i.try_run(data)
                 .map_err(|_| ())
                 .expect("this function should not return Err(())");
             self.done_async.push_back(i);
         }
 
         while let Some(mut i) = dis.pop_exclusive() {
-            let mut data = i
+            let data = i
                 .as_mut()
                 .dispatch(args)
                 .expect("this runs only on the main thread and its should not crash");
-            i.try_run(&mut data)
+            i.try_run(data)
                 .map_err(|_| ())
                 .expect("this function should not return Err(())");
             self.done_exclusive.push_back(i);

@@ -8,7 +8,7 @@ use crate::{
     },
     dispatchers::{
         context::Context,
-        dispatcher::DispatcherArgs,
+        dispatcher::{DispatcherArgs},
         system_registry::{BoxedAsyncSystem, BoxedExclusiveSystem, SystemRegistry},
         systems::{AsyncSystem, ExclusiveSystem},
     },
@@ -74,7 +74,7 @@ where {
 
     pub fn add_startup_exclusive_system(
         &mut self,
-        sys: impl ExclusiveSystem + 'static,
+        sys: impl for<'a> ExclusiveSystem + 'static,
     ) -> &mut Self {
         self.systems
             .add_exclusive_startup_system(BoxedExclusiveSystem::new(sys, self.ctx.clone()));

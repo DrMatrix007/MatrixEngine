@@ -1,13 +1,14 @@
 use std::{
     any::TypeId,
     collections::{HashMap, HashSet, VecDeque},
+    hash::Hash,
     time::{Duration, Instant},
 };
 
 use lazy_static::lazy_static;
 use winit::{
     dpi::PhysicalSize,
-    event::{ElementState, Event, VirtualKeyCode, WindowEvent},
+    event::{ElementState, Event, MouseButton, VirtualKeyCode, WindowEvent},
     window::WindowId,
 };
 
@@ -15,11 +16,52 @@ use crate::components::resources::Resource;
 
 use super::matrix_event::{MatrixEvent, MatrixEventReceiver};
 
+struct ButtonEventGroup<T: Hash + Eq + Clone> {
+    keys: HashSet<T>,
+    down_keys: HashSet<T>,
+    up_keys: HashSet<T>,
+}
+impl<T: Hash + Eq + Clone> ButtonEventGroup<T> {
+    fn insert(&mut self, code: T) {
+        self.keys.insert(code.clone());
+        self.down_keys.insert(code);
+    }
+    fn remove(&mut self, code: T) {
+        self.keys.remove(&code);
+        self.up_keys.insert(code);
+    }
+    fn update(&mut self) {
+        self.down_keys.clear();
+        self.up_keys.clear();
+    }
+
+    fn contains(&self, k: &T) -> bool {
+        self.keys.contains(&k)
+    }
+
+    fn contains_down(&self, k: &T) -> bool {
+        self.down_keys.contains(k)
+    }
+
+    fn contains_up(&self, k: &T) -> bool {
+        self.up_keys.contains(k)
+    }
+}
+
+impl<T: Hash + Eq + Clone> Default for ButtonEventGroup<T> {
+    fn default() -> Self {
+        Self {
+            keys: Default::default(),
+            down_keys: Default::default(),
+            up_keys: Default::default(),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct WindowEventRegistry {
-    keys: HashSet<VirtualKeyCode>,
-    down_keys: HashSet<VirtualKeyCode>,
-    up_keys: HashSet<VirtualKeyCode>,
+    keybaord: ButtonEventGroup<VirtualKeyCode>,
+    mouse: ButtonEventGroup<MouseButton>,
     new_size: Option<PhysicalSize<u32>>,
     close_requested: bool,
 }
@@ -38,14 +80,8 @@ impl WindowEventRegistry {
             } => {
                 if let Some(code) = input.virtual_keycode {
                     match input.state {
-                        ElementState::Pressed => {
-                            self.keys.insert(code);
-                            self.down_keys.insert(code);
-                        }
-                        ElementState::Released => {
-                            self.keys.remove(&code);
-                            self.up_keys.insert(code);
-                        }
+                        ElementState::Pressed => self.keybaord.insert(code),
+                        ElementState::Released => self.keybaord.remove(code),
                     };
                 }
             }
@@ -55,25 +91,29 @@ impl WindowEventRegistry {
             WindowEvent::CloseRequested => {
                 self.close_requested = true;
             }
+            WindowEvent::MouseInput { state, button, .. } => match state {
+                ElementState::Pressed => self.mouse.insert(button),
+                ElementState::Released => self.mouse.remove(button),
+            },
             _ => {}
         };
     }
     pub(crate) fn update(&mut self) {
-        self.down_keys.clear();
-        self.up_keys.clear();
         self.new_size.take();
         self.close_requested = false;
+        self.keybaord.update();
+        self.mouse.update();
     }
 
     pub fn is_pressed(&self, k: VirtualKeyCode) -> bool {
-        self.keys.contains(&k)
+        self.keybaord.contains(&k)
     }
     pub fn is_pressed_down(&self, k: VirtualKeyCode) -> bool {
-        self.down_keys.contains(&k)
+        self.keybaord.contains_down(&k)
     }
 
     pub fn is_released(&self, k: VirtualKeyCode) -> bool {
-        self.up_keys.contains(&k)
+        self.keybaord.contains_up(&k)
     }
     pub fn is_resized(&self) -> Option<&PhysicalSize<u32>> {
         self.new_size.as_ref()
@@ -87,6 +127,7 @@ pub struct EventRegistry {
     windows: HashMap<WindowId, WindowEventRegistry>,
     matrix_events: VecDeque<MatrixEvent>,
     start: Instant,
+    mouse_delta: (f64, f64),
 }
 
 impl EventRegistry {
@@ -95,6 +136,7 @@ impl EventRegistry {
             windows: Default::default(),
             matrix_events: Default::default(),
             start: Instant::now(),
+            mouse_delta: (0., 0.),
         }
     }
 
@@ -106,7 +148,8 @@ impl EventRegistry {
         for i in recv.iter_current() {
             self.matrix_events.push_back(i);
         }
-        self.start = Instant::now()
+        self.start = Instant::now();
+        self.mouse_delta = (0.0, 0.0);
     }
 
     fn push_window_event(&mut self, id: WindowId, event: WindowEvent<'_>) {
@@ -114,8 +157,12 @@ impl EventRegistry {
         events.push(event);
     }
     pub(crate) fn push<T>(&mut self, event: Event<'_, T>) {
-        if let Event::WindowEvent { window_id, event } = event {
-            self.push_window_event(window_id, event)
+        match event {
+            Event::WindowEvent { window_id, event } => self.push_window_event(window_id, event),
+            Event::DeviceEvent { event, .. } => {
+                self.push_device_event(event);
+            }
+            _ => {}
         }
     }
 
@@ -136,6 +183,19 @@ impl EventRegistry {
     }
     pub fn calculate_delta_time(&self) -> Duration {
         Instant::now() - self.start
+    }
+
+    fn push_device_event(&mut self, event: winit::event::DeviceEvent) {
+        match event {
+            winit::event::DeviceEvent::MouseMotion { delta } => {
+                self.mouse_delta = delta;
+            }
+            _ => {}
+        }
+    }
+
+    pub fn mouse_delta(&self) -> (f64, f64) {
+        self.mouse_delta
     }
 }
 
