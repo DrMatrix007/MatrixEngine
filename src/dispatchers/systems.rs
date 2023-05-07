@@ -1,4 +1,4 @@
-use std::{any::Any};
+use std::any::Any;
 
 use super::{
     context::Context,
@@ -51,7 +51,7 @@ impl BoxedAsyncData {
 pub trait ExclusiveSystem: Dispatcher<BoxedData, Context> {
     type Query: DispatchedData;
 
-    fn run(&mut self, ctx: &Context, comps: Self::Query);
+    fn run(&mut self, ctx: &Context, comps: &mut Self::Query);
 }
 
 impl<T: ExclusiveSystem> Dispatcher<BoxedData, Context> for T {
@@ -68,7 +68,7 @@ impl<T: ExclusiveSystem> Dispatcher<BoxedData, Context> for T {
         };
         self.run(
             args,
-            <T::Query as DispatchedData>::from_target_to_data(data),
+            &mut <T::Query as DispatchedData>::from_target_to_data(data),
         );
         Ok(())
     }
@@ -77,7 +77,7 @@ impl<T: ExclusiveSystem> Dispatcher<BoxedData, Context> for T {
 pub trait AsyncSystem: Dispatcher<BoxedAsyncData, Context> + Send + Sync {
     type Query: DispatchedSendData;
 
-    fn run(&mut self, ctx: &Context, comps: <Self as AsyncSystem>::Query);
+    fn run(&mut self, ctx: &Context, comps: &mut <Self as AsyncSystem>::Query);
 }
 
 impl<T: AsyncSystem> Dispatcher<BoxedAsyncData, Context> for T {
@@ -94,7 +94,7 @@ impl<T: AsyncSystem> Dispatcher<BoxedAsyncData, Context> for T {
         };
         self.run(
             args,
-            <T::Query as DispatchedSendData>::from_target_to_data(data),
+            &mut <T::Query as DispatchedSendData>::from_target_to_data(data),
         );
         Ok(())
     }

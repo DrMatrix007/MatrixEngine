@@ -5,7 +5,7 @@ use matrix_engine::{
     },
     dispatchers::{
         context::{Context, ResourceHolderManager, SceneCreator},
-        dispatcher::{ReadEventLoopWindowTarget, ReadStorage, WriteStorage},
+        dispatcher::{ReadEventLoopWindowTarget, ReadStorage, WriteStorage, DispatchedData},
         function_systems::{Wrappable},
         systems::{AsyncSystem, ExclusiveSystem},
     },
@@ -21,7 +21,7 @@ struct PanicSystem;
 impl AsyncSystem for PanicSystem {
     type Query = ();
 
-    fn run(&mut self, _: &matrix_engine::dispatchers::context::Context, _: Self::Query) {
+    fn run(&mut self, _: &matrix_engine::dispatchers::context::Context, _: &mut Self::Query) {
         // panic!()
     }
 }
@@ -31,7 +31,7 @@ struct PrintSystem;
 impl AsyncSystem for PrintSystem {
     type Query = ReadStorage<EventRegistry>;
 
-    fn run(&mut self, _: &Context, e: Self::Query) {
+    fn run(&mut self, _: &Context, e: &mut Self::Query) {
         if e.get().is_resource_created::<Window>() {
             println!("created");
         }
@@ -46,7 +46,7 @@ struct TakeA;
 impl AsyncSystem for TakeA {
     type Query = ReadStorage<ComponentCollection<A>>;
 
-    fn run(&mut self, _args: &matrix_engine::dispatchers::context::Context, comps: Self::Query) {
+    fn run(&mut self, _args: &matrix_engine::dispatchers::context::Context, comps: &mut Self::Query) {
         assert!(comps.get().iter().count() > 0);
     }
 }
@@ -59,10 +59,10 @@ impl AsyncSystem for AddA {
     fn run(
         &mut self,
         _args: &matrix_engine::dispatchers::context::Context,
-        mut comps: Self::Query,
+        comps: &mut Self::Query,
     ) {
         for _ in 0..10 {
-            comps.get_mut().insert(Entity::new(), A);
+            comps.get().insert(Entity::new(), A);
         }
     }
 }
@@ -72,7 +72,7 @@ struct ExclusiveTest;
 impl ExclusiveSystem for ExclusiveTest {
     type Query = ReadEventLoopWindowTarget;
 
-    fn run(&mut self, _: &matrix_engine::dispatchers::context::Context, _: Self::Query) {}
+    fn run(&mut self, _: &matrix_engine::dispatchers::context::Context, _: &mut Self::Query) {}
 }
 
 struct Window {
@@ -92,9 +92,9 @@ impl ExclusiveSystem for CreateWindow {
     fn run(
         &mut self,
         ctx: &matrix_engine::dispatchers::context::Context,
-        (target, mut window): Self::Query,
+        (target, window): &mut Self::Query,
     ) {
-        ctx.get_or_insert_resource_with(window.get_mut(), || {
+        ctx.get_or_insert_resource_with(window.holder_mut(), || {
             let w = WindowBuilder::new().build(target.get()).unwrap();
             Window { _w: w }
         });
@@ -103,7 +103,7 @@ impl ExclusiveSystem for CreateWindow {
 
 fn main() {
     // fn a(a: &Context, b: &ComponentCollection<A>) {}
-    let a = |_a: &Context, _b: ReadStorage<ComponentCollection<A>>| {
+    let a = |_a: &Context, _b: &mut ReadStorage<ComponentCollection<A>>| {
         println!("bruh");
     };
     let engine = Engine::new(EngineArgs {
