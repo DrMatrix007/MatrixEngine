@@ -3,9 +3,7 @@ use std::{
     collections::HashMap,
 };
 
-use crate::{
-    events::matrix_event::{MatrixEventSender},
-};
+use crate::events::matrix_event::MatrixEventSender;
 
 use super::storage::{Storage, StorageReadGuard, StorageWriteGuard};
 

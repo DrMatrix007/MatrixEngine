@@ -7,7 +7,7 @@ use crate::entity::Entity;
 
 use super::storage::{Storage, StorageReadGuard, StorageWriteGuard};
 
-pub trait Component: Send {}
+pub trait Component {}
 
 pub struct ComponentCollection<T: Component> {
     data: HashMap<Entity, T>,

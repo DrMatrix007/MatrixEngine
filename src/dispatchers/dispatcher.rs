@@ -1,5 +1,3 @@
-
-
 use winit::event_loop::EventLoopWindowTarget;
 
 use crate::{
@@ -82,10 +80,6 @@ impl<T> ReadStorage<T> {
     pub fn new(data: StorageReadGuard<T>) -> Self {
         Self { data }
     }
-
-    pub fn get(&self) -> &T {
-        self.data.get()
-    }
 }
 pub struct WriteStorage<T> {
     data: StorageWriteGuard<T>,
@@ -95,11 +89,10 @@ impl<T> WriteStorage<T> {
     pub fn new(data: StorageWriteGuard<T>) -> Self {
         Self { data }
     }
+}
 
-    pub fn get(&self) -> &T {
-        self.data.get()
-    }
-    pub fn get_mut(&mut self) -> &mut T {
+impl<T: Resource> WriteStorage<ResourceHolder<T>> {
+    pub fn holder_mut(&mut self) -> &mut ResourceHolder<T> {
         self.data.get_mut()
     }
 }
@@ -113,13 +106,19 @@ impl<T> From<StorageWriteGuard<T>> for WriteStorage<T> {
 pub trait DispatchedData {
     type Target: 'static;
 
+    type Data<'a>: 'a
+    where
+        Self: 'a;
+
     fn dispatch(args: &mut DispatcherArgs<'_>) -> Result<Self::Target, DispatchError>
     where
         Self: Sized;
 
-    fn from_target_to_data<'b>(data: Self::Target) -> Self
+    fn from_target_to_data(data: Self::Target) -> Self
     where
         Self: Sized;
+
+    fn get(&mut self) -> Self::Data<'_>;
 }
 impl<T: Component + Sync + 'static> DispatchedData for ReadStorage<ComponentCollection<T>> {
     type Target = StorageReadGuard<ComponentCollection<T>>;
@@ -133,6 +132,12 @@ impl<T: Component + Sync + 'static> DispatchedData for ReadStorage<ComponentColl
     {
         data.into()
     }
+
+    type Data<'a> = &'a ComponentCollection<T>;
+
+    fn get(&mut self) -> Self::Data<'_> {
+        self.data.get()
+    }
 }
 
 pub trait DispatchedSendData: DispatchedData + Send + Sync {
@@ -143,7 +148,7 @@ pub trait DispatchedSendData: DispatchedData + Send + Sync {
     where
         Self: Sized;
 
-    fn from_target_to_data<'b>(data: <Self as DispatchedSendData>::Target) -> Self
+    fn from_target_to_data(data: <Self as DispatchedSendData>::Target) -> Self
     where
         Self: Sized;
 }
@@ -183,6 +188,11 @@ impl<T: Component + 'static> DispatchedData for WriteStorage<ComponentCollection
     {
         data.into()
     }
+
+    type Data<'a> = &'a mut ComponentCollection<T>;
+    fn get(&mut self) -> Self::Data<'_> {
+        self.data.get_mut()
+    }
 }
 
 impl<T: Resource + Sync + 'static> DispatchedData for ReadStorage<ResourceHolder<T>> {
@@ -196,6 +206,11 @@ impl<T: Resource + Sync + 'static> DispatchedData for ReadStorage<ResourceHolder
         Self: Sized,
     {
         data.into()
+    }
+
+    type Data<'a> = Option<&'a T>;
+    fn get(&mut self) -> Self::Data<'_> {
+        self.data.get().get()
     }
 }
 
@@ -215,6 +230,11 @@ impl<T: Resource + 'static> DispatchedData for WriteStorage<ResourceHolder<T>> {
     {
         data.into()
     }
+
+    type Data<'a> = Option<&'a mut T>;
+    fn get(&mut self) -> Self::Data<'_> {
+        self.data.get_mut().get_mut()
+    }
 }
 
 impl DispatchedData for ReadStorage<EventRegistry> {
@@ -233,6 +253,12 @@ impl DispatchedData for ReadStorage<EventRegistry> {
     {
         data.into()
     }
+
+    type Data<'a> = &'a EventRegistry;
+
+    fn get(&mut self) -> Self::Data<'_> {
+        self.data.get()
+    }
 }
 
 impl DispatchedData for () {
@@ -250,13 +276,17 @@ impl DispatchedData for () {
         Self: Sized,
     {
     }
+
+    type Data<'a> = ();
+
+    fn get(&mut self) -> Self::Data<'_> {}
 }
 
 pub struct ReadEventLoopWindowTarget {
     value: *const EventLoopWindowTarget<()>,
 }
 impl ReadEventLoopWindowTarget {
-    pub fn get<'a>(&'a self) -> &'a EventLoopWindowTarget<()> {
+    pub fn get(&self) -> &'_ EventLoopWindowTarget<()> {
         unsafe { &*self.value }
     }
 }
@@ -283,6 +313,12 @@ impl DispatchedData for ReadEventLoopWindowTarget {
     {
         data.into()
     }
+
+    type Data<'a> = &'a EventLoopWindowTarget<()>;
+
+    fn get(&mut self) -> Self::Data<'_> {
+        unsafe { &*self.value }
+    }
 }
 
 macro_rules! impl_tuple_dispatch_data {
@@ -290,6 +326,14 @@ macro_rules! impl_tuple_dispatch_data {
 
         #[allow(non_snake_case)]
         impl<$($t: DispatchedData,)*> DispatchedData for ($($t,)*) {
+
+            type Data<'a> = ($($t::Data<'a>,)*) where Self:'a;
+
+            fn get(&mut self) -> Self::Data<'_> {
+                let ($($t,)*) = self;
+                ($($t.get(),)*)
+            }
+
             type Target = ($($t::Target,)*);
             fn dispatch(scene:&mut DispatcherArgs<'_>) -> Result<Self::Target,DispatchError> {
                 Ok(($($t::dispatch(scene)?,)*))

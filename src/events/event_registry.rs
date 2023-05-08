@@ -8,7 +8,7 @@ use std::{
 use lazy_static::lazy_static;
 use winit::{
     dpi::PhysicalSize,
-    event::{ElementState, Event, MouseButton, VirtualKeyCode, WindowEvent},
+    event::{DeviceEvent, ElementState, Event, MouseButton, VirtualKeyCode, WindowEvent},
     window::WindowId,
 };
 
@@ -36,7 +36,7 @@ impl<T: Hash + Eq + Clone> ButtonEventGroup<T> {
     }
 
     fn contains(&self, k: &T) -> bool {
-        self.keys.contains(&k)
+        self.keys.contains(k)
     }
 
     fn contains_down(&self, k: &T) -> bool {
@@ -185,12 +185,9 @@ impl EventRegistry {
         Instant::now() - self.start
     }
 
-    fn push_device_event(&mut self, event: winit::event::DeviceEvent) {
-        match event {
-            winit::event::DeviceEvent::MouseMotion { delta } => {
-                self.mouse_delta = delta;
-            }
-            _ => {}
+    fn push_device_event(&mut self, event: DeviceEvent) {
+        if let DeviceEvent::MouseMotion { delta } = event {
+            self.mouse_delta = delta;
         }
     }
 
