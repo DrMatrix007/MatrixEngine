@@ -1,6 +1,6 @@
 use std::{
     any::{Any, TypeId},
-    collections::HashMap,
+    collections::{HashMap, BTreeMap},
 };
 
 use crate::entity::Entity;
@@ -10,7 +10,7 @@ use super::storage::{Storage, StorageReadGuard, StorageWriteGuard};
 pub trait Component {}
 
 pub struct ComponentCollection<T: Component> {
-    data: HashMap<Entity, T>,
+    data: BTreeMap<Entity, T>,
 }
 
 impl<T: Component> Default for ComponentCollection<T> {
@@ -19,13 +19,14 @@ impl<T: Component> Default for ComponentCollection<T> {
             data: Default::default(),
         }
     }
+    
 }
 
 impl<T: Component> ComponentCollection<T> {
-    pub fn iter(&self) -> std::collections::hash_map::Iter<Entity, T> {
+    pub fn iter(&self) -> std::collections::btree_map::Iter<Entity, T> {
         self.data.iter()
     }
-    pub fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<Entity, T> {
+    pub fn iter_mut(&mut self) -> std::collections::btree_map::IterMut<Entity, T> {
         self.data.iter_mut()
     }
     pub fn insert(&mut self, e: Entity, comp: T) {

@@ -21,7 +21,6 @@ use crate::{
 
 pub struct EngineArgs<S: Scheduler> {
     pub scheduler: S,
-    pub resources: Option<ResourceRegistry>,
     pub fps: u64,
 }
 
@@ -45,10 +44,7 @@ impl Engine {
             ctx: Context::new(quit, target_fps, event_sender.clone()),
             scheduler: Box::new(args.scheduler),
             event_loop: EventLoop::new(),
-            resources: args
-                .resources
-                .unwrap_or_else(|| ResourceRegistry::empty(event_sender.clone()))
-                .into(),
+            resources: ResourceRegistry::empty(event_sender.clone()).into(),
             event_sender,
             event_receiver,
             events: Storage::from(events),
