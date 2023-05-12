@@ -1,7 +1,9 @@
 use std::{
     any::{Any, TypeId},
-    collections::{HashMap, BTreeMap},
+    collections::{BTreeMap, HashMap},
 };
+
+use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator};
 
 use crate::entity::Entity;
 
@@ -19,7 +21,6 @@ impl<T: Component> Default for ComponentCollection<T> {
             data: Default::default(),
         }
     }
-    
 }
 
 impl<T: Component> ComponentCollection<T> {
@@ -43,6 +44,19 @@ impl<T: Component> ComponentCollection<T> {
     }
     pub fn get_all_mut(&mut self) -> ComponentCollectionRefMut<'_, T> {
         self.iter_mut().into()
+    }
+
+    pub fn par_iter(&self) -> rayon::collections::btree_map::Iter<Entity, T>
+    where
+        T: Sync,
+    {
+        self.data.par_iter()
+    }
+    pub fn par_iter_mut(&mut self) -> rayon::collections::btree_map::IterMut<Entity, T>
+    where
+        T: Send,
+    {
+        self.data.par_iter_mut()
     }
 }
 pub struct ComponentCollectionRef<'a, T> {

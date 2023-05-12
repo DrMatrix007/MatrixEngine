@@ -128,6 +128,7 @@ pub struct EventRegistry {
     matrix_events: VecDeque<MatrixEvent>,
     start: Instant,
     mouse_delta: (f64, f64),
+    mouse_scoll_delta: f64,
 }
 
 impl EventRegistry {
@@ -137,6 +138,7 @@ impl EventRegistry {
             matrix_events: Default::default(),
             start: Instant::now(),
             mouse_delta: (0., 0.),
+            mouse_scoll_delta: 0.0,
         }
     }
 
@@ -150,6 +152,7 @@ impl EventRegistry {
         }
         self.start = Instant::now();
         self.mouse_delta = (0.0, 0.0);
+        self.mouse_scoll_delta = 0.0
     }
 
     fn push_window_event(&mut self, id: WindowId, event: WindowEvent<'_>) {
@@ -161,7 +164,7 @@ impl EventRegistry {
             Event::WindowEvent { window_id, event } => self.push_window_event(window_id, event),
             Event::DeviceEvent { event, .. } => {
                 self.push_device_event(event);
-            }
+            },
             _ => {}
         }
     }
@@ -186,13 +189,26 @@ impl EventRegistry {
     }
 
     fn push_device_event(&mut self, event: DeviceEvent) {
-        if let DeviceEvent::MouseMotion { delta } = event {
-            self.mouse_delta = delta;
+        match event {
+            DeviceEvent::MouseMotion { delta } => {
+                self.mouse_delta = delta;
+            }
+            DeviceEvent::MouseWheel { delta } => {
+                self.mouse_scoll_delta = match delta {
+                    winit::event::MouseScrollDelta::LineDelta(_, b) => -b as f64,
+                    winit::event::MouseScrollDelta::PixelDelta(a) => -a.y as f64,
+                }
+            }
+            _ => (),
         }
     }
 
     pub fn mouse_delta(&self) -> (f64, f64) {
         self.mouse_delta
+    }
+
+    pub fn mouse_scoll_delta(&self) -> f64 {
+        self.mouse_scoll_delta
     }
 }
 

@@ -3,8 +3,7 @@ use matrix_engine::{
     dispatchers::{
         component_group::ComponentGroup,
         context::{Context, SceneCreator},
-        dispatcher::{DispatchedData, ReadStorage, WriteStorage},
-        function_systems::Wrappable,
+        dispatcher::{DispatchedData, WriteStorage},
         systems::AsyncSystem,
     },
     engine::{Engine, EngineArgs},
@@ -33,7 +32,7 @@ impl AsyncSystem for AddData {
         WriteStorage<ComponentCollection<C>>,
     );
 
-    fn run(&mut self, ctx: &Context, (a, b, c): &mut <Self as AsyncSystem>::Query) {
+    fn run(&mut self, _ctx: &Context, (a, b, c): &mut <Self as AsyncSystem>::Query) {
         let mut t = rand::thread_rng();
         for i in 0..1000 {
             let e = Entity::default();
@@ -57,7 +56,7 @@ impl AsyncSystem for ReadData {
     fn run(&mut self, ctx: &Context, comps: &mut <Self as AsyncSystem>::Query) {
         for d in comps.iter() {
             println!("{:?}", d);
-            assert!(d.1.0==d.2.0 && d.1.0==d.3.0);
+            assert!(d.1 .0 == d.2 .0 && d.1 .0 == d.3 .0);
         }
         println!("{:?}", comps.get().0.iter().count());
         println!("{:?}", comps.get().1.iter().count());
