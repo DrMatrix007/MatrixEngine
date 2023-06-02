@@ -2,13 +2,12 @@ use std::collections::btree_map;
 
 use rayon::prelude::ParallelIterator;
 
-use crate::{
-    components::component::{Component, ComponentCollection},
-    entity::Entity,
-    impl_all,
-};
+use crate::{components::component::Component, entity::Entity, impl_all};
 
-use super::dispatcher::{DispatchedData, ReadStorage, WriteStorage};
+use super::dispatcher::{
+    components::{ReadComponents, WriteComponents},
+    DispatchedData,
+};
 
 pub trait GroupableComponents: DispatchedData + 'static {
     type Item<'a>;
@@ -38,7 +37,7 @@ pub trait ParSingleComponent: SingleCollection {
     type ParIter<'a>: ParallelIterator<Item = (&'a Entity, Self::Item<'a>)>;
 }
 
-impl<T: Component + 'static> SingleCollection for WriteStorage<ComponentCollection<T>> {
+impl<T: Component + 'static + Sync> SingleCollection for WriteComponents<T> {
     type Item<'a> = &'a mut T;
     type OwnedItem = T;
 
@@ -48,15 +47,14 @@ impl<T: Component + 'static> SingleCollection for WriteStorage<ComponentCollecti
 
     type Iter<'a> = btree_map::IterMut<'a, Entity, Self::OwnedItem>;
 }
-impl<T: Component + Send + 'static> ParSingleComponent for WriteStorage<ComponentCollection<T>>
+impl<T: Component + Send + 'static> ParSingleComponent for WriteComponents<T>
 where
-    WriteStorage<ComponentCollection<T>>:
-        for<'a> SingleCollection<OwnedItem = T, Item<'a> = &'a mut T>,
+    WriteComponents<T>: for<'a> SingleCollection<OwnedItem = T, Item<'a> = &'a mut T>,
 {
     type ParIter<'a> = rayon::collections::btree_map::IterMut<'a, Entity, Self::OwnedItem>;
 }
 
-impl<T: Component + 'static + Sync> SingleCollection for ReadStorage<ComponentCollection<T>> {
+impl<T: Component + 'static + Sync> SingleCollection for ReadComponents<T> {
     type Item<'a> = &'a T;
     type OwnedItem = T;
 
