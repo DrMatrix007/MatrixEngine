@@ -165,7 +165,7 @@ impl EventRegistry {
             Event::DeviceEvent { event, .. } => {
                 self.push_device_event(event);
             },
-            _ => {}
+                _ => {}
         }
     }
 
@@ -194,9 +194,10 @@ impl EventRegistry {
                 self.mouse_delta = delta;
             }
             DeviceEvent::MouseWheel { delta } => {
+                println!("'''?'''");
                 self.mouse_scoll_delta = match delta {
-                    winit::event::MouseScrollDelta::LineDelta(_, b) => -b as f64,
-                    winit::event::MouseScrollDelta::PixelDelta(a) => -a.y as f64,
+                    winit::event::MouseScrollDelta::LineDelta(_a, b) => -b as f64,
+                    winit::event::MouseScrollDelta::PixelDelta(a) => -a.y,
                 }
             }
             _ => (),

@@ -10,7 +10,7 @@ use winit::{
 
 use crate::{
     components::{resources::ResourceRegistry, storage::Storage},
-    dispatchers::context::Context,
+    dispatchers::context::{Context, SceneCreator},
     events::{
         event_registry::EventRegistry,
         matrix_event::{channel_matrix_event, MatrixEventReceiver, MatrixEventSender},
@@ -78,7 +78,10 @@ impl Engine {
         });
     }
 
-    pub fn ctx(&self) -> Context {
-        self.ctx.clone()
+    pub fn ctx(&self) -> &Context {
+        &self.ctx
+    }
+    pub fn create_scene(&self) -> Scene {
+        self.ctx.create_scene()
     }
 }

@@ -5,11 +5,11 @@ use super::{
     dispatcher::{DispatchError, DispatchedData, DispatchedSendData, Dispatcher, DispatcherArgs},
 };
 
-pub struct BoxedData {
+pub struct ExclusiveBoxedData {
     data: Box<dyn Any>,
 }
 
-impl BoxedData {
+impl ExclusiveBoxedData {
     pub fn new(data: impl Any) -> Self {
         Self {
             data: Box::new(data),
@@ -26,11 +26,11 @@ impl BoxedData {
     }
 }
 
-pub struct BoxedAsyncData {
+pub struct AsyncBoxedData {
     data: Box<dyn Any + Send + Sync>,
 }
 
-impl BoxedAsyncData {
+impl AsyncBoxedData {
     pub fn new(data: impl Any + Send + Sync) -> Self {
         Self {
             data: Box::new(data),
@@ -48,23 +48,35 @@ impl BoxedAsyncData {
     }
 }
 
-pub trait ExclusiveSystem: Dispatcher<BoxedData, Context> {
+pub trait ExclusiveSystem: Dispatcher<ExclusiveBoxedData, Context> {
     type Query: DispatchedData;
 
     fn run(&mut self, ctx: &Context, comps: &mut Self::Query);
 }
+pub trait IntoExclusiveSystem<Marker = ()> {
+    fn into_exclusive_system(self) -> Box<dyn Dispatcher<ExclusiveBoxedData, Context>>;
+}
+pub struct ExclusiveMarker;
+impl<T: ExclusiveSystem+'static> IntoExclusiveSystem<ExclusiveMarker> for T {
+    fn into_exclusive_system(self) -> Box<dyn Dispatcher<ExclusiveBoxedData, Context>> {
+        Box::new(self)
+    }
+}
 
-impl<T: ExclusiveSystem> Dispatcher<BoxedData, Context> for T {
-    fn dispatch(&mut self, args: &mut DispatcherArgs<'_>) -> Result<BoxedData, DispatchError> {
+impl<T: ExclusiveSystem> Dispatcher<ExclusiveBoxedData, Context> for T {
+    fn dispatch(
+        &mut self,
+        args: &mut DispatcherArgs<'_>,
+    ) -> Result<ExclusiveBoxedData, DispatchError> {
         match <T::Query as DispatchedData>::dispatch(args) {
-            Ok(data) => Ok(BoxedData::new(data)),
+            Ok(data) => Ok(ExclusiveBoxedData::new(data)),
             Err(err) => Err(err),
         }
     }
 
-    fn try_run<'a>(&mut self, args: &Context, b: BoxedData) -> Result<(), DispatchError> {
+    fn try_run<'a>(&mut self, args: &Context, b: ExclusiveBoxedData) -> Result<(), DispatchError> {
         let Some(data) = b.downcast::<<T::Query as DispatchedData>::Target>() else {
-            return Err(DispatchError);
+            return Err(DispatchError::WrongBoxedData);
         };
         self.run(
             args,
@@ -74,23 +86,33 @@ impl<T: ExclusiveSystem> Dispatcher<BoxedData, Context> for T {
     }
 }
 
-pub trait AsyncSystem: Dispatcher<BoxedAsyncData, Context> + Send + Sync {
+pub trait AsyncSystem: Dispatcher<AsyncBoxedData, Context> + Send {
     type Query: DispatchedSendData;
 
     fn run(&mut self, ctx: &Context, comps: &mut <Self as AsyncSystem>::Query);
 }
+pub trait IntoAsyncSystem<Marker = ()> {
+    fn into_async_system(self) -> Box<dyn Dispatcher<AsyncBoxedData, Context>+Send>;
+}
+pub struct AsyncMarker;
 
-impl<T: AsyncSystem> Dispatcher<BoxedAsyncData, Context> for T {
-    fn dispatch(&mut self, args: &mut DispatcherArgs<'_>) -> Result<BoxedAsyncData, DispatchError> {
+impl<T: AsyncSystem+'static> IntoAsyncSystem<AsyncMarker> for T {
+    fn into_async_system(self) -> Box<dyn Dispatcher<AsyncBoxedData, Context>+Send> {
+        Box::new(self)
+    }
+}
+
+impl<T: AsyncSystem> Dispatcher<AsyncBoxedData, Context> for T {
+    fn dispatch(&mut self, args: &mut DispatcherArgs<'_>) -> Result<AsyncBoxedData, DispatchError> {
         match <T::Query as DispatchedSendData>::dispatch(args) {
-            Ok(data) => Ok(BoxedAsyncData::new(data)),
+            Ok(data) => Ok(AsyncBoxedData::new(data)),
             Err(err) => Err(err),
         }
     }
 
-    fn try_run<'a>(&mut self, args: &Context, b: BoxedAsyncData) -> Result<(), DispatchError> {
+    fn try_run<'a>(&mut self, args: &Context, b: AsyncBoxedData) -> Result<(), DispatchError> {
         let Some(data) = b.downcast::<<T::Query as DispatchedSendData>::Target>() else {
-            return Err(DispatchError);
+            return Err(DispatchError::WrongBoxedData);
         };
         self.run(
             args,

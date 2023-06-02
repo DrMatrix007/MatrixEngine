@@ -97,6 +97,7 @@ impl<T: Send + 'static> ThreadPool<T> {
         let (job_sender, job_receiver) = channel();
         let (data_sender, data_receiver) = channel();
         let job_receive = Arc::new(Mutex::new(job_receiver));
+        let job_counter = Arc::new(0.into());
         for _ in 0..size {
             threads.push(Worker::new(job_receive.clone(), data_sender.clone()));
         }
@@ -105,7 +106,7 @@ impl<T: Send + 'static> ThreadPool<T> {
             threads,
             job_sender,
             data_receiver,
-            job_counter: Arc::new(0.into()),
+            job_counter,
         }
     }
 
@@ -115,12 +116,12 @@ impl<T: Send + 'static> ThreadPool<T> {
     ) -> Result<(), SendError<Box<dyn FnOnce() -> T + Send + 'static>>> {
         match self.job_sender.send(Job::Work(Box::new(f))) {
             Ok(_) => {
-                self.job_counter.fetch_add(1, Ordering::Acquire);
+                self.job_counter.fetch_add(1, Ordering::AcqRel);
                 Ok(())
             }
             Err(d) => Err(SendError(
                 d.0.try_get_func()
-                    .expect("this value should containt a funciton"),
+                    .expect("this value should contain a funciton"),
             )),
         }
     }
@@ -133,27 +134,37 @@ impl<T: Send + 'static> ThreadPool<T> {
             t._handle.join().expect("a thread panicked");
         }
     }
-    pub fn try_recv_iter(&self) -> ThreadPoolTryRecvIter<'_, T> {
-        ThreadPoolTryRecvIter {
-            recv: &self.data_receiver,
-            job_counter: self.job_counter.clone(),
-        }
-    }
-    pub fn recv_iter(&self) -> ThreadPoolRecvIter<'_, T> {
-        ThreadPoolRecvIter {
-            recv: &self.data_receiver,
-            job_counter: self.job_counter.clone(),
-        }
+
+    pub fn recv(&self) -> Result<Result<T, WorkerError>, std::sync::mpsc::RecvError> {
+        self.data_receiver.recv().map(|x| {
+            x.map(|x| {
+                self.job_counter.fetch_sub(1, Ordering::AcqRel);
+                x
+            })
+        })
     }
 
-    pub fn wait_for_all(&self) {
-        for _ in self.recv_iter() {}
+    pub fn try_recv(&self) -> Result<Result<T, WorkerError>, std::sync::mpsc::TryRecvError> {
+        self.data_receiver.try_recv().map(|x| {
+            x.map(|x| {
+                self.job_counter.fetch_sub(1, Ordering::AcqRel);
+                x
+            })
+        })
     }
+
     pub fn sender(&self) -> ThreadPoolSender<T> {
         ThreadPoolSender {
             sender: self.job_sender.clone(),
             counter: self.job_counter.clone(),
         }
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.job_counter.load(Ordering::Acquire) != 0
+    }
+    pub fn active_count(&self) -> isize {
+        self.job_counter.load(Ordering::Acquire)
     }
 }
 pub struct ThreadPoolTryRecvIter<'a, T> {
@@ -227,8 +238,10 @@ mod tests {
         for i in data.iter().copied() {
             pool.add(move || i).unwrap();
         }
-        for i in pool.recv_iter() {
-            data.remove(&i.unwrap());
+        while pool.is_active() {
+            let data1 = pool.recv().unwrap().unwrap();
+
+            data.remove(&data1);
         }
         println!("{:?}", data);
     }

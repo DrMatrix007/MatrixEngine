@@ -28,7 +28,7 @@ pub struct StorageWriteGuard<T> {
 }
 impl<T> StorageWriteGuard<T> {
     pub fn get(&self) -> &T {
-                self.data.as_ref().expect("this should not be empty")
+            self.data.as_ref().expect("this should not be empty")
     }
     pub fn get_mut(&mut self) -> &mut T {
         self.data.as_mut().expect("this should not be empty")
@@ -45,7 +45,7 @@ impl<T> From<T> for Storage<T> {
 impl<T> Drop for StorageWriteGuard<T> {
     fn drop(&mut self) {
         let mut m = self.data_ref.lock().unwrap();
-        let _ = m.insert(Arc::new(self.data.take().expect("this sould not be empty")));
+        let _ = m.insert(Arc::new(self.data.take().expect("this sould not be empty")));    
     }
 }
 
@@ -57,7 +57,8 @@ impl<T> Storage<T> {
     }
     pub fn read(&self) -> Option<StorageReadGuard<T>> {
         let data = self.data.lock().expect("this should not crash");
-        data.clone().map(|x| StorageReadGuard::new(x))
+        let data = data.as_ref().map(Arc::clone);
+        data.map(|x| StorageReadGuard::new(x))
     }
     pub fn write(&self) -> Option<StorageWriteGuard<T>> {
         let data_ref = self.data.clone();
@@ -82,6 +83,8 @@ mod tests {
         
         let data1 = Storage::new(10);
         {
+            assert_eq!(data1.write().unwrap().get(),&10);
+            assert_eq!(data1.write().unwrap().get(),&10);
             assert_eq!(data1.read().unwrap().get(),&10);
             assert_eq!(data1.read().unwrap().get(),&10);
             assert_eq!(data1.read().unwrap().get(),&10);

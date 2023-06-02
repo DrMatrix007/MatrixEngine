@@ -8,9 +8,9 @@ use crate::{
     },
     dispatchers::{
         context::Context,
-        dispatcher::{DispatcherArgs},
+        dispatcher::DispatcherArgs,
         system_registry::{BoxedAsyncSystem, BoxedExclusiveSystem, SystemRegistry},
-        systems::{AsyncSystem, ExclusiveSystem},
+        systems::{IntoAsyncSystem, IntoExclusiveSystem},
     },
     events::event_registry::EventRegistry,
     schedulers::scheduler::Scheduler,
@@ -49,35 +49,47 @@ impl Scene {
         (&mut self.systems, &mut self.components)
     }
 
-    pub fn add_startup_async_system(&mut self, sys: impl AsyncSystem + 'static) -> &mut Self
-where {
-        self.systems
-            .add_startup_system(BoxedAsyncSystem::new(sys, self.ctx.clone()));
-        self
-    }
-
-    pub fn add_async_system(&mut self, sys: impl AsyncSystem + 'static) -> &mut Self
-where {
-        self.systems
-            .add_system(BoxedAsyncSystem::new(sys, self.ctx.clone()));
-        self
-    }
-
-    pub fn add_exclusive_system(
+    pub fn add_startup_async_system<Marker>(
         &mut self,
-        sys: impl for<'a> ExclusiveSystem + 'static,
+        sys: impl IntoAsyncSystem<Marker>,
+    ) -> &mut Self
+where {
+        self.systems.add_startup_system(BoxedAsyncSystem::new(
+            sys.into_async_system(),
+            self.ctx.clone(),
+        ));
+        self
+    }
+
+    pub fn add_async_system<Marker>(&mut self, sys: impl IntoAsyncSystem<Marker>) -> &mut Self
+where {
+        self.systems.add_system(BoxedAsyncSystem::new(
+            sys.into_async_system(),
+            self.ctx.clone(),
+        ));
+        self
+    }
+
+    pub fn add_exclusive_system<Marker>(
+        &mut self,
+        sys: impl IntoExclusiveSystem<Marker>,
+    ) -> &mut Self {
+        self.systems.add_exclusive_system(BoxedExclusiveSystem::new(
+            sys.into_exclusive_system(),
+            self.ctx.clone(),
+        ));
+        self
+    }
+
+    pub fn add_startup_exclusive_system<Marker>(
+        &mut self,
+        sys: impl IntoExclusiveSystem<Marker>,
     ) -> &mut Self {
         self.systems
-            .add_exclusive_system(BoxedExclusiveSystem::new(sys, self.ctx.clone()));
-        self
-    }
-
-    pub fn add_startup_exclusive_system(
-        &mut self,
-        sys: impl for<'a> ExclusiveSystem + 'static,
-    ) -> &mut Self {
-        self.systems
-            .add_exclusive_startup_system(BoxedExclusiveSystem::new(sys, self.ctx.clone()));
+            .add_exclusive_startup_system(BoxedExclusiveSystem::new(
+                sys.into_exclusive_system(),
+                self.ctx.clone(),
+            ));
         self
     }
 
@@ -130,6 +142,7 @@ where {
                     args.window_target,
                 ),
             );
+            println!("already started");
             self.is_started = true;
         } else {
             args.scheduler.run(

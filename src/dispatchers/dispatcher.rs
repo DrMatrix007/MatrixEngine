@@ -58,8 +58,11 @@ impl<'a> DispatcherArgs<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
-pub struct DispatchError;
+#[derive(Debug, Clone, Copy)]
+pub enum DispatchError {
+    WrongBoxedData,
+    DataUnavailable
+}
 pub trait Dispatcher<BoxedData, RunArgs> {
     fn dispatch(&mut self, args: &mut DispatcherArgs<'_>) -> Result<BoxedData, DispatchError>;
 
@@ -120,25 +123,6 @@ pub trait DispatchedData {
 
     fn get(&mut self) -> Self::Data<'_>;
 }
-impl<T: Component + Sync + 'static> DispatchedData for ReadStorage<ComponentCollection<T>> {
-    type Target = StorageReadGuard<ComponentCollection<T>>;
-    fn dispatch(args: &mut DispatcherArgs) -> Result<Self::Target, DispatchError> {
-        args.get_components::<T>().ok_or(DispatchError)
-    }
-
-    fn from_target_to_data<'b>(data: Self::Target) -> Self
-    where
-        Self: Sized,
-    {
-        data.into()
-    }
-
-    type Data<'a> = &'a ComponentCollection<T>;
-
-    fn get(&mut self) -> Self::Data<'_> {
-        self.data.get()
-    }
-}
 
 pub trait DispatchedSendData: DispatchedData + Send + Sync {
     type Target: 'static + Send + Sync;
@@ -176,10 +160,30 @@ where
     }
 }
 
+impl<T: Component + Sync + 'static> DispatchedData for ReadStorage<ComponentCollection<T>> {
+    type Target = StorageReadGuard<ComponentCollection<T>>;
+    fn dispatch(args: &mut DispatcherArgs) -> Result<Self::Target, DispatchError> {
+        args.get_components::<T>().ok_or(DispatchError::DataUnavailable)
+    }
+
+    fn from_target_to_data<'b>(data: Self::Target) -> Self
+    where
+        Self: Sized,
+    {
+        data.into()
+    }
+
+    type Data<'a> = &'a ComponentCollection<T>;
+
+    fn get(&mut self) -> Self::Data<'_> {
+        self.data.get()
+    }
+}
+
 impl<T: Component + 'static> DispatchedData for WriteStorage<ComponentCollection<T>> {
     type Target = StorageWriteGuard<ComponentCollection<T>>;
     fn dispatch<'b>(args: &mut DispatcherArgs<'_>) -> Result<Self::Target, DispatchError> {
-        args.get_components_mut().ok_or(DispatchError)
+        args.get_components_mut().ok_or(DispatchError::DataUnavailable)
     }
 
     fn from_target_to_data<'b>(data: Self::Target) -> Self
@@ -198,7 +202,7 @@ impl<T: Component + 'static> DispatchedData for WriteStorage<ComponentCollection
 impl<T: Resource + Sync + 'static> DispatchedData for ReadStorage<ResourceHolder<T>> {
     type Target = StorageReadGuard<ResourceHolder<T>>;
     fn dispatch(args: &mut DispatcherArgs) -> Result<Self::Target, DispatchError> {
-        args.get_resource::<T>().ok_or(DispatchError)
+        args.get_resource::<T>().ok_or(DispatchError::DataUnavailable)
     }
 
     fn from_target_to_data<'b>(data: Self::Target) -> Self
@@ -220,7 +224,7 @@ impl<T: Resource + 'static> DispatchedData for WriteStorage<ResourceHolder<T>> {
     fn dispatch(args: &mut DispatcherArgs) -> Result<Self::Target, DispatchError> {
         match args.get_resource_mut::<T>() {
             Some(data) => Ok(data),
-            None => Err(DispatchError),
+            None => Err(DispatchError::DataUnavailable),
         }
     }
 
@@ -244,7 +248,7 @@ impl DispatchedData for ReadStorage<EventRegistry> {
     where
         Self: Sized,
     {
-        args.events.read().ok_or(DispatchError)
+        args.events.read().ok_or(DispatchError::DataUnavailable)
     }
 
     fn from_target_to_data<'b>(data: Self::Target) -> Self
@@ -349,5 +353,6 @@ macro_rules! impl_tuple_dispatch_data {
         }
     };
 }
+
 
 impl_all!(impl_tuple_dispatch_data);

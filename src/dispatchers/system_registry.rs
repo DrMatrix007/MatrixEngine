@@ -2,37 +2,37 @@ use std::collections::VecDeque;
 
 use super::{
     context::Context,
-    dispatcher::{Dispatcher},
-    systems::{AsyncSystem, BoxedAsyncData, BoxedData, ExclusiveSystem},
+    dispatcher::Dispatcher,
+    systems::{AsyncBoxedData, ExclusiveBoxedData},
 };
 
-type AsyncDispatcher = dyn Dispatcher<BoxedAsyncData, Context> + Send + Sync;
-type ExclusiveDispatcher = dyn Dispatcher<BoxedData, Context>;
-
 pub struct BoxedAsyncSystem {
-    system: Box<AsyncDispatcher>,
+    system: Box<dyn Dispatcher<AsyncBoxedData, Context> + Send>,
     ctx: Context,
 }
 
 impl BoxedAsyncSystem {
-    pub fn new<T: AsyncSystem + 'static>(system: T, ctx: Context) -> Self {
+    pub fn new(
+        system: Box<dyn Dispatcher<AsyncBoxedData, Context> + Send>,
+        ctx: Context,
+    ) -> Self {
         Self {
-            system: Box::new(system),
+            system,
             ctx,
         }
     }
 
-    pub(crate) fn as_ref(&self) -> &AsyncDispatcher {
+    pub(crate) fn as_ref(&self) -> &dyn Dispatcher<AsyncBoxedData, Context> {
         self.system.as_ref()
     }
 
-    pub(crate) fn as_mut(&mut self) -> &mut AsyncDispatcher {
+    pub(crate) fn as_mut(&mut self) -> &mut dyn Dispatcher<AsyncBoxedData, Context> {
         self.system.as_mut()
     }
 
     pub(crate) fn try_run(
         &mut self,
-        b: BoxedAsyncData,
+        b: AsyncBoxedData,
     ) -> Result<(), super::dispatcher::DispatchError> {
         self.system.try_run(&self.ctx, b)
     }
@@ -43,32 +43,38 @@ impl BoxedAsyncSystem {
 }
 
 pub struct BoxedExclusiveSystem {
-    system: Box<ExclusiveDispatcher>,
+    system: Box<dyn Dispatcher<ExclusiveBoxedData, Context>>,
     ctx: Context,
 }
 
 impl BoxedExclusiveSystem {
-    pub fn new<T: for<'a> ExclusiveSystem + 'static>(system: T, ctx: Context) -> Self {
+    pub fn new(
+        system: Box<dyn Dispatcher<ExclusiveBoxedData, Context> + 'static>,
+        ctx: Context,
+    ) -> Self {
         Self {
-            system: Box::new(system),
+            system,
             ctx,
         }
     }
-    pub fn with_box(system: Box<dyn Dispatcher<BoxedData, Context>>, ctx: Context) -> Self
+    pub fn with_box(
+        system: Box<dyn Dispatcher<ExclusiveBoxedData, Context>>,
+        ctx: Context,
+    ) -> Self
 where {
         Self { system, ctx }
     }
 
-    pub(crate) fn as_mut(&mut self) -> &mut ExclusiveDispatcher {
+    pub(crate) fn as_mut(&mut self) -> &mut dyn Dispatcher<ExclusiveBoxedData, Context> {
         self.system.as_mut()
     }
 
-    pub(crate) fn as_ref(&self) -> &ExclusiveDispatcher {
+    pub(crate) fn as_ref(&self) -> &dyn Dispatcher<ExclusiveBoxedData, Context> {
         self.system.as_ref()
     }
     pub(crate) fn try_run(
         &mut self,
-        b: BoxedData,
+        b: ExclusiveBoxedData,
     ) -> Result<(), super::dispatcher::DispatchError> {
         self.system.try_run(&self.ctx, b)
     }

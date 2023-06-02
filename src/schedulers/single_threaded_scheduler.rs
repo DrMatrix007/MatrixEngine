@@ -12,6 +12,21 @@ pub struct SingleThreadScheduler {
     done_exclusive: VecDeque<BoxedExclusiveSystem>,
 }
 
+impl SingleThreadScheduler {
+    pub fn new() -> Self {
+        Self {
+            done_async: Default::default(),
+            done_exclusive: Default::default(),
+        }
+    }
+}
+
+impl Default for SingleThreadScheduler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Scheduler for SingleThreadScheduler {
     fn run(&mut self, dis: &mut SystemGroup, args: &mut DispatcherArgs<'_>) {
         while let Some(mut i) = dis.pop_async() {
