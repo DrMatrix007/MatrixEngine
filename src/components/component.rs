@@ -9,7 +9,7 @@ use crate::entity::Entity;
 
 use super::storage::{Storage, StorageReadGuard, StorageWriteGuard};
 
-pub trait Component {}
+pub trait Component:'static {}
 
 pub struct ComponentCollection<T: Component> {
     data: BTreeMap<Entity, T>,

@@ -55,37 +55,34 @@ impl MultiThreadedScheduler {
 impl Scheduler for MultiThreadedScheduler {
     fn run(&mut self, dispatchers: &mut SystemGroup, args: &mut DispatcherArgs<'_>) {
         let sender = self.pool.sender();
-        let mut counter = 0;
+        let mut _counter = 0;
         while let Some(dis) = dispatchers.pop_async() {
             if let Err(dis) = Self::send_dispatcher(&sender, dis, args) {
                 self.pending.push_back(dis)
             } else {
-                counter += 1;
+                _counter += 1;
             };
         }
-        println!("{}", self.done_async.len());
         while !self.pending.is_empty() {
             if self.pool.is_active() {
                 let dis = self.pool.recv().expect("the value should be obtained");
                 let dis = dis.expect("thread panicked");
-                counter -= 1;
                 self.done_async.push_back(dis);
-
-                println!("got2");
             }
-            println!("{} {}", self.pool.active_count(), counter);
             for _ in 0..self.pending.len() {
                 let dis = self.pending.pop_front().expect("this should work");
                 if let Err(dis) = Self::send_dispatcher(&sender, dis, args) {
                     self.pending.push_back(dis);
-                } else {
-                    counter += 1;
-                };
+                }
             }
         }
-        println!("8");
-        while let Ok(dis) = self.pool.try_recv() {
-            let dis = dis.expect("thread panicked");
+
+        while self.pool.is_active() {
+            let dis = self
+                .pool
+                .recv()
+                .expect("the value should be obtained")
+                .expect("thread panicked");
             self.done_async.push_back(dis);
 
             for _ in 0..self.pending.len() {
@@ -118,5 +115,6 @@ impl Scheduler for MultiThreadedScheduler {
                 dispatchers.push_exclusive(dis);
             }
         }
+        println!("finished frame");
     }
 }

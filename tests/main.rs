@@ -1,18 +1,13 @@
 use matrix_engine::{
-    dispatchers::{context::Context, systems::ExclusiveSystem}, engine::Engine,
+    components::component::Component,
+    dispatchers::dispatcher::components::{ReadComponents, WriteComponents},
+    engine::Engine,
     schedulers::multi_threaded_scheduler::MultiThreadedScheduler,
 };
 
-struct Create;
-
-impl ExclusiveSystem for Create {
-    type Query=();
-
-    fn run(&mut self, _ctx: &Context, _comps: &mut Self::Query) {
-        println!("created!");
-    }
-}
-
+#[derive(Debug)]
+struct A;
+impl Component for A {}
 fn main() {
     let engine = Engine::new(matrix_engine::engine::EngineArgs {
         scheduler: MultiThreadedScheduler::with_amount_of_cpu_cores().unwrap(),
@@ -21,8 +16,16 @@ fn main() {
 
     let mut scene = engine.create_scene();
 
-    scene.add_exclusive_system(|_: &Context, (): &mut ()| {
-        println!("bruh");
-    }).add_startup_exclusive_system(Create);
+    for _ in 0..10 {
+        scene.create_entity().add(A).unwrap();
+    }
+
+    scene
+        .add_async_system(|_: &mut WriteComponents<A>| {
+            println!("1");
+        })
+        .add_async_system(|_: &mut ReadComponents<A>| {
+            println!("2");
+        });
     engine.run(scene);
 }

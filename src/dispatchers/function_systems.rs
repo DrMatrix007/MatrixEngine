@@ -3,7 +3,10 @@ use std::marker::PhantomData;
 use super::{
     context::Context,
     dispatcher::{DispatchedData, DispatchedSendData, Dispatcher},
-    systems::{AsyncSystem, ExclusiveBoxedData, ExclusiveSystem, IntoExclusiveSystem},
+    systems::{
+        AsyncBoxedData, AsyncSystem, ExclusiveBoxedData, ExclusiveSystem, IntoAsyncSystem,
+        IntoExclusiveSystem,
+    },
 };
 
 // type BoxedFunction<Comps> = Box<dyn FnMut(&Context, &mut Comps)>;
@@ -99,27 +102,29 @@ use super::{
 // trait Function: FnMut(Self::A) {
 //     type A:DispatchedData;
 // }
-pub struct Wrapper<F, Comps>(F, PhantomData<Comps>);
-
-pub trait Wrappable<F, Comps> {
-    fn wrap(self) -> Wrapper<F, Comps>;
+pub struct Wrapper<F, Comps, Marker = ()>(F, PhantomData<(Comps, Marker)>);
+pub struct WithContextFunctionSystem;
+pub trait Wrappable<F, Comps, Marker> {
+    fn wrap(self) -> Wrapper<F, Comps, Marker>;
 }
-impl<F: FnMut(&Context, &mut C), C: DispatchedData> Wrappable<F, C> for F {
-    fn wrap(self) -> Wrapper<F, C> {
+impl<F: FnMut(&Context, &mut C), C: DispatchedData> Wrappable<F, C, WithContextFunctionSystem>
+    for F
+{
+    fn wrap(self) -> Wrapper<F, C, WithContextFunctionSystem> {
         Wrapper(self, PhantomData)
     }
 }
 
-impl<F: FnMut(&Context, &mut Comps), Comps: DispatchedData> ExclusiveSystem for Wrapper<F, Comps> {
-    type Query = Comps;
+pub struct WithoutContextFunctionSystem;
 
-    fn run(&mut self, ctx: &Context, comps: &mut Self::Query) {
-        self.0(ctx, comps);
+impl<F: FnMut(&mut C), C: DispatchedData> Wrappable<F, C, WithoutContextFunctionSystem> for F {
+    fn wrap(self) -> Wrapper<F, C, WithoutContextFunctionSystem> {
+        Wrapper(self, PhantomData)
     }
 }
 
-impl<F: FnMut(&Context, &mut Comps) + Send + Sync, Comps: DispatchedSendData> AsyncSystem
-    for Wrapper<F, Comps>
+impl<F: FnMut(&Context, &mut Comps), Comps: DispatchedData> ExclusiveSystem
+    for Wrapper<F, Comps, WithContextFunctionSystem>
 {
     type Query = Comps;
 
@@ -128,8 +133,68 @@ impl<F: FnMut(&Context, &mut Comps) + Send + Sync, Comps: DispatchedSendData> As
     }
 }
 
-impl<F: FnMut(&Context, &mut Comps)+'static, Comps: DispatchedData+'static> IntoExclusiveSystem<Comps> for F {
+impl<F: FnMut(&mut Comps), Comps: DispatchedData> ExclusiveSystem
+    for Wrapper<F, Comps, WithoutContextFunctionSystem>
+{
+    type Query = Comps;
+
+    fn run(&mut self, _ctx: &Context, comps: &mut Self::Query) {
+        self.0(comps);
+    }
+}
+
+impl<F: FnMut(&Context, &mut Comps) + Send + Sync, Comps: DispatchedSendData> AsyncSystem
+    for Wrapper<F, Comps, WithContextFunctionSystem>
+{
+    type Query = Comps;
+
+    fn run(&mut self, ctx: &Context, comps: &mut Self::Query) {
+        self.0(ctx, comps);
+    }
+}
+
+impl<F: FnMut(&mut Comps) + Send + Sync, Comps: DispatchedSendData> AsyncSystem
+    for Wrapper<F, Comps, WithoutContextFunctionSystem>
+{
+    type Query = Comps;
+
+    fn run(&mut self, _: &Context, comps: &mut Self::Query) {
+        self.0(comps);
+    }
+}
+
+impl<F: FnMut(&Context, &mut Comps) + 'static, Comps: DispatchedData + 'static>
+    IntoExclusiveSystem<(WithContextFunctionSystem, Comps)> for F
+{
     fn into_exclusive_system(self) -> Box<dyn Dispatcher<ExclusiveBoxedData, Context>> {
+        Box::new(self.wrap())
+    }
+}
+
+impl<F: FnMut(&mut Comps) + 'static, Comps: DispatchedData + 'static>
+    IntoExclusiveSystem<(WithoutContextFunctionSystem, Comps)> for F
+{
+    fn into_exclusive_system(self) -> Box<dyn Dispatcher<ExclusiveBoxedData, Context>> {
+        Box::new(self.wrap())
+    }
+}
+
+impl<
+        F: FnMut(&Context, &mut Comps) + Sync + Send + 'static,
+        Comps: DispatchedSendData + 'static,
+    > IntoAsyncSystem<(WithContextFunctionSystem, Comps)> for F
+{
+    fn into_async_system(self) -> Box<dyn Dispatcher<AsyncBoxedData, Context> + Send> {
+        Box::new(self.wrap())
+    }
+}
+
+impl<F: FnMut(&mut Comps) + Send + Sync + 'static, Comps: DispatchedSendData + 'static>
+    IntoAsyncSystem<(WithoutContextFunctionSystem, Comps)> for F
+where
+    Wrapper<F, Comps, WithoutContextFunctionSystem>: Send + AsyncSystem,
+{
+    fn into_async_system(self) -> Box<dyn Dispatcher<AsyncBoxedData, Context> + Send> {
         Box::new(self.wrap())
     }
 }

@@ -1,8 +1,10 @@
+use std::collections::VecDeque;
+
 use winit::event_loop::EventLoopWindowTarget;
 
 use crate::{
     components::{
-        component::ComponentRegistry,
+        component::{Component, ComponentRegistry},
         resources::ResourceRegistry,
         storage::{Storage, StorageReadGuard, StorageWriteGuard},
     },
@@ -12,6 +14,7 @@ use crate::{
         system_registry::{BoxedAsyncSystem, BoxedExclusiveSystem, SystemRegistry},
         systems::{IntoAsyncSystem, IntoExclusiveSystem},
     },
+    entity::Entity,
     events::event_registry::EventRegistry,
     schedulers::scheduler::Scheduler,
 };
@@ -156,7 +159,41 @@ where {
             );
         }
     }
+
+    pub fn create_entity(&mut self) -> EntityBuilder {
+        EntityBuilder::new(self)
+    }
 }
+pub struct EntityBuilder<'a> {
+    scene: &'a mut Scene,
+    entity: Entity,
+    data: VecDeque<Box<dyn Component>>,
+}
+
+impl<'a> EntityBuilder<'a> {
+    pub fn new(scene: &'a mut Scene) -> Self {
+        Self {
+            scene,
+            data: VecDeque::new(),
+            entity: Entity::new(),
+        }
+    }
+
+    pub fn add<T: Component>(&mut self, t: T) -> Result<&mut Self, T> {
+        let e = Entity::new();
+        match self.scene.component_registry_mut() {
+            Some(mut reg) => {
+                reg.get_mut().insert(e, t)?;
+                Ok(self)
+            }
+            None => Err(t),
+        }
+    }
+    pub fn entity(&self) -> Entity {
+        self.entity
+    }
+}
+pub struct AccessError;
 
 pub struct SceneUpdateArgs<'a> {
     pub scheduler: &'a mut dyn Scheduler,
