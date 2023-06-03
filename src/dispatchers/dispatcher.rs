@@ -190,7 +190,7 @@ pub mod components {
         }
     }
 }
-mod resources {
+pub mod resources {
     use crate::components::{
         resources::{Resource, ResourceHolder},
         storage::{StorageReadGuard, StorageWriteGuard},
@@ -198,13 +198,17 @@ mod resources {
 
     use super::{DispatchError, DispatchedData, DispatcherArgs};
 
-    struct ReadResource<T: Resource> {
+    pub struct ReadResource<T: Resource> {
         data: StorageReadGuard<ResourceHolder<T>>,
     }
 
     impl<T: Resource> ReadResource<T> {
         fn new(data: StorageReadGuard<ResourceHolder<T>>) -> Self {
             Self { data }
+        }
+
+        pub fn holder(&self) -> &ResourceHolder<T> {
+            self.data.get()
         }
     }
 
@@ -230,6 +234,15 @@ mod resources {
 
     pub struct WriteResource<T: Resource> {
         data: StorageWriteGuard<ResourceHolder<T>>,
+    }
+
+    impl<T: Resource> WriteResource<T> {
+        pub fn holder_mut(&mut self) -> &mut ResourceHolder<T> {
+            self.data.get_mut()
+        }
+        pub fn holder(&self) -> &ResourceHolder<T> {
+            self.data.get()
+        }
     }
 
     impl<T: Resource + 'static> DispatchedData for WriteResource<T> {

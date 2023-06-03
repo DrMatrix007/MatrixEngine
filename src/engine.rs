@@ -1,11 +1,12 @@
-use std::sync::{
+use std::{sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
-};
+}, time::{Duration, Instant}};
 
 use winit::{
     event::Event,
-    event_loop::{ControlFlow, EventLoop},
+    event_loop::{ControlFlow, EventLoop, EventLoopBuilder},
+    platform::x11::EventLoopBuilderExtX11,
 };
 
 use crate::{
@@ -27,7 +28,7 @@ pub struct EngineArgs<S: Scheduler> {
 pub struct Engine {
     scheduler: Box<dyn Scheduler>,
     resources: Storage<ResourceRegistry>,
-    event_loop: EventLoop<()>,
+
     events: Storage<EventRegistry>,
     event_sender: MatrixEventSender,
     event_receiver: MatrixEventReceiver,
@@ -43,7 +44,6 @@ impl Engine {
         Self {
             ctx: Context::new(quit, target_fps, event_sender.clone()),
             scheduler: Box::new(args.scheduler),
-            event_loop: EventLoop::new(),
             resources: ResourceRegistry::empty(event_sender.clone()).into(),
             event_sender,
             event_receiver,
@@ -52,7 +52,11 @@ impl Engine {
     }
 
     pub fn run(mut self, mut scene: Scene) -> ! {
-        self.event_loop.run(move |event, target, control_flow| {
+        let event_loop = match std::thread::current().name() {
+            Some("main") => EventLoop::new(),
+            _ => EventLoopBuilder::new().with_any_thread(true).build(),
+        };
+        event_loop.run(move |event, target, control_flow| {
             if let Event::MainEventsCleared = event {
                 scene.update(SceneUpdateArgs {
                     resources: &mut self.resources,
@@ -75,6 +79,7 @@ impl Engine {
                     .get_mut()
                     .push(event);
             }
+
         });
     }
 

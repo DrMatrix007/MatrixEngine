@@ -115,6 +115,5 @@ impl Scheduler for MultiThreadedScheduler {
                 dispatchers.push_exclusive(dis);
             }
         }
-        println!("finished frame");
     }
 }
