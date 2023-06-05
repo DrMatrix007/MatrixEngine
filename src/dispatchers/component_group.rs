@@ -1,6 +1,9 @@
 use std::collections::btree_map;
 
-use rayon::prelude::ParallelIterator;
+use rayon::{
+    iter::IterBridge,
+    prelude::{ParallelBridge, ParallelIterator},
+};
 
 use crate::{components::component::Component, entity::Entity, impl_all};
 
@@ -97,6 +100,13 @@ impl<T: GroupableComponents> DispatchedData for ComponentGroup<T> {
 impl<T: GroupableComponents> ComponentGroup<T> {
     pub fn iter(&mut self) -> Iter<'_, T> {
         self.data.iter()
+    }
+    pub fn par_iter<'a: 'b, 'b>(&'a mut self) -> IterBridge<Iter<'b, T>>
+    where
+        Iter<'b, T>: Iterator + Send,
+        <Iter<'b, T> as Iterator>::Item: Send,
+    {
+        self.iter().par_bridge()
     }
     fn new(data: T) -> ComponentGroup<T> {
         Self { data }
