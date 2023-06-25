@@ -6,7 +6,6 @@ use std::{sync::{
 use winit::{
     event::Event,
     event_loop::{ControlFlow, EventLoop, EventLoopBuilder},
-    platform::x11::EventLoopBuilderExtX11,
 };
 
 use crate::{
@@ -52,10 +51,7 @@ impl Engine {
     }
 
     pub fn run(mut self, mut scene: Scene) -> ! {
-        let event_loop = match std::thread::current().name() {
-            Some("main") => EventLoop::new(),
-            _ => EventLoopBuilder::new().with_any_thread(true).build(),
-        };
+        let event_loop = EventLoop::new();
         event_loop.run(move |event, target, control_flow| {
             if let Event::MainEventsCleared = event {
                 scene.update(SceneUpdateArgs {
