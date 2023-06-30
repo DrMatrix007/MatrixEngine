@@ -1,171 +1,168 @@
 use std::{
     any::{Any, TypeId},
-    collections::{BTreeMap, HashMap},
+    collections::{btree_map, BTreeMap, HashMap},
 };
 
-use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator};
+use crate::{
+    impl_all,
+    par::rwstorage::{ReadStorageGuard, RwStorage, WriteStorageGuard},
+    scenes::entity::Entity,
+};
 
-use crate::entity::Entity;
+pub trait Component {}
 
-use super::storage::{Storage, StorageReadGuard, StorageWriteGuard};
+// type ComponentCollection<T> = BTreeMap<Entity, T>;
+struct Components<T>(BTreeMap<Entity, T>);
 
-pub trait Component:'static {}
-
-pub struct ComponentCollection<T: Component> {
-    data: BTreeMap<Entity, T>,
+impl<T> Components<T> {
+    pub fn iter(&self) -> btree_map::Iter<'_, Entity, T> {
+        self.0.iter()
+    }
+    pub fn iter_mut(&mut self) -> btree_map::IterMut<'_, Entity, T> {
+        self.0.iter_mut()
+    }
 }
 
-impl<T: Component> Default for ComponentCollection<T> {
+impl<T> Default for Components<T> {
     fn default() -> Self {
-        Self {
-            data: Default::default(),
-        }
+        Self(Default::default())
     }
 }
 
-impl<T: Component> ComponentCollection<T> {
-    pub fn iter(&self) -> std::collections::btree_map::Iter<Entity, T> {
-        self.data.iter()
-    }
-    pub fn iter_mut(&mut self) -> std::collections::btree_map::IterMut<Entity, T> {
-        self.data.iter_mut()
-    }
-    pub fn insert(&mut self, e: Entity, comp: T) {
-        self.data.insert(e, comp);
-    }
-    pub fn get(&self, e: &Entity) -> Option<&T> {
-        self.data.get(e)
-    }
-    pub fn get_mut(&mut self, e: &Entity) -> Option<&mut T> {
-        self.data.get_mut(e)
-    }
-    pub fn get_all(&self) -> ComponentCollectionRef<'_, T> {
-        self.iter().into()
-    }
-    pub fn get_all_mut(&mut self) -> ComponentCollectionRefMut<'_, T> {
-        self.iter_mut().into()
-    }
-
-    pub fn par_iter(&self) -> rayon::collections::btree_map::Iter<Entity, T>
-    where
-        T: Sync,
-    {
-        self.data.par_iter()
-    }
-    pub fn par_iter_mut(&mut self) -> rayon::collections::btree_map::IterMut<Entity, T>
-    where
-        T: Send,
-    {
-        self.data.par_iter_mut()
-    }
-}
-pub struct ComponentCollectionRef<'a, T> {
-    data: HashMap<&'a Entity, &'a T>,
-}
-
-impl<'a, T, A: Iterator<Item = (&'a Entity, &'a T)>> From<A> for ComponentCollectionRef<'a, T> {
-    fn from(value: A) -> Self {
-        ComponentCollectionRef {
-            data: value.collect(),
-        }
-    }
-}
-
-impl<'a, T> ComponentCollectionRef<'a, T> {
-    pub fn iter(&self) -> std::collections::hash_map::Iter<&'a Entity, &'a T> {
-        self.data.iter()
-    }
-    pub fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<&'a Entity, &'a T> {
-        self.data.iter_mut()
-    }
-    pub fn get(&self, e: &Entity) -> Option<&&'a T> {
-        self.data.get(e)
-    }
-    pub fn get_mut(&mut self, e: &Entity) -> Option<&mut &'a T> {
-        self.data.get_mut(e)
-    }
-}
-
-pub struct ComponentCollectionRefMut<'a, T> {
-    data: HashMap<&'a Entity, &'a mut T>,
-}
-
-impl<'a, T> ComponentCollectionRefMut<'a, T> {
-    pub fn iter(&self) -> std::collections::hash_map::Iter<&'a Entity, &'a mut T> {
-        self.data.iter()
-    }
-    pub fn iter_mut(&mut self) -> std::collections::hash_map::IterMut<&'a Entity, &'a mut T> {
-        self.data.iter_mut()
-    }
-    pub fn get(&self, e: &Entity) -> Option<&&'a mut T> {
-        self.data.get(e)
-    }
-    pub fn get_mut(&mut self, e: &Entity) -> Option<&mut &'a mut T> {
-        self.data.get_mut(e)
-    }
-}
-
-impl<'a, T, A: Iterator<Item = (&'a Entity, &'a mut T)>> From<A>
-    for ComponentCollectionRefMut<'a, T>
-{
-    fn from(value: A) -> Self {
-        ComponentCollectionRefMut {
-            data: value.collect(),
-        }
-    }
-}
+type ParComponents<T> = RwStorage<Components<T>>;
 
 #[derive(Default)]
 pub struct ComponentRegistry {
-    data: HashMap<TypeId, BoxedCollection>,
-}
-
-struct BoxedCollection(Box<dyn Any>);
-
-impl BoxedCollection {
-    pub fn new<T: Component + 'static>() -> Self {
-        Self(Box::new(Storage::new(ComponentCollection::<T>::default())))
-    }
-    pub fn downcast_ref<T: Component + 'static>(&self) -> Option<&Storage<ComponentCollection<T>>> {
-        self.0.downcast_ref::<Storage<ComponentCollection<T>>>()
-    }
-    pub fn downcast_mut<T: Component + 'static>(
-        &mut self,
-    ) -> Option<&mut Storage<ComponentCollection<T>>> {
-        self.0.downcast_mut::<Storage<ComponentCollection<T>>>()
-    }
+    comps: HashMap<TypeId, Box<dyn Any>>,
 }
 
 impl ComponentRegistry {
-    pub fn get<T: Component + 'static>(
+    pub(self) fn try_get_map<T: Component + 'static>(
         &mut self,
-    ) -> Option<StorageReadGuard<ComponentCollection<T>>> {
-        self.data
-            .entry(TypeId::of::<T>())
-            .or_insert(BoxedCollection::new::<T>())
-            .downcast_ref::<T>()
-            .expect("this value should be of this type")
-            .read()
+    ) -> Option<ReadStorageGuard<Components<T>>> {
+        self.comps
+            .get(&TypeId::of::<T>())
+            .map(|x| {
+                x.downcast_ref::<ParComponents<T>>()
+                    .expect("the type of this value should be Components<T>")
+            })
+            .and_then(|x| x.try_read())
     }
-
-    pub fn get_mut<T: Component + 'static>(
+    pub(self) fn try_get_map_mut<T: Component + 'static>(
         &mut self,
-    ) -> Option<StorageWriteGuard<ComponentCollection<T>>> {
-        self.data
-            .entry(TypeId::of::<T>())
-            .or_insert(BoxedCollection::new::<T>())
-            .downcast_ref::<T>()
-            .expect("this value should be of this type")
-            .write()
+    ) -> Option<WriteStorageGuard<Components<T>>> {
+        self.comps
+            .get(&TypeId::of::<T>())
+            .map(|x| {
+                x.downcast_ref::<ParComponents<T>>()
+                    .expect("the type of this value should be Components<T>")
+            })
+            .and_then(|x: &RwStorage<Components<T>>| x.try_write())
     }
+}
+trait ComponentRefIterable {
+    type Item<'a>: 'a
+    where
+        Self: 'a;
+    type IntoIter<'a>: Iterator<Item = (&'a Entity, Self::Item<'a>)>
+    where
+        Self: 'a;
+    fn component_iter(&mut self) -> Self::IntoIter<'_>;
+}
 
-    pub fn insert<T: Component + 'static>(&mut self, e: Entity, c: T) -> Result<(), T> {
-        let Some(mut data) = self.get_mut() else {
-            return Err(c);
-        };
+impl<T: Component> ComponentRefIterable for ReadStorageGuard<Components<T>> {
+    type Item<'a> = &'a T where Self:'a;
+    type IntoIter<'a> = btree_map::Iter<'a, Entity, T> where Self:'a;
 
-        data.get_mut().insert(e, c);
-
-        Ok(())
+    fn component_iter(&mut self) -> Self::IntoIter<'_> {
+        self.iter()
     }
+}
+
+impl<T: Component> ComponentRefIterable for WriteStorageGuard<Components<T>> {
+    type Item<'a> = &'a mut T where Self:'a;
+
+    type IntoIter<'a> = btree_map::IterMut<'a,Entity,T> where Self:'a;
+
+    fn component_iter(&mut self) -> Self::IntoIter<'_> {
+        self.iter_mut()
+    }
+}
+
+struct Iter<'a, Comps: CompsIntoIter>(Comps::IntoIter<'a>)
+where
+    Self: 'a;
+
+trait CompsIntoIter {
+    type IntoIter<'a>
+    where
+        Self: 'a;
+}
+
+macro_rules! impl_components {
+    ($first:ident,$($t:ident),*) => {
+        #[allow(unused_parens)]
+        impl<$first:ComponentRefIterable,$($t:ComponentRefIterable),*> ComponentRefIterable for  ($first,$($t),*) {
+            type Item<'a> = ($first::Item<'a>,$($t::Item<'a>),*) where Self:'a;
+
+            type IntoIter<'a> = Iter<'a,($first,$($t),*)>  where Self:'a;
+
+            #[allow(non_snake_case)]
+            fn component_iter(&mut self) -> <Self as ComponentRefIterable>::IntoIter<'_> {
+                let ($first,$($t),*) = self;
+                Iter((($first.component_iter(),$($t.component_iter()),*)))
+            }
+        }
+        impl<$first:ComponentRefIterable,$($t:ComponentRefIterable),*> CompsIntoIter for ($first,$($t),*) {
+            type IntoIter<'a> = ($first::IntoIter<'a>,$($t::IntoIter<'a>),*) where $first:'a,$($t:'a),*;
+        }
+        impl<'a, $first:ComponentRefIterable,$($t:ComponentRefIterable),*> Iterator for Iter<'a,($first,$($t),*)> where $first:'a,$($t:'a),* {
+            type Item =(&'a Entity,($first::Item<'a>,$($t::Item<'a>),*))  ;
+
+            #[allow(non_snake_case)]
+            fn next(&mut self) -> Option<Self::Item> {
+                let (first,$($t),*) = &mut self.0;
+                let val = first.next()?;
+
+                $(
+                    let $t = find_by_entity::<$t>(val.0,$t)?;
+                )*
+                Some((val.0,(val.1,$($t),*)))
+            }
+
+        }
+    };
+}
+
+fn find_by_entity<'a, T: ComponentRefIterable>(
+    e: &Entity,
+    iter: &mut T::IntoIter<'a>,
+) -> Option<T::Item<'a>> {
+    let mut current = iter.next()?;
+    loop {
+        match current.0.cmp(e) {
+            std::cmp::Ordering::Less => {
+                current = iter.next()?;
+            }
+            std::cmp::Ordering::Greater => {
+                return None;
+            }
+            std::cmp::Ordering::Equal => {
+                return Some(current.1);
+            }
+        }
+    }
+}
+impl_all!(impl_components);
+// impl_components!(A, B, C);
+// impl_components!(A);
+
+#[test]
+fn test_registry() {
+    struct A;
+    struct B;
+    impl Component for A {}
+    impl Component for B {}
+
+    let mut _reg = ComponentRegistry::default();
 }
