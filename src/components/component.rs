@@ -5,16 +5,16 @@ use std::{
 
 use crate::{
     impl_all,
-    par::rwstorage::{ReadStorageGuard, RwStorage, WriteStorageGuard},
+    par::storage::{ReadStorageGuard, Storage, WriteStorageGuard},
     scenes::entity::Entity,
 };
 
-pub trait Component {}
+pub trait Component:'static {}
 
 // type ComponentCollection<T> = BTreeMap<Entity, T>;
-struct Components<T>(BTreeMap<Entity, T>);
+pub struct ComponentMap<T>(BTreeMap<Entity, T>);
 
-impl<T> Components<T> {
+impl<T> ComponentMap<T> {
     pub fn iter(&self) -> btree_map::Iter<'_, Entity, T> {
         self.0.iter()
     }
@@ -23,13 +23,13 @@ impl<T> Components<T> {
     }
 }
 
-impl<T> Default for Components<T> {
+impl<T> Default for ComponentMap<T> {
     fn default() -> Self {
         Self(Default::default())
     }
 }
 
-type ParComponents<T> = RwStorage<Components<T>>;
+type ParComponents<T> = Storage<ComponentMap<T>>;
 
 #[derive(Default)]
 pub struct ComponentRegistry {
@@ -37,9 +37,9 @@ pub struct ComponentRegistry {
 }
 
 impl ComponentRegistry {
-    pub(self) fn try_get_map<T: Component + 'static>(
+    pub fn try_get_map<T: Component + 'static>(
         &mut self,
-    ) -> Option<ReadStorageGuard<Components<T>>> {
+    ) -> Option<ReadStorageGuard<ComponentMap<T>>> {
         self.comps
             .get(&TypeId::of::<T>())
             .map(|x| {
@@ -48,16 +48,16 @@ impl ComponentRegistry {
             })
             .and_then(|x| x.try_read())
     }
-    pub(self) fn try_get_map_mut<T: Component + 'static>(
+    pub fn try_get_map_mut<T: Component + 'static>(
         &mut self,
-    ) -> Option<WriteStorageGuard<Components<T>>> {
+    ) -> Option<WriteStorageGuard<ComponentMap<T>>> {
         self.comps
             .get(&TypeId::of::<T>())
             .map(|x| {
                 x.downcast_ref::<ParComponents<T>>()
                     .expect("the type of this value should be Components<T>")
             })
-            .and_then(|x: &RwStorage<Components<T>>| x.try_write())
+            .and_then(|x: &Storage<ComponentMap<T>>| x.try_write())
     }
 }
 trait ComponentRefIterable {
@@ -70,7 +70,7 @@ trait ComponentRefIterable {
     fn component_iter(&mut self) -> Self::IntoIter<'_>;
 }
 
-impl<T: Component> ComponentRefIterable for ReadStorageGuard<Components<T>> {
+impl<T: Component> ComponentRefIterable for ReadStorageGuard<ComponentMap<T>> {
     type Item<'a> = &'a T where Self:'a;
     type IntoIter<'a> = btree_map::Iter<'a, Entity, T> where Self:'a;
 
@@ -79,7 +79,7 @@ impl<T: Component> ComponentRefIterable for ReadStorageGuard<Components<T>> {
     }
 }
 
-impl<T: Component> ComponentRefIterable for WriteStorageGuard<Components<T>> {
+impl<T: Component> ComponentRefIterable for WriteStorageGuard<ComponentMap<T>> {
     type Item<'a> = &'a mut T where Self:'a;
 
     type IntoIter<'a> = btree_map::IterMut<'a,Entity,T> where Self:'a;

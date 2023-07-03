@@ -3,14 +3,20 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-pub struct RwStorage<T> {
-    data: Arc<Mutex<Option<Arc<T>>>>,
+pub struct Storage<T: ?Sized> {
+    data: Arc<Mutex<Option<Arc<Box<T>>>>>,
 }
 
-impl<T> RwStorage<T> {
+impl<T> Storage<T> {
     pub fn new(data: T) -> Self {
+        Self::from_boxed(Box::new(data))
+    }
+}
+
+impl<T: ?Sized> Storage<T> {
+    pub fn from_boxed(b: Box<T>) -> Self {
         Self {
-            data: Arc::new(Mutex::new(Option::Some(Arc::new(data)))),
+            data: Arc::new(Mutex::new(Option::Some(Arc::new(b)))),
         }
     }
     pub fn try_read(&self) -> Option<ReadStorageGuard<T>> {
@@ -35,49 +41,46 @@ impl<T> RwStorage<T> {
     }
 }
 
-pub struct ReadStorageGuard<T> {
-    data: Arc<T>,
-    mtx: Arc<Mutex<Option<Arc<T>>>>,
+pub struct ReadStorageGuard<T: ?Sized> {
+    data: Arc<Box<T>>,
+    mtx: Arc<Mutex<Option<Arc<Box<T>>>>>,
 }
 
-impl<T> Drop for ReadStorageGuard<T> {
+impl<T: ?Sized> Drop for ReadStorageGuard<T> {
     fn drop(&mut self) {
         *self.mtx.lock().expect("the mutex should not be poisoned") = Some(self.data.clone());
     }
 }
 
-impl<T> ReadStorageGuard<T> {
-    fn new(data: Arc<T>, mtx: Arc<Mutex<Option<Arc<T>>>>) -> Self {
+impl<T: ?Sized> ReadStorageGuard<T> {
+    fn new(data: Arc<Box<T>>, mtx: Arc<Mutex<Option<Arc<Box<T>>>>>) -> Self {
         Self { data, mtx }
     }
 }
-impl<T> AsRef<T> for ReadStorageGuard<T> {
+impl<T: ?Sized> AsRef<T> for ReadStorageGuard<T> {
     fn as_ref(&self) -> &T {
         &self.data
     }
 }
-impl<T> std::ops::Deref for ReadStorageGuard<T> {
+impl<T: ?Sized> std::ops::Deref for ReadStorageGuard<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
         self.as_ref()
     }
 }
-impl<T> Borrow<T> for ReadStorageGuard<T> {
+impl<T: ?Sized> Borrow<T> for ReadStorageGuard<T> {
     fn borrow(&self) -> &T {
         self
     }
 }
 
-/////////////
-///
-
-pub struct WriteStorageGuard<T> {
-    data: Option<T>,
-    mtx: Arc<Mutex<Option<Arc<T>>>>,
+pub struct WriteStorageGuard<T: ?Sized> {
+    data: Option<Box<T>>,
+    mtx: Arc<Mutex<Option<Arc<Box<T>>>>>,
 }
 
-impl<T> Drop for WriteStorageGuard<T> {
+impl<T: ?Sized> Drop for WriteStorageGuard<T> {
     fn drop(&mut self) {
         *self.mtx.lock().expect("the mutex should be poisoned") = Some(Arc::new(
             self.data.take().expect("the value should not be empty"),
@@ -85,42 +88,42 @@ impl<T> Drop for WriteStorageGuard<T> {
     }
 }
 
-impl<T> WriteStorageGuard<T> {
-    fn new(data: T, mtx: Arc<Mutex<Option<Arc<T>>>>) -> Self {
+impl<T: ?Sized> WriteStorageGuard<T> {
+    fn new(data: Box<T>, mtx: Arc<Mutex<Option<Arc<Box<T>>>>>) -> Self {
         Self {
             data: Some(data),
             mtx,
         }
     }
 }
-impl<T> AsRef<T> for WriteStorageGuard<T> {
+impl<T: ?Sized> AsRef<T> for WriteStorageGuard<T> {
     fn as_ref(&self) -> &T {
         &self.data.as_ref().expect("the value should not be empty")
     }
 }
-impl<T> std::ops::Deref for WriteStorageGuard<T> {
+impl<T: ?Sized> std::ops::Deref for WriteStorageGuard<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
         self.as_ref()
     }
 }
-impl<T> AsMut<T> for WriteStorageGuard<T> {
+impl<T: ?Sized> AsMut<T> for WriteStorageGuard<T> {
     fn as_mut(&mut self) -> &mut T {
         self.data.as_mut().expect("the value should not be empty")
     }
 }
-impl<T> std::ops::DerefMut for WriteStorageGuard<T> {
+impl<T: ?Sized> std::ops::DerefMut for WriteStorageGuard<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut()
     }
 }
-impl<T> BorrowMut<T> for WriteStorageGuard<T> {
+impl<T: ?Sized> BorrowMut<T> for WriteStorageGuard<T> {
     fn borrow_mut(&mut self) -> &mut T {
         self
     }
 }
-impl<T> Borrow<T> for WriteStorageGuard<T> {
+impl<T: ?Sized> Borrow<T> for WriteStorageGuard<T> {
     fn borrow(&self) -> &T {
         self
     }
@@ -128,7 +131,7 @@ impl<T> Borrow<T> for WriteStorageGuard<T> {
 
 #[test]
 fn test() {
-    let a = RwStorage::new(10);
+    let a = Storage::new(10);
 
     let b = a.try_write().unwrap();
     assert!(a.try_read().is_none());
