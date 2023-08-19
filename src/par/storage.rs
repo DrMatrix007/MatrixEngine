@@ -3,6 +3,11 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+#[derive(Debug,Clone, Copy)]
+pub enum StorageError {
+    NotAvailable,
+}
+
 pub struct Storage<T: ?Sized> {
     data: Arc<Mutex<Option<Arc<Box<T>>>>>,
 }
@@ -19,23 +24,26 @@ impl<T: ?Sized> Storage<T> {
             data: Arc::new(Mutex::new(Option::Some(Arc::new(b)))),
         }
     }
-    pub fn try_read(&self) -> Option<ReadStorageGuard<T>> {
+    pub fn try_read(&self) -> Result<ReadStorageGuard<T>, StorageError> {
         self.data
             .lock()
             .expect("the mutex should not be poisoned")
             .as_ref()
             .map(|x| ReadStorageGuard::new(Arc::clone(&x), Arc::clone(&self.data)))
+            .ok_or(StorageError::NotAvailable)
     }
 
-    pub fn try_write(&self) -> Option<WriteStorageGuard<T>> {
+    pub fn try_write(&self) -> Result<WriteStorageGuard<T>, StorageError> {
         let mut data = self.data.lock().expect("the mutex should not be poisoned");
-        let out = data.take()?;
+        let Some(out) = data.take() else {
+            return Err(StorageError::NotAvailable);
+        };
 
         match Arc::try_unwrap(out) {
-            Ok(t) => Some(WriteStorageGuard::new(t, self.data.clone())),
+            Ok(t) => Ok(WriteStorageGuard::new(t, self.data.clone())),
             Err(t) => {
                 *data = Some(t);
-                None
+                Err(StorageError::NotAvailable)
             }
         }
     }
@@ -134,24 +142,24 @@ fn test() {
     let a = Storage::new(10);
 
     let b = a.try_write().unwrap();
-    assert!(a.try_read().is_none());
-    assert!(a.try_read().is_none());
-    assert!(a.try_read().is_none());
+    assert!(a.try_read().is_ok());
+    assert!(a.try_read().is_ok());
+    assert!(a.try_read().is_ok());
     drop(b);
     let c = a.try_read().unwrap();
-    assert!(a.try_read().is_some());
-    assert!(a.try_read().is_some());
-    assert!(a.try_read().is_some());
-    assert!(a.try_read().is_some());
+    assert!(a.try_read().is_ok());
+    assert!(a.try_read().is_ok());
+    assert!(a.try_read().is_ok());
+    assert!(a.try_read().is_ok());
     drop(c);
     let b = a.try_write().unwrap();
-    assert!(a.try_read().is_none());
-    assert!(a.try_read().is_none());
-    assert!(a.try_read().is_none());
+    assert!(a.try_read().is_ok());
+    assert!(a.try_read().is_ok());
+    assert!(a.try_read().is_ok());
     drop(b);
     let _c = a.try_read().unwrap();
-    assert!(a.try_read().is_some());
-    assert!(a.try_read().is_some());
-    assert!(a.try_read().is_some());
-    assert!(a.try_read().is_some());
+    assert!(a.try_read().is_ok());
+    assert!(a.try_read().is_ok());
+    assert!(a.try_read().is_ok());
+    assert!(a.try_read().is_ok());
 }

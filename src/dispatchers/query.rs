@@ -2,25 +2,25 @@ use std::{any::Any, marker::PhantomData};
 
 use crate::{
     components::component::{Component, ComponentMap},
-    par::storage::{ReadStorageGuard, WriteStorageGuard},
+    par::storage::{ReadStorageGuard, StorageError, WriteStorageGuard},
     scenes::scene::Scene,
 };
 
 pub enum QueryError {
-    NotAvailable,
+    StorageError(StorageError),
 }
 
-pub struct QueryArgs<'a> {
-    scene: &'a mut Scene,
+pub struct QueryArgs {
+    scene: WriteStorageGuard<Scene>,
 }
 
-impl<'a> QueryArgs<'a> {
-    pub fn new(scene: &'a mut Scene) -> Self {
+impl QueryArgs {
+    pub fn new(scene: WriteStorageGuard<Scene>) -> Self {
         Self { scene }
     }
 
     pub fn scene_mut(&mut self) -> &mut Scene {
-        self.scene
+        self.scene.as_mut()
     }
     pub fn scene(&self) -> &Scene {
         &self.scene
@@ -29,9 +29,9 @@ impl<'a> QueryArgs<'a> {
 
 pub trait Query {
     type Target: Any;
-    fn query(args: &mut QueryArgs<'_>) -> Result<Self::Target, QueryError>;
+    fn query(args: &mut QueryArgs) -> Result<Self::Target, QueryError>;
 
-    fn query_boxed(args: &mut QueryArgs<'_>) -> Result<Box<dyn Any>, QueryError> {
+    fn query_boxed(args: &mut QueryArgs) -> Result<Box<dyn Any>, QueryError> {
         Self::query(args).map(|x| Box::<dyn Any>::from(Box::new(x)))
     }
 }
@@ -44,29 +44,29 @@ struct WriteComponents<C: Component>(PhantomData<C>);
 
 impl<C: Component> Query for ReadComponents<C> {
     type Target = ReadStorageGuard<ComponentMap<C>>;
-    fn query(args: &mut QueryArgs<'_>) -> Result<Self::Target, QueryError> {
-        match args.scene_mut().components_mut().try_get_map() {
-            Some(data) => Ok(data),
-            None => Err(QueryError::NotAvailable),
-        }
+    fn query(args: &mut QueryArgs) -> Result<Self::Target, QueryError> {
+        args.scene_mut()
+            .components_mut()
+            .try_get_map()
+            .map_err(|x| QueryError::StorageError(x))
     }
 }
 
 impl<C: Component> Query for WriteComponents<C> {
     type Target = WriteStorageGuard<ComponentMap<C>>;
-    fn query(args: &mut QueryArgs<'_>) -> Result<Self::Target, QueryError> {
-        match args.scene_mut().components_mut().try_get_map_mut() {
-            Some(data) => Ok(data),
-            None => Err(QueryError::NotAvailable),
-        }
+    fn query(args: &mut QueryArgs) -> Result<Self::Target, QueryError> {
+        args.scene_mut()
+            .components_mut()
+            .try_get_map_mut()
+            .map_err(|x| QueryError::StorageError(x))
     }
 }
 
-pub trait QuerySend: Query 
+pub trait QuerySend: Query
 where
     <Self as Query>::Target: Send,
 {
-    fn query_boxed_send(args: &mut QueryArgs<'_>) -> Result<Box<dyn Any + Send>, QueryError> {
+    fn query_boxed_send(args: &mut QueryArgs) -> Result<Box<dyn Any + Send>, QueryError> {
         Self::query(args).map(|x| Box::<dyn Any + Send>::from(Box::new(x)))
     }
 }

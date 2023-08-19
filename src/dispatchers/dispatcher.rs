@@ -1,18 +1,14 @@
-use std::marker::PhantomData;
-
-use crate::par::storage::Storage;
+use crate::dispatchers::system::BoxedSystemFunction;
 
 use super::query::QueryError;
+use std::collections::VecDeque;
 
 pub enum DispatchError {
     QueryError(QueryError),
 }
 
 pub trait Dispatcher<In, FOut: DispatchedFunction> {
-    fn dispatch(
-        &mut self,
-        input: &mut In,
-    ) -> Result<FOut, DispatchError>;
+    fn dispatch(&mut self, input: &mut In) -> Result<FOut, DispatchError>;
 }
 
 pub trait DispatchedFunction {
@@ -20,31 +16,33 @@ pub trait DispatchedFunction {
     fn call(self) -> Self::Out;
 }
 
-pub type BoxedFunction<Out = ()> = Box<dyn FnOnce() -> Out>;
-pub type BoxedSendFunction<Out = ()> = Box<dyn FnOnce() -> Out + Send>;
-
-impl<T> DispatchedFunction for BoxedFunction<T> {
-    type Out = T;
-
-    fn call(self) -> Self::Out {
-        (self)()
-    }
+pub struct DispatcherCollection<In, Func: DispatchedFunction> {
+    data: VecDeque<Box<dyn Dispatcher<In, Func>>>,
 }
-impl<T> DispatchedFunction for BoxedSendFunction<T> {
-    type Out = T;
 
-    fn call(self) -> Self::Out {
-        (self)()
+impl<In, Func: DispatchedFunction> Default for DispatcherCollection<In, Func> {
+    fn default() -> Self {
+        Self {
+            data: Default::default(),
+        }
     }
 }
 
+impl<In, Func: DispatchedFunction> DispatcherCollection<In, Func> {
+    pub fn push_back(&mut self, dispatcher: impl Dispatcher<In, Func> + 'static) {
+        self.data.push_back(Box::new(dispatcher));
+    }
+    pub fn pop_back(&mut self) -> Option<Box<dyn Dispatcher<In, Func>>> {
+        self.data.pop_back()
+    }
+}
 #[test]
 fn test() {
     struct A;
 
-    impl Dispatcher<(), Box<dyn FnOnce() + Send>> for A {
-        fn dispatch(&mut self, _input: &mut ()) -> Result<Box<dyn FnOnce() + Send>, DispatchError> {
-            Ok(Box::new(|| {}))
+    impl Dispatcher<(), BoxedSystemFunction> for A {
+        fn dispatch(&mut self, _input: &mut ()) -> Result<BoxedSystemFunction, DispatchError> {
+            Ok(BoxedSystemFunction::new(|| {}))
         }
     }
 }

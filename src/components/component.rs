@@ -5,11 +5,11 @@ use std::{
 
 use crate::{
     impl_all,
-    par::storage::{ReadStorageGuard, Storage, WriteStorageGuard},
+    par::storage::{ReadStorageGuard, Storage, StorageError, WriteStorageGuard},
     scenes::entity::Entity,
 };
 
-pub trait Component:'static {}
+pub trait Component: 'static {}
 
 // type ComponentCollection<T> = BTreeMap<Entity, T>;
 pub struct ComponentMap<T>(BTreeMap<Entity, T>);
@@ -39,25 +39,23 @@ pub struct ComponentRegistry {
 impl ComponentRegistry {
     pub fn try_get_map<T: Component + 'static>(
         &mut self,
-    ) -> Option<ReadStorageGuard<ComponentMap<T>>> {
+    ) -> Result<ReadStorageGuard<ComponentMap<T>>, StorageError> {
         self.comps
-            .get(&TypeId::of::<T>())
-            .map(|x| {
-                x.downcast_ref::<ParComponents<T>>()
-                    .expect("the type of this value should be Components<T>")
-            })
-            .and_then(|x| x.try_read())
+            .entry(TypeId::of::<T>())
+            .or_insert_with(|| Box::new(ParComponents::<T>::new(ComponentMap::default())))
+            .downcast_ref::<ParComponents<T>>()
+            .expect("the type of this value should be Components<T>")
+            .try_read()
     }
     pub fn try_get_map_mut<T: Component + 'static>(
         &mut self,
-    ) -> Option<WriteStorageGuard<ComponentMap<T>>> {
+    ) -> Result<WriteStorageGuard<ComponentMap<T>>, StorageError> {
         self.comps
-            .get(&TypeId::of::<T>())
-            .map(|x| {
-                x.downcast_ref::<ParComponents<T>>()
-                    .expect("the type of this value should be Components<T>")
-            })
-            .and_then(|x: &Storage<ComponentMap<T>>| x.try_write())
+            .entry(TypeId::of::<T>())
+            .or_insert_with(|| Box::new(ParComponents::<T>::new(ComponentMap::default())))
+            .downcast_ref::<ParComponents<T>>()
+            .expect("the type of this value should be Components<T>")
+            .try_write()
     }
 }
 trait ComponentRefIterable {
