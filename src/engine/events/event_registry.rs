@@ -1,6 +1,5 @@
 use std::{
-    any::TypeId,
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     hash::Hash,
     time::{Duration, Instant},
 };
@@ -11,10 +10,6 @@ use winit::{
     event::{DeviceEvent, ElementState, Event, MouseButton, VirtualKeyCode, WindowEvent},
     window::WindowId,
 };
-
-use crate::components::resources::Resource;
-
-use super::matrix_event::{MatrixEvent, MatrixEventReceiver};
 
 struct ButtonEventGroup<T: Hash + Eq + Clone> {
     keys: HashSet<T>,
@@ -125,7 +120,6 @@ impl WindowEventRegistry {
 
 pub struct EventRegistry {
     windows: HashMap<WindowId, WindowEventRegistry>,
-    matrix_events: VecDeque<MatrixEvent>,
     start: Instant,
     mouse_delta: (f64, f64),
 }
@@ -134,33 +128,29 @@ impl EventRegistry {
     pub fn new() -> Self {
         Self {
             windows: Default::default(),
-            matrix_events: Default::default(),
             start: Instant::now(),
             mouse_delta: (0., 0.),
         }
     }
 
-    pub(crate) fn update(&mut self, recv: &MatrixEventReceiver) {
+    pub(crate) fn update(&mut self) {
         for i in &mut self.windows {
             i.1.update();
         }
-        self.matrix_events.clear();
-        for i in recv.iter_current() {
-            self.matrix_events.push_back(i);
-        }
+
         self.start = Instant::now();
         self.mouse_delta = (0.0, 0.0);
     }
 
-    fn push_window_event(&mut self, id: WindowId, event: WindowEvent<'_>) {
+    fn process_window_event(&mut self, id: WindowId, event: WindowEvent<'_>) {
         let events = self.windows.entry(id).or_default();
         events.push(event);
     }
-    pub(crate) fn push<T>(&mut self, event: Event<'_, T>) {
+    pub(crate) fn process<T>(&mut self, event: Event<'_, T>) {
         match event {
-            Event::WindowEvent { window_id, event } => self.push_window_event(window_id, event),
+            Event::WindowEvent { window_id, event } => self.process_window_event(window_id, event),
             Event::DeviceEvent { event, .. } => {
-                self.push_device_event(event);
+                self.process_device_event(event);
             }
             _ => {}
         }
@@ -170,22 +160,11 @@ impl EventRegistry {
         self.windows.get(&id).unwrap_or(&EMPTY_WINDOW_EVENTS)
     }
 
-    pub fn is_resource_created<T: Resource + 'static>(&self) -> bool {
-        let id = TypeId::of::<T>();
-        for i in &self.matrix_events {
-            if let MatrixEvent::CreatedResource(other_id) = i {
-                if &id == other_id {
-                    return true;
-                }
-            }
-        }
-        false
-    }
     pub fn calculate_delta_time(&self) -> Duration {
         Instant::now() - self.start
     }
 
-    fn push_device_event(&mut self, event: DeviceEvent) {
+    fn process_device_event(&mut self, event: DeviceEvent) {
         if let DeviceEvent::MouseMotion { delta } = event {
             self.mouse_delta = delta;
         }
