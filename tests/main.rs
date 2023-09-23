@@ -1,4 +1,4 @@
-use matrix_engine::engine::{engine::Engine, scene::SceneBuilder};
+use matrix_engine::engine::{scenes::scene_builder::SceneBuilder, Engine};
 
 fn main() {
     let engine = Engine::new();
