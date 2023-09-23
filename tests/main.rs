@@ -5,8 +5,8 @@ use matrix_engine::{
     },
     dispatchers::{
         context::{Context, ResourceHolderManager, SceneCreator},
-        dispatcher::{ReadEventLoopWindowTarget, ReadStorage, WriteStorage, DispatchedData},
-        function_systems::{Wrappable},
+        dispatcher::{DispatchedData, ReadEventLoopWindowTarget, ReadStorage, WriteStorage},
+        function_systems::Wrappable,
         systems::{AsyncSystem, ExclusiveSystem},
     },
     engine::{Engine, EngineArgs},
@@ -14,7 +14,7 @@ use matrix_engine::{
     events::event_registry::EventRegistry,
     schedulers::multi_threaded_scheduler::MultiThreadedScheduler,
 };
-use winit::{window::WindowBuilder};
+use winit::window::WindowBuilder;
 
 struct PanicSystem;
 
@@ -46,7 +46,11 @@ struct TakeA;
 impl AsyncSystem for TakeA {
     type Query = ReadStorage<ComponentCollection<A>>;
 
-    fn run(&mut self, _args: &matrix_engine::dispatchers::context::Context, comps: &mut Self::Query) {
+    fn run(
+        &mut self,
+        _args: &matrix_engine::dispatchers::context::Context,
+        comps: &mut Self::Query,
+    ) {
         assert!(comps.get().iter().count() > 0);
     }
 }
