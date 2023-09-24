@@ -20,6 +20,9 @@ impl<C: Component> Components<C> {
             map: Default::default(),
         }
     }
+    pub fn add(&mut self, e: Entity, c: C) {
+        self.map.insert(e, c);
+    }
     pub fn get(&self, e: &Entity) -> Option<&C> {
         self.map.get(e)
     }
@@ -72,6 +75,13 @@ impl ComponentRegistry {
             .unwrap()
             .clone()
             .try_write_owned()
+    }
+
+    pub fn try_add_component<C: Component + 'static>(&mut self, e: Entity, c: C) -> Result<(), C> {
+        match self.try_write() {
+            Ok(mut map) => Ok(map.add(e, c)),
+            Err(_) => Err(c),
+        }
     }
 }
 
