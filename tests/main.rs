@@ -1,7 +1,8 @@
-use matrix_engine::engine::{scenes::scene_builder::SceneBuilder, Engine};
+use matrix_engine::engine::{runtime::SingleThreaded, scenes::scene_builder::SceneBuilder, Engine};
 
 fn main() {
-    let engine = Engine::new();
+    let runtime = SingleThreaded;
+    let engine = Engine::new(runtime);
 
     let scene_builder = SceneBuilder::new(|_| {});
 

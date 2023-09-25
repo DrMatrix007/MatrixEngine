@@ -1,37 +1,32 @@
-pub mod engine;
+use winit::event_loop::EventLoop;
+
+use self::{
+    runtime::Runtime, scenes::scene_builder::SceneBuilder, systems::query::ComponentQueryArgs,
+};
+
 pub mod events;
+pub mod runtime;
 pub mod scenes;
 pub mod systems;
 
-use tokio::runtime::{self, Runtime};
-use winit::event_loop::EventLoop;
-
-use self::scenes::scene_builder::SceneBuilder;
-
 pub struct Engine {
     event_loop: EventLoop<()>,
-    runtime: Runtime,
+    runtime: Box<dyn Runtime<ComponentQueryArgs>>,
 }
 
 impl Engine {
-    pub fn new() -> Self {
+    pub fn new(runtime: impl Runtime<ComponentQueryArgs> + 'static) -> Self {
         Self {
             event_loop: EventLoop::new(),
-            runtime: runtime::Builder::new_multi_thread().build().unwrap(),
+            runtime: Box::new(runtime),
         }
     }
 
-    pub fn run(self, builder: &SceneBuilder) -> ! {
+    pub fn run(mut self, builder: &SceneBuilder) -> ! {
         let mut current_scene = builder.build();
 
         self.event_loop.run(move |event, target, control_flow| {
-            current_scene.process(event, target, &self.runtime, control_flow);
+            current_scene.process(event, target, self.runtime.as_mut(), control_flow);
         });
-    }
-}
-
-impl Default for Engine {
-    fn default() -> Self {
-        Self::new()
     }
 }
