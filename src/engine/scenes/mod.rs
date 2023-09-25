@@ -26,10 +26,10 @@ pub struct Scene {
 }
 
 impl Scene {
-    fn new(registry: SceneRegistry) -> Self {
+    fn new(registry: SceneRegistry,systems:SystemRegistry<ComponentQueryArgs>) -> Self {
         Self {
             registry: Arc::new(Mutex::new(registry)),
-            systems: Default::default(),
+            systems,
         }
     }
 

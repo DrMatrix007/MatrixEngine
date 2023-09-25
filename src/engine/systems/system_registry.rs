@@ -51,6 +51,9 @@ impl<Args> Default for SystemRegistry<Args> {
 }
 
 impl<Args> SystemRegistry<Args> {
+    pub fn new() -> Self {
+        Self::default()
+    }
     pub fn push_send(&mut self, sys: impl SystemSend<Args> + 'static) {
         self.send.push(BoxedSystemSend::new(sys));
     }
