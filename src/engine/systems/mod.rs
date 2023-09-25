@@ -7,12 +7,12 @@ use self::query::{ComponentQueryArgs, Query, QueryError, QuerySend};
 pub mod query;
 pub mod system_registry;
 
-pub trait Dispatcher<Args: 'static> {
-    fn dispatch(self, args: &mut Args) -> Result<Box<dyn FnOnce()>, QueryError>;
+pub trait Dispatcher<Args> {
+    fn dispatch(self, args: &mut Args) -> Result<Box<dyn FnOnce()>, (Self,QueryError)> where Self:Sized;
 }
 
-pub trait DispatcherSend<Args: 'static>: Dispatcher<Args> {
-    fn dispatch_send(self, args: &mut Args) -> Result<Box<dyn FnOnce() + Send>, QueryError>;
+pub trait DispatcherSend<Args>: Dispatcher<Args> {
+    fn dispatch_send(self, args: &mut Args) -> Result<Box<dyn FnOnce() + Send>, (Self,QueryError)>where Self:Sized;
 }
 pub trait System<Args = ComponentQueryArgs> {
     fn query(&self, args: &mut Args) -> Result<Box<dyn Any>, QueryError>;
@@ -55,25 +55,34 @@ where
 }
 
 impl<Args: 'static> Dispatcher<Args> for OwnedMutexGuard<dyn System<Args>> {
-    fn dispatch(mut self, args: &mut Args) -> Result<Box<dyn FnOnce()>, QueryError> {
-        let args = self.query(args)?;
+    fn dispatch(mut self, args: &mut Args) -> Result<Box<dyn FnOnce()>, (Self,QueryError)> {
+        let args = match self.query(args) {
+            Ok(b) => {b},
+            Err(e) => {return Err((self,e));},
+        };
         Ok(Box::new(move || {
             self.run_boxed_args(args).unwrap();
         }))
     }
 }
 impl<Args: 'static> Dispatcher<Args> for OwnedMutexGuard<dyn SystemSend<Args>> {
-    fn dispatch(mut self, args: &mut Args) -> Result<Box<dyn FnOnce()>, QueryError> {
-        let args = self.query(args)?;
+    fn dispatch(mut self, args: &mut Args) -> Result<Box<dyn FnOnce()>, (Self,QueryError)> {
+        let args = match self.query(args) {
+            Ok(b) => {b},
+            Err(e) => {return Err((self,e));},
+        };
         Ok(Box::new(move || {
             self.run_boxed_args(args).unwrap();
         }))
     }
 }
 
-impl<Args: 'static> DispatcherSend<Args> for OwnedMutexGuard<dyn SystemSend<Args>> {
-    fn dispatch_send(mut self, args: &mut Args) -> Result<Box<dyn FnOnce() + Send>, QueryError> {
-        let args = self.query_send(args)?;
+impl<Args:'static> DispatcherSend<Args> for OwnedMutexGuard<dyn SystemSend<Args>> {
+    fn dispatch_send(mut self, args: &mut Args) -> Result<Box<dyn FnOnce() + Send>, (Self,QueryError)> {
+        let args = match self.query_send(args) {
+            Ok(b) => {b},
+            Err(e) => {return Err((self,e));},
+        };
         Ok(Box::new(move || {
             self.run_boxed_args(args).unwrap();
         }))

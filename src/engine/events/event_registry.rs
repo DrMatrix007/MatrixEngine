@@ -66,7 +66,7 @@ lazy_static! {
 }
 
 impl WindowEventRegistry {
-    pub(crate) fn push(&mut self, event: WindowEvent<'_>) {
+    pub(crate) fn push(&mut self, event: &WindowEvent<'_>) {
         match event {
             WindowEvent::KeyboardInput {
                 device_id: _,
@@ -81,14 +81,14 @@ impl WindowEventRegistry {
                 }
             }
             WindowEvent::Resized(size) => {
-                self.new_size = Some(size);
+                self.new_size = Some(*size);
             }
             WindowEvent::CloseRequested => {
                 self.close_requested = true;
             }
             WindowEvent::MouseInput { state, button, .. } => match state {
-                ElementState::Pressed => self.mouse.insert(button),
-                ElementState::Released => self.mouse.remove(button),
+                ElementState::Pressed => self.mouse.insert(*button),
+                ElementState::Released => self.mouse.remove(*button),
             },
             _ => {}
         };
@@ -142,11 +142,11 @@ impl EventRegistry {
         self.mouse_delta = (0.0, 0.0);
     }
 
-    fn process_window_event(&mut self, id: WindowId, event: WindowEvent<'_>) {
-        let events = self.windows.entry(id).or_default();
+    fn process_window_event(&mut self, id: &WindowId, event: &WindowEvent<'_>) {
+        let events = self.windows.entry(*id).or_default();
         events.push(event);
     }
-    pub(crate) fn process<T>(&mut self, event: Event<'_, T>) {
+    pub(crate) fn process<T>(&mut self, event: &Event<'_, T>) {
         match event {
             Event::WindowEvent { window_id, event } => self.process_window_event(window_id, event),
             Event::DeviceEvent { event, .. } => {
@@ -164,9 +164,9 @@ impl EventRegistry {
         Instant::now() - self.start
     }
 
-    fn process_device_event(&mut self, event: DeviceEvent) {
+    fn process_device_event(&mut self, event: &DeviceEvent) {
         if let DeviceEvent::MouseMotion { delta } = event {
-            self.mouse_delta = delta;
+            self.mouse_delta = *delta;
         }
     }
 

@@ -3,10 +3,11 @@ use std::{
     sync::{
         atomic::{AtomicIsize, Ordering},
         mpsc::{channel, Receiver, SendError, Sender},
-        Arc, Mutex,
+        Arc,
     },
     thread::{self, JoinHandle},
 };
+use tokio::sync::Mutex;
 
 pub enum Job<T> {
     Work(Box<dyn FnOnce() -> T + Send>),
@@ -53,20 +54,39 @@ impl<'a, T> Drop for PosionPill<'a, T> {
 }
 
 impl<T: Send + 'static> Worker<T> {
-    fn new(jobs: Arc<Mutex<Receiver<Job<T>>>>, done: Sender<JobResult<T>>) -> Self {
+    fn new(
+        jobs: Arc<Mutex<Receiver<Job<T>>>>,
+        done: Sender<JobResult<T>>,
+        proxies: Arc<Mutex<Vec<Box<dyn FnMut(&mut T) + Send>>>>,
+    ) -> Self {
         Self {
-            _handle: std::thread::spawn(|| Worker::run_thread(jobs, done)),
+            _handle: std::thread::spawn(|| Worker::run_thread(jobs, done, proxies)),
             marker: PhantomData,
         }
     }
-    fn run_thread(jobs: Arc<Mutex<Receiver<Job<T>>>>, done: Sender<JobResult<T>>) {
+    fn run_thread(
+        jobs: Arc<Mutex<Receiver<Job<T>>>>,
+        done: Sender<JobResult<T>>,
+        proxies: Arc<Mutex<Vec<Box<dyn FnMut(&mut T) + Send>>>>,
+    ) {
         let _pill = PosionPill::new(&done);
         loop {
-            let job = jobs.lock().expect("the value should be accessible").recv();
+            let mutex_lock = jobs.blocking_lock();
+            let job = mutex_lock.recv();
+            drop(mutex_lock);
             match job {
                 Ok(job) => match job {
                     Job::Work(job) => {
-                        let ans = job();
+                        let mut ans = job();
+
+                        let mut proxies = proxies.blocking_lock();
+
+                        for p in proxies.iter_mut() {
+                            p(&mut ans);
+                        }
+
+                        drop(proxies);
+
                         if done.send(Ok(ans)).is_err() {
                             return;
                         }
@@ -88,25 +108,35 @@ pub struct ThreadPool<T: Send> {
     job_sender: Sender<Job<T>>,
     data_receiver: Receiver<JobResult<T>>,
     job_counter: Arc<AtomicIsize>,
+    proxies: Arc<Mutex<Vec<Box<dyn FnMut(&mut T) + Send>>>>,
 }
 
 impl<T: Send + 'static> ThreadPool<T> {
-    pub fn new(size: usize) -> Self {
-        assert!(size > 0);
-        let mut threads = Vec::with_capacity(size);
+    pub fn new(threads_count: usize) -> Self {
+        let proxies = Arc::new(Mutex::new(vec![]));
+        assert!(threads_count > 0);
+        let mut threads = Vec::with_capacity(threads_count);
         let (job_sender, job_receiver) = channel();
         let (data_sender, data_receiver) = channel();
         let job_receive = Arc::new(Mutex::new(job_receiver));
-        for _ in 0..size {
-            threads.push(Worker::new(job_receive.clone(), data_sender.clone()));
+        for _ in 0..threads_count {
+            threads.push(Worker::new(
+                job_receive.clone(),
+                data_sender.clone(),
+                proxies.clone(),
+            ));
         }
 
         Self {
             threads,
             job_sender,
             data_receiver,
+            proxies,
             job_counter: Arc::new(0.into()),
         }
+    }
+    pub fn add_proxy(&self,f:impl FnMut(&mut T) + Send+'static) {
+        self.proxies.blocking_lock().push(Box::new(f));
     }
 
     pub fn add<F: FnOnce() -> T + Send + 'static>(
@@ -210,7 +240,6 @@ impl<T> ThreadPoolSender<T> {
 }
 
 mod tests {
-
     #[test]
     pub fn thread_pool_test() {
         use crate::engine::runtime::thread_pool::ThreadPool;
@@ -231,5 +260,23 @@ mod tests {
             data.remove(&i.unwrap());
         }
         println!("{:?}", data);
+    }
+
+    #[test]
+    pub fn test_mutex() {
+        use super::ThreadPool;
+        use std::sync::Arc;
+        use tokio::sync::Mutex;
+
+        let m = Arc::new(Mutex::new(0));
+        let mm = m.clone();
+        let pool = ThreadPool::new(2);
+
+        pool.add(move || {
+            let _ = m.blocking_lock();
+        })
+        .unwrap();
+
+        let _ = mm.blocking_lock();
     }
 }

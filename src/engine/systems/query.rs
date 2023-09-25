@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use tokio::sync::{OwnedRwLockReadGuard, OwnedRwLockWriteGuard};
+use tokio::sync::{OwnedMutexGuard, OwnedRwLockReadGuard, OwnedRwLockWriteGuard};
 
 use crate::{
     engine::{
@@ -29,11 +29,11 @@ pub trait Query<Args> {
 }
 
 pub struct ComponentQueryArgs {
-    registry: OwnedRwLockWriteGuard<SceneRegistry>,
+    registry: OwnedMutexGuard<SceneRegistry>,
 }
 
 impl ComponentQueryArgs {
-    pub fn new(registry: OwnedRwLockWriteGuard<SceneRegistry>) -> Self {
+    pub fn new(registry: OwnedMutexGuard<SceneRegistry>) -> Self {
         Self { registry }
     }
 

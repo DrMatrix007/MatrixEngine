@@ -63,4 +63,9 @@ impl<Args> SystemRegistry<Args> {
     ) -> impl Iterator<Item = OwnedMutexGuard<dyn SystemSend<Args>>> + 'a {
         self.send.iter().filter_map(|x| x.clone().try_lock().ok())
     }
+    pub fn try_lock_iter_non_send<'a>(
+        &'a self,
+    ) -> impl Iterator<Item = OwnedMutexGuard<dyn System<Args>>> + 'a {
+        self.non_send.iter().filter_map(|x| x.clone().try_lock().ok())
+    }
 }
