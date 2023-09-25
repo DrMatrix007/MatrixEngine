@@ -1,3 +1,5 @@
+pub mod entity_builder;
+
 use std::sync::atomic::AtomicUsize;
 
 static COUNTER: AtomicUsize = AtomicUsize::new(0);
