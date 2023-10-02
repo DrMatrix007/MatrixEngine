@@ -7,7 +7,7 @@ use self::thread_pool::ThreadPool;
 
 use super::{
     events::engine_event::EngineEvent,
-    systems::{Dispatcher, DispatcherSend, System, SystemSend},
+    systems::{system_registry::SystemRegistry, Dispatcher, DispatcherSend, System, SystemSend},
 };
 
 pub mod thread_pool;
@@ -16,6 +16,16 @@ pub trait Runtime<Args> {
     fn add_send(&mut self, s: OwnedMutexGuard<dyn SystemSend<Args>>, args: &mut Args);
 
     fn add_non_send(&mut self, s: OwnedMutexGuard<dyn System<Args>>, args: &mut Args);
+
+    fn add_available(&mut self, system_registry: &mut SystemRegistry<Args>, args: &mut Args) {
+        for i in system_registry.try_lock_iter_non_send() {
+            self.add_non_send(i, args)
+        }
+
+        for i in system_registry.try_lock_iter_non_send() {
+            self.add_non_send(i, args)
+        }
+    }
 
     fn process_engine_event(&mut self, event: &EngineEvent, args: &mut Args) {}
 

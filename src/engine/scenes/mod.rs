@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, OwnedMutexGuard, TryLockError};
 use winit::{
     event::Event,
     event_loop::{ControlFlow, EventLoopWindowTarget},
@@ -8,7 +8,10 @@ use winit::{
 
 use crate::engine::events::event_registry::EventRegistry;
 
-use self::components::component_registry::ComponentRegistry;
+use self::{
+    components::component_registry::ComponentRegistry,
+    resources::resource_registry::ResourceRegistry,
+};
 
 use super::{
     events::engine_event::EngineEvent,
@@ -18,6 +21,7 @@ use super::{
 
 pub mod components;
 pub mod entities;
+pub mod resources;
 pub mod scene_builder;
 
 pub struct Scene {
@@ -26,7 +30,7 @@ pub struct Scene {
 }
 
 impl Scene {
-    fn new(registry: SceneRegistry,systems:SystemRegistry<ComponentQueryArgs>) -> Self {
+    fn new(registry: SceneRegistry, systems: SystemRegistry<ComponentQueryArgs>) -> Self {
         Self {
             registry: Arc::new(Mutex::new(registry)),
             systems,
@@ -34,19 +38,17 @@ impl Scene {
     }
 
     fn frame(
-        &self,
+        &mut self,
         runtime: &mut dyn Runtime<ComponentQueryArgs>,
         _target: &EventLoopWindowTarget<EngineEvent>,
+        resources: OwnedMutexGuard<ResourceRegistry>,
     ) -> ControlFlow {
-        let reg = self.registry.clone().try_lock_owned().unwrap();
-        let mut args = ComponentQueryArgs::new(reg);
+        let scene_reg = self.try_lock_registry().unwrap();
+        runtime.add_available(
+            &mut self.systems,
+            &mut ComponentQueryArgs::new(scene_reg, resources),
+        );
 
-        for sys in self.systems.try_lock_iter_send() {
-            runtime.add_send(sys, &mut args);
-        }
-        for sys in self.systems.try_lock_iter_non_send() {
-            runtime.add_non_send(sys, &mut args);
-        }
         ControlFlow::Poll
     }
 
@@ -55,11 +57,12 @@ impl Scene {
         event: &Event<EngineEvent>,
         target: &EventLoopWindowTarget<EngineEvent>,
         runtime: &mut dyn Runtime<ComponentQueryArgs>,
+        resources: OwnedMutexGuard<ResourceRegistry>,
         control_flow: &mut ControlFlow,
     ) {
         match event {
             Event::MainEventsCleared => {
-                *control_flow = self.frame(runtime, target);
+                *control_flow = self.frame(runtime, target, resources);
             }
             event => {
                 self.registry
@@ -73,6 +76,10 @@ impl Scene {
 
     pub fn registry(&self) -> &Arc<Mutex<SceneRegistry>> {
         &self.registry
+    }
+
+    pub(crate) fn try_lock_registry(&self) -> Result<OwnedMutexGuard<SceneRegistry>, TryLockError> {
+        self.registry.clone().try_lock_owned()
     }
 }
 

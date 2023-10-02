@@ -3,7 +3,7 @@ use matrix_engine::engine::{
     scenes::{
         components::Component, entities::entity_builder::EntityBuilder, scene_builder::SceneBuilder,
     },
-    systems::{query::ReadC, SceneSystem},
+    systems::{query::components::ReadC, QuerySystem},
     Engine,
 };
 #[derive(Debug)]
@@ -13,7 +13,7 @@ impl Component for A {}
 
 struct SysA;
 
-impl SceneSystem for SysA {
+impl QuerySystem for SysA {
     type Query = ReadC<A>;
 
     fn run(

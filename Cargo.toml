@@ -7,7 +7,9 @@ edition = "2021"
 lazy_static = "1.4.0"
 spin_sleep = "1.1.1"
 tokio = {version ="*",features = ["sync"]}
+wgpu = "0.17.1"
 winit = "0.28.3"
+
 
 [[test]]
 path= "tests/main.rs"
