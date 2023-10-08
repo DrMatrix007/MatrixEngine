@@ -16,13 +16,11 @@ struct SysA;
 impl QuerySystem for SysA {
     type Query = ReadC<A>;
 
-    fn run(
-        &mut self,
-        _args: &mut <Self::Query as matrix_engine::engine::systems::query::Query<
-            matrix_engine::engine::systems::query::ComponentQueryArgs,
-        >>::Target,
-    ) {
+    fn run(&mut self, args: &mut <Self::Query as matrix_engine::engine::systems::query::Query<matrix_engine::engine::systems::query::ComponentQueryArgs>>::Target) -> matrix_engine::engine::systems::DispathcerState {
+        todo!()
     }
+
+   
 }
 
 fn main() {

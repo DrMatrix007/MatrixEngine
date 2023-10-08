@@ -1,13 +1,24 @@
+use winit::window::Window;
 
-use crate::engine::systems::QuerySystem;
+use crate::engine::{
+    scenes::resources::Resource,
+    systems::{query::resources::ReadR, QuerySystem},
+};
 
-pub struct RendererSystem { 
-}
+impl Resource for Window {}
 
-impl QuerySystem for RendererSystem {
-    type Query = ();
 
-    fn run(&mut self, args: &mut <Self::Query as crate::engine::systems::query::Query<crate::engine::systems::query::ComponentQueryArgs>>::Target) {
-        
-    }
-}
+
+pub struct RendererSystem {}
+
+// impl QuerySystem for RendererSystem {
+//     type Query = ReadR<Window>;
+
+//     fn run(
+//         &mut self,
+//         args: &mut <Self::Query as crate::engine::systems::query::Query<
+//             crate::engine::systems::query::ComponentQueryArgs,
+//         >>::Target,
+//     ) {
+//     }
+// }

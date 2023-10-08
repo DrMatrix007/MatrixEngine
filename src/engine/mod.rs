@@ -4,7 +4,10 @@ use std::{
 };
 
 use tokio::sync::Mutex;
-use winit::{event::Event, event_loop::EventLoopBuilder};
+use winit::{
+    event::Event,
+    event_loop::{EventLoop, EventLoopBuilder},
+};
 
 use self::{
     events::engine_event::EngineEvent,
@@ -23,6 +26,7 @@ pub struct Engine {
     target_fps: AtomicUsize,
     engine_systems: SystemRegistry<ComponentQueryArgs>,
     engine_resources: Arc<Mutex<ResourceRegistry>>,
+    event_loop: Option<EventLoop<EngineEvent>>,
 }
 
 impl Engine {
@@ -32,13 +36,14 @@ impl Engine {
             target_fps: fps.into(),
             engine_systems: Default::default(),
             engine_resources: Default::default(),
+            event_loop: Some(EventLoopBuilder::<EngineEvent>::with_user_event().build()),
         }
     }
 
     pub fn run(mut self, builder: &SceneBuilder) -> ! {
         let mut current_scene = builder.build();
 
-        let event_loop = EventLoopBuilder::<EngineEvent>::with_user_event().build();
+        let event_loop = self.event_loop.take().unwrap();
 
         self.runtime.use_event_loop_proxy(event_loop.create_proxy());
 

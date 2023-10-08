@@ -1,36 +1,63 @@
-use std::any::Any;
+use std::{
+    any::Any,
+    cell::{Cell, RefCell, UnsafeCell},
+};
 
 use tokio::sync::OwnedMutexGuard;
 
-use self::query::{ComponentQueryArgs, Query, QueryError, QuerySend};
+use self::{
+    query::{ComponentQueryArgs, Query, QueryCleanup, QueryError, QuerySend},
+    system_registry::{SystemRef, SystemSendRef},
+};
 
 pub mod query;
 pub mod system_registry;
 
+pub enum DispathcerState {
+    Continue,
+    Quit,
+    Remove,
+}
+
 pub trait Dispatcher<Args> {
-    fn dispatch(self, args: &mut Args) -> Result<Box<dyn FnOnce()>, (Self, QueryError)>
+    type Result;
+    fn dispatch(
+        self,
+        args: &mut Args,
+    ) -> Result<Box<dyn FnOnce() -> Self::Result>, (Self, QueryError)>
     where
         Self: Sized;
 }
 
-pub trait DispatcherSend<Args>: Dispatcher<Args> {
-    fn dispatch_send(self, args: &mut Args) -> Result<Box<dyn FnOnce() + Send>, (Self, QueryError)>
+pub trait DispatcherSend<Args>: Dispatcher<Args>
+where
+    Self::Result: Send,
+{
+    fn dispatch_send(
+        self,
+        args: &mut Args,
+    ) -> Result<Box<dyn FnOnce() -> Self::Result + Send>, (Self, QueryError)>
     where
         Self: Sized;
 }
 pub trait System<Args = ComponentQueryArgs> {
     fn prepare_args(&self, args: &mut Args) -> Result<Box<dyn Any>, QueryError>;
-    fn run_boxed_args(&mut self, args: Box<dyn Any>) -> Result<(), ()>;
+    fn run_boxed_args(&mut self, args: Box<dyn Any>) -> Result<Box<dyn QueryCleanup<Args>>, ()>;
 }
 
 pub trait QuerySystem<Args = ComponentQueryArgs>: System<Args> {
     type Query: Query<Args>;
 
-    fn run(&mut self, args: &mut <Self::Query as Query<Args>>::Target);
+    fn run(&mut self, args: &mut Self::Query) -> DispathcerState;
 }
 
 pub trait SystemSend<Args>: Send + System<Args> {
     fn prepare_args_send(&self, args: &mut Args) -> Result<Box<dyn Any + Send + Sync>, QueryError>;
+
+    fn run_boxed_args_send(
+        &mut self,
+        args: Box<dyn Any + Send + Sync>,
+    ) -> Result<Box<dyn QueryCleanup<Args> + Send + Sync>, ()>;
 }
 
 impl<Args, S: QuerySystem<Args> + Send> System<Args> for S {
@@ -38,66 +65,94 @@ impl<Args, S: QuerySystem<Args> + Send> System<Args> for S {
         Ok(<S::Query as Query<Args>>::get(args).map(|x| Box::new(x))?)
     }
 
-    fn run_boxed_args(&mut self, mut args: Box<dyn Any>) -> Result<(), ()> {
-        match args.downcast_mut() {
-            Some(mut args) => {
+    fn run_boxed_args(
+        &mut self,
+        mut args: Box<dyn Any>,
+    ) -> Result<Box<dyn QueryCleanup<Args>>, ()> {
+        match args.downcast() {
+            Ok(mut args) => {
                 self.run(&mut args);
-                Ok(())
+                Ok(args)
             }
-            None => Err(()),
+            Err(_) => Err(()),
         }
     }
 }
 impl<Args: 'static, S: QuerySystem<Args> + Send> SystemSend<Args> for S
 where
-    <S::Query as Query<Args>>::Target: Send + Sync,
     S::Query: QuerySend<Args>,
 {
     fn prepare_args_send(&self, args: &mut Args) -> Result<Box<dyn Any + Send + Sync>, QueryError> {
-        Ok(<S::Query as Query<Args>>::get(args).map(|x| Box::new(x))?)
+        Ok(<S::Query as QuerySend<Args>>::get(args).map(|x| Box::new(x))?)
+    }
+
+    fn run_boxed_args_send(
+        &mut self,
+        args: Box<dyn Any + Send + Sync>,
+    ) -> Result<Box<dyn QueryCleanup<Args> + Send + Sync>, ()> {
+        match args.downcast() {
+            Ok(mut args) => {
+                self.run(&mut args);
+                Ok(args)
+            }
+            Err(_) => Err(()),
+        }
     }
 }
 
-impl<Args: 'static> Dispatcher<Args> for OwnedMutexGuard<dyn System<Args>> {
-    fn dispatch(mut self, args: &mut Args) -> Result<Box<dyn FnOnce()>, (Self, QueryError)> {
-        let args = match self.prepare_args(args) {
+impl<Args: 'static> Dispatcher<Args> for SystemRef<Args> {
+    type Result = Box<dyn QueryCleanup<Args>>;
+    fn dispatch(
+        mut self,
+        args: &mut Args,
+    ) -> Result<Box<dyn FnOnce() -> Self::Result>, (Self, QueryError)> {
+        let args = match unsafe { self.system_mut() }.prepare_args(args) {
             Ok(b) => b,
             Err(e) => {
                 return Err((self, e));
             }
         };
         Ok(Box::new(move || {
-            self.run_boxed_args(args).unwrap();
+            unsafe { self.system_mut() }.run_boxed_args(args).unwrap()
         }))
     }
 }
-impl<Args: 'static> Dispatcher<Args> for OwnedMutexGuard<dyn SystemSend<Args>> {
-    fn dispatch(mut self, args: &mut Args) -> Result<Box<dyn FnOnce()>, (Self, QueryError)> {
-        let args = match self.prepare_args(args) {
+impl<Args: 'static> Dispatcher<Args> for SystemSendRef<Args> {
+    type Result = Box<dyn QueryCleanup<Args> + Send + Sync>;
+
+    fn dispatch(
+        mut self,
+        args: &mut Args,
+    ) -> Result<Box<dyn FnOnce() -> Self::Result>, (Self, QueryError)> {
+        let args = match unsafe { self.system_mut() }.prepare_args_send(args) {
             Ok(b) => b,
             Err(e) => {
                 return Err((self, e));
             }
         };
         Ok(Box::new(move || {
-            self.run_boxed_args(args).unwrap();
+            unsafe { self.system_mut() }
+                .run_boxed_args_send(args)
+                .unwrap()
         }))
     }
 }
 
-impl<Args: 'static> DispatcherSend<Args> for OwnedMutexGuard<dyn SystemSend<Args>> {
+impl<Args: 'static> DispatcherSend<Args> for SystemSendRef<Args> {
     fn dispatch_send(
         mut self,
         args: &mut Args,
-    ) -> Result<Box<dyn FnOnce() + Send>, (Self, QueryError)> {
-        let args = match self.prepare_args_send(args) {
+    ) -> Result<Box<dyn FnOnce() -> Self::Result + Send>, (Self, QueryError)> {
+        let args = match unsafe { self.system_mut() }.prepare_args_send(args) {
             Ok(b) => b,
             Err(e) => {
                 return Err((self, e));
             }
         };
         Ok(Box::new(move || {
-            self.run_boxed_args(args).unwrap();
+            unsafe { self.system_mut() }
+                .run_boxed_args_send(args)
+                .unwrap()
         }))
     }
 }
@@ -110,7 +165,7 @@ mod tests {
 
     use crate::engine::scenes::components::Component;
 
-    use super::{query::components::ReadC, QuerySystem, SystemSend};
+    use super::{query::components::ReadC, DispathcerState, QuerySystem, SystemSend};
 
     struct A;
     impl Component for A {}
@@ -120,10 +175,8 @@ mod tests {
     impl QuerySystem for SysA {
         type Query = ReadC<A>;
 
-        fn run(
-            &mut self,
-            args: &mut <Self::Query as super::query::Query<super::query::ComponentQueryArgs>>::Target,
-        ) {
+        fn run(&mut self, args: &mut Self::Query) -> DispathcerState {
+            DispathcerState::Continue
         }
     }
 

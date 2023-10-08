@@ -7,15 +7,18 @@ use self::thread_pool::ThreadPool;
 
 use super::{
     events::engine_event::EngineEvent,
-    systems::{system_registry::SystemRegistry, Dispatcher, DispatcherSend, System, SystemSend},
+    systems::{
+        system_registry::{BoxedSystemSend, SystemRef, SystemRegistry, SystemSendRef},
+        Dispatcher, DispatcherSend, System, SystemSend,
+    },
 };
 
 pub mod thread_pool;
 
 pub trait Runtime<Args> {
-    fn add_send(&mut self, s: OwnedMutexGuard<dyn SystemSend<Args>>, args: &mut Args);
+    fn add_send(&mut self, s: SystemSendRef<Args>, args: &mut Args);
 
-    fn add_non_send(&mut self, s: OwnedMutexGuard<dyn System<Args>>, args: &mut Args);
+    fn add_non_send(&mut self, s: SystemRef<Args>, args: &mut Args);
 
     fn add_available(&mut self, system_registry: &mut SystemRegistry<Args>, args: &mut Args) {
         for i in system_registry.try_lock_iter_non_send() {
@@ -43,11 +46,11 @@ impl SingleThreaded {
 }
 
 impl<Args: 'static> Runtime<Args> for SingleThreaded {
-    fn add_send(&mut self, s: OwnedMutexGuard<dyn SystemSend<Args>>, args: &mut Args) {
+    fn add_send(&mut self, s: SystemSendRef<Args>, args: &mut Args) {
         s.dispatch(args).map_err(|e| (e.1)).unwrap()();
     }
 
-    fn add_non_send(&mut self, s: OwnedMutexGuard<dyn System<Args>>, args: &mut Args) {
+    fn add_non_send(&mut self, s: SystemRef<Args>, args: &mut Args) {
         s.dispatch(args).map_err(|e| (e.1)).unwrap()();
     }
 
@@ -57,9 +60,9 @@ impl<Args: 'static> Runtime<Args> for SingleThreaded {
 }
 
 pub struct MultiThreaded<Args> {
-    pool: ThreadPool<()>,
-    send_queue: VecDeque<OwnedMutexGuard<dyn SystemSend<Args>>>,
-    non_send_queue: VecDeque<OwnedMutexGuard<dyn System<Args>>>,
+    pool: ThreadPool,
+    send_queue: VecDeque<SystemSendRef<Args>>,
+    non_send_queue: VecDeque<SystemRef<Args>>,
     proxy: Arc<Mutex<Option<EventLoopProxy<EngineEvent>>>>,
 }
 
@@ -80,10 +83,14 @@ impl<Args: 'static> MultiThreaded<Args> {
         }
     }
 
-    fn try_run_send(&mut self, s: OwnedMutexGuard<dyn SystemSend<Args>>, args: &mut Args) {
+    fn try_run_send(&mut self, s: SystemSendRef<Args>, args: &mut Args) {
         match s.dispatch_send(args) {
             Ok(f) => {
-                self.pool.add(f).unwrap();
+                self.pool
+                    .add(|| {
+                        f();
+                    })
+                    .unwrap();
             }
             Err((s, e)) => {
                 self.send_queue.push_back(s);
@@ -91,7 +98,7 @@ impl<Args: 'static> MultiThreaded<Args> {
         };
     }
 
-    fn try_run_non_send(&mut self, s: OwnedMutexGuard<dyn System<Args>>, args: &mut Args) {
+    fn try_run_non_send(&mut self, s: SystemRef<Args>, args: &mut Args) {
         match s.dispatch(args) {
             Ok(f) => {
                 f();
@@ -104,11 +111,11 @@ impl<Args: 'static> MultiThreaded<Args> {
 }
 
 impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
-    fn add_send(&mut self, s: OwnedMutexGuard<dyn SystemSend<Args>>, args: &mut Args) {
+    fn add_send(&mut self, s: SystemSendRef<Args>, args: &mut Args) {
         self.try_run_send(s, args);
     }
 
-    fn add_non_send(&mut self, s: OwnedMutexGuard<dyn System<Args>>, args: &mut Args) {
+    fn add_non_send(&mut self, s: SystemRef<Args>, args: &mut Args) {
         self.try_run_non_send(s, args);
     }
 

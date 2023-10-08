@@ -103,7 +103,7 @@ impl<T: Send + 'static> Worker<T> {
     }
 }
 
-pub struct ThreadPool<T: Send> {
+pub struct ThreadPool<T: Send = ()> {
     threads: Vec<Worker<T>>,
     job_sender: Sender<Job<T>>,
     data_receiver: Receiver<JobResult<T>>,
@@ -135,7 +135,7 @@ impl<T: Send + 'static> ThreadPool<T> {
             job_counter: Arc::new(0.into()),
         }
     }
-    pub fn add_proxy(&self,f:impl FnMut(&mut T) + Send+'static) {
+    pub fn add_proxy(&self, f: impl FnMut(&mut T) + Send + 'static) {
         self.proxies.blocking_lock().push(Box::new(f));
     }
 
