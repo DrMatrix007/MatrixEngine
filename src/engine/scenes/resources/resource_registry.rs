@@ -4,11 +4,7 @@ use std::{
     collections::BTreeMap,
     ops::{Deref, DerefMut},
     ptr::NonNull,
-    rc::Rc,
-    sync::Arc,
 };
-
-use tokio::sync::{OwnedRwLockReadGuard, OwnedRwLockWriteGuard, RwLock};
 
 use super::Resource;
 
@@ -18,19 +14,13 @@ pub struct ResourceRegistry {
 }
 
 #[derive(Debug)]
-pub enum ResourcesState<T: Resource> {
-    Write(Rc<UnsafeCell<ResourceHolder<T>>>),
-    Read(Rc<UnsafeCell<ResourceHolder<T>>>),
-    Taken,
-}
-#[derive(Debug)]
 pub struct ResourcesNotAvailable;
 
 pub struct ResourceRef<T: Resource> {
     ptr: NonNull<ResourceHolder<T>>,
 }
 unsafe impl<T: Resource + Send> Send for ResourceRef<T> {}
-unsafe impl<T: Resource + Send> Sync for ResourceRef<T> {}
+unsafe impl<T: Resource + Sync> Sync for ResourceRef<T> {}
 
 impl<T: Resource> Deref for ResourceRef<T> {
     type Target = ResourceHolder<T>;
@@ -45,7 +35,7 @@ pub struct ResourceMut<T: Resource> {
 }
 
 unsafe impl<T: Resource + Send> Send for ResourceMut<T> {}
-unsafe impl<T: Resource + Send> Sync for ResourceMut<T> {}
+unsafe impl<T: Resource + Sync> Sync for ResourceMut<T> {}
 
 impl<T: Resource> DerefMut for ResourceMut<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
@@ -72,29 +62,71 @@ impl<T: Resource> ResourceMut<T> {
     }
 }
 
-impl<T: Resource> ResourcesState<T> {
+#[derive(Debug)]
+pub struct NotSuitableResourceRecieve;
+#[derive(Debug)]
+enum State {
+    Write,
+    Read(i64),
+    Taken,
+}
+
+#[derive(Debug)]
+pub struct ResourceState<T: Resource> {
+    comps: Box<UnsafeCell<ResourceHolder<T>>>,
+    state: State,
+}
+
+impl<T: Resource> ResourceState<T> {
+    pub fn new(comps: Box<UnsafeCell<ResourceHolder<T>>>) -> Self {
+        Self {
+            comps,
+            state: State::Write,
+        }
+    }
     fn try_read(&mut self) -> Result<ResourceRef<T>, ResourcesNotAvailable> {
-        match self {
-            ResourcesState::Write(a) => {
-                let a = a.clone();
-                let r = ResourceRef::new(NonNull::new(a.get()).unwrap());
-                *self = ResourcesState::Read(a);
-                Ok(r)
+        match &mut self.state {
+            State::Write => {
+                self.state = State::Read(1);
+                Ok(ResourceRef::new(NonNull::new(self.comps.get()).unwrap()))
             }
-            ResourcesState::Read(a) => Ok(ResourceRef::new(NonNull::new(a.get()).unwrap())),
-            ResourcesState::Taken => Err(ResourcesNotAvailable),
+            State::Read(counter) => {
+                *counter += 1;
+                Ok(ResourceRef::new(NonNull::new(self.comps.get()).unwrap()))
+            }
+            State::Taken => Err(ResourcesNotAvailable),
         }
     }
 
     fn try_write(&mut self) -> Result<ResourceMut<T>, ResourcesNotAvailable> {
-        match self {
-            ResourcesState::Write(a) => {
-                let r = ResourceMut::new(NonNull::new(a.get()).unwrap());
-                *self = ResourcesState::Taken;
-
-                Ok(r)
+        match &self.state {
+            State::Write => {
+                self.state = State::Taken;
+                Ok(ResourceMut::new(NonNull::new(self.comps.get()).unwrap()))
             }
             _ => Err(ResourcesNotAvailable),
+        }
+    }
+
+    fn recieve_ref(&mut self, comps: &ResourceRef<T>) -> Result<(), NotSuitableResourceRecieve> {
+        match &mut self.state {
+            State::Read(count) => match count {
+                count if *count > 0 => {
+                    *count -= 1;
+                    Ok(())
+                }
+                _ => Err(NotSuitableResourceRecieve),
+            },
+            _ => Err(NotSuitableResourceRecieve),
+        }
+    }
+    fn recieve_mut(&mut self, comps: &ResourceMut<T>) -> Result<(), NotSuitableResourceRecieve> {
+        match &mut self.state {
+            State::Taken => {
+                self.state = State::Write;
+                Ok(())
+            }
+            _ => Err(NotSuitableResourceRecieve),
         }
     }
 }
@@ -106,11 +138,11 @@ impl ResourceRegistry {
         self.map
             .entry(TypeId::of::<R>())
             .or_insert_with(|| {
-                Box::new(ResourcesState::Read(Rc::new(UnsafeCell::new(
+                Box::new(ResourceState::new(Box::new(UnsafeCell::new(
                     ResourceHolder::<R>::default(),
                 ))))
             })
-            .downcast_mut::<ResourcesState<R>>()
+            .downcast_mut::<ResourceState<R>>()
             .unwrap()
             .try_read()
     }
@@ -121,13 +153,44 @@ impl ResourceRegistry {
         self.map
             .entry(TypeId::of::<C>())
             .or_insert_with(|| {
-                Box::new(ResourcesState::Write(Rc::new(UnsafeCell::new(
+                Box::new(ResourceState::new(Box::new(UnsafeCell::new(
                     ResourceHolder::<C>::default(),
                 ))))
             })
-            .downcast_mut::<ResourcesState<C>>()
+            .downcast_mut::<ResourceState<C>>()
             .unwrap()
             .try_write()
+    }
+
+    pub fn try_recieve_mut<R: Resource + 'static>(
+        &mut self,
+        comps: &ResourceMut<R>,
+    ) -> Result<(), NotSuitableResourceRecieve> {
+        self.map
+            .entry(TypeId::of::<R>())
+            .or_insert_with(|| {
+                Box::new(ResourceState::new(Box::new(UnsafeCell::new(
+                    ResourceHolder::<R>::default(),
+                ))))
+            })
+            .downcast_mut::<ResourceState<R>>()
+            .unwrap()
+            .recieve_mut(comps)
+    }
+    pub fn try_recieve_ref<R: Resource + 'static>(
+        &mut self,
+        comps: &ResourceRef<R>,
+    ) -> Result<(), NotSuitableResourceRecieve> {
+        self.map
+            .entry(TypeId::of::<R>())
+            .or_insert_with(|| {
+                Box::new(ResourceState::new(Box::new(UnsafeCell::new(
+                    ResourceHolder::<R>::default(),
+                ))))
+            })
+            .downcast_mut::<ResourceState<R>>()
+            .unwrap()
+            .recieve_ref(&comps)
     }
 }
 

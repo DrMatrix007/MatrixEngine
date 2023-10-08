@@ -1,14 +1,10 @@
 use std::{
     any::{Any, TypeId},
-    cell::{Cell, OnceCell, RefCell, UnsafeCell},
+    cell::UnsafeCell,
     collections::BTreeMap,
     ops::{Deref, DerefMut},
     ptr::NonNull,
-    rc::Rc,
-    sync::Arc,
 };
-
-use tokio::sync::RwLock;
 
 use crate::engine::scenes::entities::Entity;
 
@@ -49,13 +45,22 @@ impl<C: Component> Default for Components<C> {
 }
 
 #[derive(Debug)]
-pub enum ComponentsState<T: Component> {
-    Ok(Box<UnsafeCell<Components<T>>>, Option<i64>),
+enum State {
+    Write,
+    Read(i64),
     Taken,
+}
+
+#[derive(Debug)]
+pub struct ComponentsState<T: Component> {
+    comps: Box<UnsafeCell<Components<T>>>,
+    state: State,
 }
 #[derive(Debug)]
 pub struct ComponentsNotAvailable;
 
+#[derive(Debug)]
+pub struct NotSuitableComponentsRecieve;
 pub struct ComponentsRef<T: Component> {
     ptr: NonNull<Components<T>>,
 }
@@ -103,30 +108,62 @@ impl<T: Component> ComponentsMut<T> {
 }
 
 impl<T: Component> ComponentsState<T> {
+    pub fn new(comps: Box<UnsafeCell<Components<T>>>) -> Self {
+        Self {
+            comps,
+            state: State::Write,
+        }
+    }
+
     fn try_read(&mut self) -> Result<ComponentsRef<T>, ComponentsNotAvailable> {
-        match self {
-            ComponentsState::Ok(components, count) => {
-                match count {
-                    Some(count) => *count += 1,
-                    count @ None => *count = Some(1),
-                }
-                return Ok(ComponentsRef::new(NonNull::new(components.get()).unwrap()));
+        match &mut self.state {
+            State::Write => {
+                self.state = State::Read(1);
+                Ok(ComponentsRef::new(NonNull::new(self.comps.get()).unwrap()))
             }
-            ComponentsState::Taken => Err(ComponentsNotAvailable),
+            State::Read(counter) => {
+                *counter += 1;
+                Ok(ComponentsRef::new(NonNull::new(self.comps.get()).unwrap()))
+            }
+            State::Taken => Err(ComponentsNotAvailable),
         }
     }
 
     fn try_write(&mut self) -> Result<ComponentsMut<T>, ComponentsNotAvailable> {
-        match self {
-            ComponentsState::Ok(components, count) => match count {
-                Some(count) => Err(ComponentsNotAvailable),
-                count @ None => {
-                    let comps_mut = ComponentsMut::new(NonNull::new(components.get()).unwrap());
-                    core::mem::replace(self, Self::Taken);
-                    Ok(comps_mut)
+        match &self.state {
+            State::Write => {
+                self.state = State::Taken;
+                Ok(ComponentsMut::new(NonNull::new(self.comps.get()).unwrap()))
+            }
+            _ => Err(ComponentsNotAvailable),
+        }
+    }
+
+    fn recieve_ref(
+        &mut self,
+        comps: &ComponentsRef<T>,
+    ) -> Result<(), NotSuitableComponentsRecieve> {
+        match &mut self.state {
+            State::Read(count) => match count {
+                count if *count > 0 => {
+                    *count -= 1;
+                    Ok(())
                 }
+                _ => Err(NotSuitableComponentsRecieve),
             },
-            ComponentsState::Taken => Err(ComponentsNotAvailable),
+            _ => Err(NotSuitableComponentsRecieve),
+        }
+    }
+    fn recieve_mut(
+        &mut self,
+        comps: &ComponentsMut<T>,
+    ) -> Result<(), NotSuitableComponentsRecieve> {
+        match &mut self.state {
+            State::Taken => {
+                self.state = State::Write;
+                Ok(())
+            }
+            _ => Err(NotSuitableComponentsRecieve),
         }
     }
 }
@@ -147,10 +184,9 @@ impl ComponentRegistry {
         self.map
             .entry(TypeId::of::<C>())
             .or_insert_with(|| {
-                Box::new(ComponentsState::Ok(
-                    Box::new(UnsafeCell::new(Components::<C>::new())),
-                    Some(0),
-                ))
+                Box::new(ComponentsState::new(Box::new(UnsafeCell::new(
+                    Components::<C>::new(),
+                ))))
             })
             .downcast_mut::<ComponentsState<C>>()
             .unwrap()
@@ -163,10 +199,9 @@ impl ComponentRegistry {
         self.map
             .entry(TypeId::of::<C>())
             .or_insert_with(|| {
-                Box::new(ComponentsState::Ok(
-                    Box::new(UnsafeCell::new(Components::<C>::new())),
-                    None,
-                ))
+                Box::new(ComponentsState::new(Box::new(UnsafeCell::new(
+                    Components::<C>::new(),
+                ))))
             })
             .downcast_mut::<ComponentsState<C>>()
             .unwrap()
@@ -178,6 +213,36 @@ impl ComponentRegistry {
             Ok(mut map) => Ok(map.add(e, c)),
             Err(_) => Err(c),
         }
+    }
+    pub fn try_recieve_mut<C: Component + 'static>(
+        &mut self,
+        comps: &ComponentsMut<C>,
+    ) -> Result<(), NotSuitableComponentsRecieve> {
+        self.map
+            .entry(TypeId::of::<C>())
+            .or_insert_with(|| {
+                Box::new(ComponentsState::new(Box::new(UnsafeCell::new(
+                    Components::<C>::new(),
+                ))))
+            })
+            .downcast_mut::<ComponentsState<C>>()
+            .unwrap()
+            .recieve_mut(comps)
+    }
+    pub fn try_recieve_ref<C: Component + 'static>(
+        &mut self,
+        comps: &ComponentsRef<C>,
+    ) -> Result<(), NotSuitableComponentsRecieve> {
+        self.map
+            .entry(TypeId::of::<C>())
+            .or_insert_with(|| {
+                Box::new(ComponentsState::new(Box::new(UnsafeCell::new(
+                    Components::<C>::new(),
+                ))))
+            })
+            .downcast_mut::<ComponentsState<C>>()
+            .unwrap()
+            .recieve_ref(&comps)
     }
 }
 

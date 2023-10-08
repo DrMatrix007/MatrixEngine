@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, sync::Arc};
 
-use tokio::sync::{Mutex, OwnedMutexGuard};
+use tokio::sync::Mutex;
 use winit::event_loop::EventLoopProxy;
 
 use self::thread_pool::ThreadPool;
@@ -8,8 +8,8 @@ use self::thread_pool::ThreadPool;
 use super::{
     events::engine_event::EngineEvent,
     systems::{
-        system_registry::{BoxedSystemSend, SystemRef, SystemRegistry, SystemSendRef},
-        Dispatcher, DispatcherSend, System, SystemSend,
+        system_registry::{SystemRef, SystemRegistry, SystemSendRef},
+        Dispatcher, DispatcherSend,
     },
 };
 

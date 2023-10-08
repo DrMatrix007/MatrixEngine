@@ -1,9 +1,4 @@
-use std::{
-    any::Any,
-    cell::{Cell, RefCell, UnsafeCell},
-};
-
-use tokio::sync::OwnedMutexGuard;
+use std::any::Any;
 
 use self::{
     query::{ComponentQueryArgs, Query, QueryCleanup, QueryError, QuerySend},
@@ -13,7 +8,7 @@ use self::{
 pub mod query;
 pub mod system_registry;
 
-pub enum DispathcerState {
+pub enum SystemState {
     Continue,
     Quit,
     Remove,
@@ -48,7 +43,7 @@ pub trait System<Args = ComponentQueryArgs> {
 pub trait QuerySystem<Args = ComponentQueryArgs>: System<Args> {
     type Query: Query<Args>;
 
-    fn run(&mut self, args: &mut Self::Query) -> DispathcerState;
+    fn run(&mut self, args: &mut Self::Query) -> SystemState;
 }
 
 pub trait SystemSend<Args>: Send + System<Args> {
@@ -65,10 +60,7 @@ impl<Args, S: QuerySystem<Args> + Send> System<Args> for S {
         Ok(<S::Query as Query<Args>>::get(args).map(|x| Box::new(x))?)
     }
 
-    fn run_boxed_args(
-        &mut self,
-        mut args: Box<dyn Any>,
-    ) -> Result<Box<dyn QueryCleanup<Args>>, ()> {
+    fn run_boxed_args(&mut self, args: Box<dyn Any>) -> Result<Box<dyn QueryCleanup<Args>>, ()> {
         match args.downcast() {
             Ok(mut args) => {
                 self.run(&mut args);
@@ -165,7 +157,7 @@ mod tests {
 
     use crate::engine::scenes::components::Component;
 
-    use super::{query::components::ReadC, DispathcerState, QuerySystem, SystemSend};
+    use super::{query::components::ReadC, QuerySystem, SystemSend, SystemState};
 
     struct A;
     impl Component for A {}
@@ -175,8 +167,8 @@ mod tests {
     impl QuerySystem for SysA {
         type Query = ReadC<A>;
 
-        fn run(&mut self, args: &mut Self::Query) -> DispathcerState {
-            DispathcerState::Continue
+        fn run(&mut self, args: &mut Self::Query) -> SystemState {
+            SystemState::Continue
         }
     }
 

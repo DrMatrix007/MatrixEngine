@@ -22,7 +22,7 @@ pub trait Query<Args>: QueryCleanup<Args> + Sized + 'static {
 }
 
 pub trait QueryCleanup<Args> {
-    fn cleanup(&mut self, sargs: &mut Args) {}
+    fn cleanup(&mut self, args: &mut Args);
 }
 
 pub struct ComponentQueryArgs {
@@ -59,12 +59,10 @@ impl ComponentQueryArgs {
     }
 }
 pub mod components {
-    use std::{marker::PhantomData, sync::Arc};
-
-    use tokio::sync::{OwnedRwLockReadGuard, OwnedRwLockWriteGuard};
+    use std::marker::PhantomData;
 
     use crate::engine::scenes::components::{
-        component_registry::{Components, ComponentsMut, ComponentsRef},
+        component_registry::{ComponentsMut, ComponentsRef},
         Component,
     };
 
@@ -80,7 +78,11 @@ pub mod components {
         data: ComponentsMut<C>,
     }
 
-    impl<C: Component> QueryCleanup<ComponentQueryArgs> for WriteC<C> {}
+    impl<C: Component + 'static> QueryCleanup<ComponentQueryArgs> for WriteC<C> {
+        fn cleanup(&mut self, args: &mut ComponentQueryArgs) {
+            args.components_mut().try_recieve_mut(&self.data).unwrap();
+        }
+    }
 
     impl<C: Component + 'static> Query<ComponentQueryArgs> for WriteC<C> {
         fn get(args: &mut ComponentQueryArgs) -> Result<Self, QueryError> {
@@ -94,7 +96,11 @@ pub mod components {
         }
     }
 
-    impl<C: Component> QueryCleanup<ComponentQueryArgs> for ReadC<C> {}
+    impl<C: Component + 'static> QueryCleanup<ComponentQueryArgs> for ReadC<C> {
+        fn cleanup(&mut self, args: &mut ComponentQueryArgs) {
+            args.components_mut().try_recieve_ref(&self.data).unwrap();
+        }
+    }
 
     impl<C: Component + 'static> Query<ComponentQueryArgs> for ReadC<C> {
         fn get(args: &mut ComponentQueryArgs) -> Result<Self, QueryError> {
@@ -111,10 +117,8 @@ pub mod components {
 pub mod resources {
     use std::marker::PhantomData;
 
-    use tokio::sync::{OwnedRwLockReadGuard, OwnedRwLockWriteGuard};
-
     use crate::engine::scenes::resources::{
-        resource_registry::{ResourceHolder, ResourceMut, ResourceRef},
+        resource_registry::{ResourceMut, ResourceRef},
         Resource,
     };
 
@@ -130,7 +134,11 @@ pub mod resources {
         data: ResourceMut<R>,
     }
 
-    impl<R: Resource> QueryCleanup<ComponentQueryArgs> for WriteR<R> {}
+    impl<R: Resource + 'static> QueryCleanup<ComponentQueryArgs> for WriteR<R> {
+        fn cleanup(&mut self, args: &mut ComponentQueryArgs) {
+            args.resources_mut().try_recieve_mut(&self.data).unwrap();
+        }
+    }
     impl<R: Resource + 'static> Query<ComponentQueryArgs> for WriteR<R> {
         fn get(args: &mut ComponentQueryArgs) -> Result<Self, QueryError> {
             args.resources_mut()
@@ -142,7 +150,11 @@ pub mod resources {
                 })
         }
     }
-    impl<R: Resource> QueryCleanup<ComponentQueryArgs> for ReadR<R> {}
+    impl<R: Resource + 'static> QueryCleanup<ComponentQueryArgs> for ReadR<R> {
+        fn cleanup(&mut self, args: &mut ComponentQueryArgs) {
+            args.resources_mut().try_recieve_ref(&self.data).unwrap();
+        }
+    }
 
     impl<R: Resource + 'static> Query<ComponentQueryArgs> for ReadR<R> {
         fn get(args: &mut ComponentQueryArgs) -> Result<Self, QueryError> {
@@ -159,12 +171,14 @@ pub mod resources {
 
 macro_rules! impl_query_components {
     ($t1:tt $(,$t:tt)*) => {
+        #[allow(non_snake_case)]
         impl<Args, $t1:Query<Args>,$($t:Query<Args>),*> Query<Args> for ($t1,$($t),*) {
 
             fn get(args:&mut Args) -> Result<Self,QueryError>{
                 Ok(($t1::get(args)?,$($t::get(args)?),*))
             }
         }
+        #[allow(non_snake_case)]
         impl<Args, $t1:Query<Args>,$($t:Query<Args>),*> QueryCleanup<Args> for ($t1,$($t),*) {
 
             fn cleanup(&mut self,args:&mut Args){
@@ -198,7 +212,9 @@ where
 
 impl<T: Query<Args>, Args> QuerySend<Args> for T where T: Send + Sync {}
 
-impl<Args> QueryCleanup<Args> for () {}
+impl<Args> QueryCleanup<Args> for () {
+    fn cleanup(&mut self, args: &mut Args) {}
+}
 
 impl<Args> Query<Args> for () {
     fn get(args: &mut Args) -> Result<Self, QueryError> {

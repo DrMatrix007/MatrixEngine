@@ -2,7 +2,6 @@ use winit::window::Window;
 
 use crate::engine::{
     scenes::resources::Resource,
-    systems::{query::resources::ReadR, QuerySystem},
 };
 
 impl Resource for Window {}
