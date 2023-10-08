@@ -52,7 +52,7 @@ impl Scene {
         ControlFlow::Poll
     }
 
-    pub fn process(
+    pub fn process_event(
         &mut self,
         event: &Event<EngineEvent>,
         target: &EventLoopWindowTarget<EngineEvent>,
@@ -80,6 +80,14 @@ impl Scene {
 
     pub(crate) fn try_lock_registry(&self) -> Result<OwnedMutexGuard<SceneRegistry>, TryLockError> {
         self.registry.clone().try_lock_owned()
+    }
+
+    pub fn systems_mut(&mut self) -> &mut SystemRegistry<ComponentQueryArgs> {
+        &mut self.systems
+    }
+
+    pub fn systems(&self) -> &SystemRegistry<ComponentQueryArgs> {
+        &self.systems
     }
 }
 

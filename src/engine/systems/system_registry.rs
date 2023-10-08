@@ -1,4 +1,4 @@
-use std::{cell::UnsafeCell, ptr::NonNull};
+use std::{cell::UnsafeCell, collections::BTreeMap, ptr::NonNull};
 
 use crate::engine::scenes::entities::Entity;
 
@@ -43,6 +43,21 @@ impl<Args> BoxedSystem<Args> {
             ))
         }
     }
+
+    pub fn id(&self) -> Entity {
+        self.id
+    }
+
+    fn try_receive_ref(
+        &self,
+        system_ref: &SystemRef<Args>,
+    ) -> Result<(), NotSuitableSystemReceive> {
+        if self.id == system_ref.id {
+            Ok(())
+        } else {
+            Err(NotSuitableSystemReceive)
+        }
+    }
 }
 pub struct BoxedSystemSend<Args> {
     system: Box<UnsafeCell<dyn SystemSend<Args>>>,
@@ -64,7 +79,14 @@ impl<Args> SystemSendRef<Args> {
     pub unsafe fn system_mut(&mut self) -> &mut dyn SystemSend<Args> {
         self.system.as_mut()
     }
+
+    pub fn id(&self) -> Entity {
+        self.id
+    }
 }
+
+#[derive(Debug)]
+pub struct NotSuitableSystemReceive;
 
 impl<Args> BoxedSystemSend<Args> {
     pub fn new(sys: impl SystemSend<Args> + 'static) -> Self {
@@ -85,12 +107,27 @@ impl<Args> BoxedSystemSend<Args> {
             ))
         }
     }
+
+    pub fn id(&self) -> Entity {
+        self.id
+    }
+
+    fn try_receive_ref(
+        &self,
+        system_ref: &SystemSendRef<Args>,
+    ) -> Result<(), NotSuitableSystemReceive> {
+        if self.id == system_ref.id {
+            Ok(())
+        } else {
+            Err(NotSuitableSystemReceive)
+        }
+    }
 }
 
 pub struct SystemRegistry<Args> {
-    send: Vec<BoxedSystemSend<Args>>,
+    send: BTreeMap<Entity, BoxedSystemSend<Args>>,
 
-    non_send: Vec<BoxedSystem<Args>>,
+    non_send: BTreeMap<Entity, BoxedSystem<Args>>,
 }
 
 impl<Args> Default for SystemRegistry<Args> {
@@ -102,21 +139,52 @@ impl<Args> Default for SystemRegistry<Args> {
     }
 }
 
+#[derive(Debug)]
+pub struct SystemNotFound;
+
 impl<Args> SystemRegistry<Args> {
     pub fn new() -> Self {
         Self::default()
     }
     pub fn push_send(&mut self, sys: impl SystemSend<Args> + 'static) {
-        self.send.push(BoxedSystemSend::new(sys));
+        let sys = BoxedSystemSend::new(sys);
+        self.send.insert(sys.id(), sys);
     }
 
     pub fn push_non_send(&mut self, sys: impl System<Args> + 'static) {
-        self.non_send.push(BoxedSystem::new(sys));
+        let sys = BoxedSystem::new(sys);
+        self.non_send.insert(sys.id(), sys);
     }
     pub fn try_lock_iter_send<'a>(&'a mut self) -> impl Iterator<Item = SystemSendRef<Args>> + 'a {
-        self.send.iter_mut().filter_map(|x| x.try_lock().ok())
+        self.send.iter_mut().filter_map(|x| x.1.try_lock().ok())
     }
     pub fn try_lock_iter_non_send<'a>(&'a mut self) -> impl Iterator<Item = SystemRef<Args>> + 'a {
-        self.non_send.iter_mut().filter_map(|x| x.try_lock().ok())
+        self.non_send.iter_mut().filter_map(|x| x.1.try_lock().ok())
+    }
+
+    pub fn try_recieve_send_ref(
+        &mut self,
+        system_ref: &SystemSendRef<Args>,
+    ) -> Result<(), SystemNotFound> {
+        match self.send.get_mut(&system_ref.id) {
+            Some(system) => {
+                system.try_receive_ref(system_ref).unwrap();
+                Ok(())
+            }
+            None => Err(SystemNotFound),
+        }
+    }
+
+    pub fn try_recieve_non_send_ref(
+        &mut self,
+        system_ref: &SystemRef<Args>,
+    ) -> Result<(), SystemNotFound> {
+        match self.non_send.get_mut(&system_ref.id) {
+            Some(system) => {
+                system.try_receive_ref(system_ref).unwrap();
+                Ok(())
+            }
+            None => Err(SystemNotFound),
+        }
     }
 }

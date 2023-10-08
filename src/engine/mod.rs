@@ -50,7 +50,7 @@ impl Engine {
         let mut last_frame_time = Instant::now();
 
         event_loop.run(move |event, target, control_flow| {
-            self.frame(
+            self.on_event(
                 &mut current_scene,
                 &event,
                 target,
@@ -60,7 +60,7 @@ impl Engine {
         });
     }
 
-    fn frame(
+    fn on_event(
         &mut self,
         current_scene: &mut scenes::Scene,
         event: &Event<'_, EngineEvent>,
@@ -70,7 +70,7 @@ impl Engine {
     ) {
         let resources = self.engine_resources.clone().try_lock_owned().unwrap();
 
-        current_scene.process(
+        current_scene.process_event(
             &event,
             target,
             self.runtime.as_mut(),
@@ -100,7 +100,8 @@ impl Engine {
         let mut args = ComponentQueryArgs::new(scene_registry, resources);
         self.runtime
             .add_available(&mut self.engine_systems, &mut args);
-
+        self.runtime
+            .add_available(current_scene.systems_mut(), &mut args);
         if let Event::MainEventsCleared = &event {
             let frame_duration = Duration::from_secs(1)
                 / self.target_fps.load(std::sync::atomic::Ordering::Relaxed) as u32;
