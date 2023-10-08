@@ -8,7 +8,7 @@ use self::{
 pub mod query;
 pub mod system_registry;
 
-pub enum SystemState {
+pub enum SystemControlFlow {
     Continue,
     Quit,
     Remove,
@@ -37,13 +37,16 @@ where
 }
 pub trait System<Args = ComponentQueryArgs> {
     fn prepare_args(&self, args: &mut Args) -> Result<Box<dyn Any>, QueryError>;
-    fn run_boxed_args(&mut self, args: Box<dyn Any>) -> Result<Box<dyn QueryCleanup<Args>>, ()>;
+    fn run_boxed_args(
+        &mut self,
+        args: Box<dyn Any>,
+    ) -> Result<(Box<dyn QueryCleanup<Args>>, SystemControlFlow), ()>;
 }
 
 pub trait QuerySystem<Args = ComponentQueryArgs>: System<Args> {
     type Query: Query<Args>;
 
-    fn run(&mut self, args: &mut Self::Query) -> SystemState;
+    fn run(&mut self, args: &mut Self::Query) -> SystemControlFlow;
 }
 
 pub trait SystemSend<Args>: Send + System<Args> {
@@ -52,7 +55,7 @@ pub trait SystemSend<Args>: Send + System<Args> {
     fn run_boxed_args_send(
         &mut self,
         args: Box<dyn Any + Send + Sync>,
-    ) -> Result<Box<dyn QueryCleanup<Args> + Send + Sync>, ()>;
+    ) -> Result<(Box<dyn QueryCleanup<Args> + Send + Sync>, SystemControlFlow), ()>;
 }
 
 impl<Args, S: QuerySystem<Args> + Send> System<Args> for S {
@@ -60,11 +63,14 @@ impl<Args, S: QuerySystem<Args> + Send> System<Args> for S {
         Ok(<S::Query as Query<Args>>::get(args).map(|x| Box::new(x))?)
     }
 
-    fn run_boxed_args(&mut self, args: Box<dyn Any>) -> Result<Box<dyn QueryCleanup<Args>>, ()> {
+    fn run_boxed_args(
+        &mut self,
+        args: Box<dyn Any>,
+    ) -> Result<(Box<dyn QueryCleanup<Args>>, SystemControlFlow), ()> {
         match args.downcast() {
             Ok(mut args) => {
-                self.run(&mut args);
-                Ok(args)
+                let state = self.run(&mut args);
+                Ok((args, state))
             }
             Err(_) => Err(()),
         }
@@ -81,11 +87,11 @@ where
     fn run_boxed_args_send(
         &mut self,
         args: Box<dyn Any + Send + Sync>,
-    ) -> Result<Box<dyn QueryCleanup<Args> + Send + Sync>, ()> {
+    ) -> Result<(Box<dyn QueryCleanup<Args> + Send + Sync>, SystemControlFlow), ()> {
         match args.downcast() {
             Ok(mut args) => {
-                self.run(&mut args);
-                Ok(args)
+                let state = self.run(&mut args);
+                Ok((args, state))
             }
             Err(_) => Err(()),
         }
@@ -93,7 +99,10 @@ where
 }
 
 impl<Args: 'static> Dispatcher<Args> for SystemRef<Args> {
-    type Result = Box<dyn QueryCleanup<Args>>;
+    type Result = (
+        Box<dyn QueryCleanup<Args>>,
+        (SystemRef<Args>, SystemControlFlow),
+    );
     fn dispatch(
         mut self,
         args: &mut Args,
@@ -105,12 +114,16 @@ impl<Args: 'static> Dispatcher<Args> for SystemRef<Args> {
             }
         };
         Ok(Box::new(move || {
-            unsafe { self.system_mut() }.run_boxed_args(args).unwrap()
+            let (cleanup, flow) = unsafe { self.system_mut() }.run_boxed_args(args).unwrap();
+            (cleanup, (self, flow))
         }))
     }
 }
 impl<Args: 'static> Dispatcher<Args> for SystemSendRef<Args> {
-    type Result = Box<dyn QueryCleanup<Args> + Send + Sync>;
+    type Result = (
+        Box<dyn QueryCleanup<Args> + Send + Sync>,
+        (SystemSendRef<Args>, SystemControlFlow),
+    );
 
     fn dispatch(
         mut self,
@@ -123,9 +136,10 @@ impl<Args: 'static> Dispatcher<Args> for SystemSendRef<Args> {
             }
         };
         Ok(Box::new(move || {
-            unsafe { self.system_mut() }
+            let (cleanup, flow) = unsafe { self.system_mut() }
                 .run_boxed_args_send(args)
-                .unwrap()
+                .unwrap();
+            (cleanup, (self, flow))
         }))
     }
 }
@@ -142,9 +156,10 @@ impl<Args: 'static> DispatcherSend<Args> for SystemSendRef<Args> {
             }
         };
         Ok(Box::new(move || {
-            unsafe { self.system_mut() }
+            let (cleanup, flow) = unsafe { self.system_mut() }
                 .run_boxed_args_send(args)
-                .unwrap()
+                .unwrap();
+            (cleanup, (self, flow))
         }))
     }
 }
@@ -157,7 +172,7 @@ mod tests {
 
     use crate::engine::scenes::components::Component;
 
-    use super::{query::components::ReadC, QuerySystem, SystemSend, SystemState};
+    use super::{query::components::ReadC, QuerySystem, SystemControlFlow, SystemSend};
 
     struct A;
     impl Component for A {}
@@ -167,8 +182,8 @@ mod tests {
     impl QuerySystem for SysA {
         type Query = ReadC<A>;
 
-        fn run(&mut self, args: &mut Self::Query) -> SystemState {
-            SystemState::Continue
+        fn run(&mut self, args: &mut Self::Query) -> SystemControlFlow {
+            SystemControlFlow::Continue
         }
     }
 

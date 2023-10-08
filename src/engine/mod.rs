@@ -98,10 +98,18 @@ impl Engine {
 
         let scene_registry = current_scene.try_lock_registry().unwrap();
         let mut args = ComponentQueryArgs::new(scene_registry, resources);
+
+        self.runtime.cleanup_systems(
+            &mut args,
+            &mut [&mut current_scene.systems_mut(), &mut self.engine_systems],
+        );
+
         self.runtime
             .add_available(&mut self.engine_systems, &mut args);
+
         self.runtime
             .add_available(current_scene.systems_mut(), &mut args);
+
         if let Event::MainEventsCleared = &event {
             let frame_duration = Duration::from_secs(1)
                 / self.target_fps.load(std::sync::atomic::Ordering::Relaxed) as u32;

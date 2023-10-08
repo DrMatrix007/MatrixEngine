@@ -5,7 +5,7 @@ use matrix_engine::engine::{
     scenes::{
         components::Component, entities::entity_builder::EntityBuilder, scene_builder::SceneBuilder,
     },
-    systems::{query::components::ReadC, QuerySystem, SystemState},
+    systems::{query::components::ReadC, QuerySystem, SystemControlFlow},
     Engine,
 };
 #[derive(Debug)]
@@ -18,15 +18,16 @@ struct SysA;
 impl QuerySystem for SysA {
     type Query = ReadC<A>;
 
-    fn run(&mut self, _args: &mut Self::Query) -> matrix_engine::engine::systems::SystemState {
+    fn run(&mut self, _args: &mut Self::Query) -> matrix_engine::engine::systems::SystemControlFlow {
         println!("take A");
         spin_sleep::sleep(Duration::from_secs(1));
         println!("dis A");
-        SystemState::Continue
+        SystemControlFlow::Continue
     }
 }
 
 fn main() {
+
     let runtime = SingleThreaded::new();
     let engine = Engine::new(runtime, 1);
 

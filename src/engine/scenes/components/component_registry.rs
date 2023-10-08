@@ -122,6 +122,7 @@ impl<T: Component> ComponentsState<T> {
                 Ok(ComponentsRef::new(NonNull::new(self.comps.get()).unwrap()))
             }
             State::Read(counter) => {
+                println!("{}", counter);
                 *counter += 1;
                 Ok(ComponentsRef::new(NonNull::new(self.comps.get()).unwrap()))
             }
@@ -210,7 +211,11 @@ impl ComponentRegistry {
 
     pub fn try_add_component<C: Component + 'static>(&mut self, e: Entity, c: C) -> Result<(), C> {
         match self.try_write() {
-            Ok(mut map) => Ok(map.add(e, c)),
+            Ok(mut map) => {
+                map.add(e, c);
+                self.try_recieve_mut(&map).unwrap();
+                Ok(())
+            }
             Err(_) => Err(c),
         }
     }

@@ -187,4 +187,11 @@ impl<Args> SystemRegistry<Args> {
             None => Err(SystemNotFound),
         }
     }
+
+    pub fn remove_system_send(&mut self, id: &Entity) {
+        self.send.remove(id);
+    }
+    pub fn remove_system_non_send(&mut self, id: &Entity) {
+        self.non_send.remove(id);
+    }
 }
