@@ -41,6 +41,7 @@ impl QuerySystem for SysWriteA {
 
     fn run(&mut self, args: &mut Self::Query) -> SystemControlFlow {
         info!("start write A {}", self.0);
+        // spin_sleep::sleep(Duration::from_secs(2));
         info!("end   write A {}", self.0);
 
         SystemControlFlow::Continue
@@ -50,13 +51,15 @@ impl QuerySystem for SysWriteA {
 fn main() {
     SimpleLogger::new().init().unwrap();
     let runtime = MultiThreaded::new();
-    let engine = Engine::new(runtime, 2);
+    let engine = Engine::new(runtime, 1);
 
     let scene_builder = SceneBuilder::new(|reg, sys| {
         EntityBuilder::new(reg.components_mut()).add(A).unwrap();
 
-        sys.push_send(SysReadA);
+        // sys.push_send(SysReadA);
         sys.push_send(SysWriteA(0));
+        sys.push_send(SysWriteA(1));
+        sys.push_send(SysWriteA(2));
     });
 
     engine.run(&scene_builder);

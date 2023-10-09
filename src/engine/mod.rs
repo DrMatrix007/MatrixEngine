@@ -84,7 +84,7 @@ impl Engine {
 
         current_scene.process_event(
             &event,
-            target,
+            target, 
             self.runtime.as_mut(),
             resources,
             control_flow,
@@ -94,7 +94,21 @@ impl Engine {
         let scene_registry = current_scene.try_lock_registry().unwrap();
         let mut args = ComponentQueryArgs::new(scene_registry, resources);
 
-        if let Event::NewEvents(_cause) = event {
+        let frame_duration = Duration::from_secs(1)
+            / self.target_fps.load(std::sync::atomic::Ordering::Relaxed) as u32;
+        let elapsed = Instant::now().duration_since(*last_frame_time);
+        if frame_duration > elapsed {
+            if self.runtime.is_done() {
+                info!("wating--------------------------------------------");
+                spin_sleep::sleep(frame_duration - elapsed);
+                self.runtime
+                    .add_available(&mut self.engine_systems, &mut args);
+
+                self.runtime
+                    .add_available(current_scene.systems_mut(), &mut args);
+                *last_frame_time = Instant::now();
+            }
+        } else {
             self.runtime
                 .add_available(&mut self.engine_systems, &mut args);
 
@@ -103,20 +117,12 @@ impl Engine {
         }
 
         if let Event::UserEvent(event) = &event {
+            info!("user event");
             self.runtime.process_engine_event(
                 event,
                 &mut args,
                 &mut [&mut current_scene.systems_mut(), &mut self.engine_systems],
             );
-
-            let frame_duration = Duration::from_secs(1)
-                / self.target_fps.load(std::sync::atomic::Ordering::Relaxed) as u32;
-            let elapsed = Instant::now().duration_since(*last_frame_time);
-            if frame_duration > elapsed {
-                spin_sleep::sleep(frame_duration - elapsed);
-                *last_frame_time = Instant::now();
-            }
-            if self.runtime.is_done() {}
         }
 
         // self.runtime.cleanup_systems(

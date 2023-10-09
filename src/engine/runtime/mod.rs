@@ -241,6 +241,7 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
                     Err(WorkerError::Panic) => panic!("subthread panicked"),
                 }
                 let len = self.send_queue.len();
+                info!("systems len is : {}", len);
                 for i in 0..len {
                     let s = self
                         .send_queue
