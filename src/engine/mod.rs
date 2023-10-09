@@ -77,32 +77,23 @@ impl Engine {
             resources,
             control_flow,
         );
-
-        if let Event::UserEvent(event) = &event {
-            self.runtime.process_engine_event(
-                event,
-                &mut ComponentQueryArgs::new(
-                    current_scene
-                        .registry()
-                        .clone()
-                        .try_lock_owned()
-                        .expect("the value should not be locked here"),
-                    self.engine_resources
-                        .clone()
-                        .try_lock_owned()
-                        .expect("the value shoud not be locked here"),
-                ),
-            );
-        }
         let resources = self.engine_resources.clone().try_lock_owned().unwrap();
 
         let scene_registry = current_scene.try_lock_registry().unwrap();
         let mut args = ComponentQueryArgs::new(scene_registry, resources);
 
-        self.runtime.cleanup_systems(
-            &mut args,
-            &mut [&mut current_scene.systems_mut(), &mut self.engine_systems],
-        );
+        if let Event::UserEvent(event) = &event {
+            self.runtime.process_engine_event(
+                event,
+                &mut args,
+                &mut [&mut current_scene.systems_mut(), &mut self.engine_systems],
+            );
+        }
+
+        // self.runtime.cleanup_systems(
+        //     &mut args,
+        //     &mut [&mut current_scene.systems_mut(), &mut self.engine_systems],
+        // );
 
         self.runtime
             .add_available(&mut self.engine_systems, &mut args);

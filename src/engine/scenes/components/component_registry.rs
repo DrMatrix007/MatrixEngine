@@ -6,6 +6,8 @@ use std::{
     ptr::NonNull,
 };
 
+use log::info;
+
 use crate::engine::scenes::entities::Entity;
 
 use super::Component;
@@ -122,7 +124,6 @@ impl<T: Component> ComponentsState<T> {
                 Ok(ComponentsRef::new(NonNull::new(self.comps.get()).unwrap()))
             }
             State::Read(counter) => {
-                println!("{}", counter);
                 *counter += 1;
                 Ok(ComponentsRef::new(NonNull::new(self.comps.get()).unwrap()))
             }
@@ -140,14 +141,19 @@ impl<T: Component> ComponentsState<T> {
         }
     }
 
-    fn recieve_ref(
+    fn receive_ref(
         &mut self,
         comps: &ComponentsRef<T>,
     ) -> Result<(), NotSuitableComponentsRecieve> {
         match &mut self.state {
             State::Read(count) => match count {
-                count if *count > 0 => {
+                count if *count > 1 => {
                     *count -= 1;
+
+                    Ok(())
+                }
+                count if *count == 1 => {
+                    self.state = State::Write;
                     Ok(())
                 }
                 _ => Err(NotSuitableComponentsRecieve),
@@ -247,7 +253,7 @@ impl ComponentRegistry {
             })
             .downcast_mut::<ComponentsState<C>>()
             .unwrap()
-            .recieve_ref(&comps)
+            .receive_ref(&comps)
     }
 }
 

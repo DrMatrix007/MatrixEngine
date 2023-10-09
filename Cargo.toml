@@ -2,17 +2,12 @@
 name = "matrix_engine"
 version = "0.1.0"
 edition = "2021"
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
 [dependencies]
 lazy_static = "1.4.0"
 spin_sleep = "1.1.1"
-tokio = {version ="*",features = ["sync"]}
+tokio = { version = "*", features = ["sync"] }
 wgpu = "0.17.1"
 winit = "0.28.3"
-
-
-[[test]]
-path= "tests/main.rs"
-name = "tests"
-harness = false
-doctest = false
+log = { version = "0.4.20", features = ["std"] }

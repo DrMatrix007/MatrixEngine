@@ -1,4 +1,5 @@
-#[derive(Debug)]
+use crate::engine::{scenes::entities::Entity, systems::SystemControlFlow};
+
 pub enum EngineEvent {
-    SystemDone,
+    SystemDone(Entity, SystemControlFlow),
 }

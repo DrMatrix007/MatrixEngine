@@ -8,6 +8,7 @@ use self::{
 pub mod query;
 pub mod system_registry;
 
+#[derive(Debug, Clone, Copy)]
 pub enum SystemControlFlow {
     Continue,
     Quit,

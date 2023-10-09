@@ -14,6 +14,7 @@ pub struct SystemRef<Args> {
     system: NonNull<dyn System<Args>>,
     id: Entity,
 }
+
 impl<Args> SystemRef<Args> {
     fn new(system: NonNull<dyn System<Args>>, id: Entity) -> Self {
         Self { id, system }
@@ -21,6 +22,10 @@ impl<Args> SystemRef<Args> {
 
     pub unsafe fn system_mut(&mut self) -> &mut dyn System<Args> {
         self.system.as_mut()
+    }
+
+    pub fn id(&self) -> Entity {
+        self.id
     }
 }
 
@@ -48,11 +53,9 @@ impl<Args> BoxedSystem<Args> {
         self.id
     }
 
-    fn try_receive_ref(
-        &self,
-        system_ref: &SystemRef<Args>,
-    ) -> Result<(), NotSuitableSystemReceive> {
-        if self.id == system_ref.id {
+    fn try_receive_ref(&mut self, system_ref: &Entity) -> Result<(), NotSuitableSystemReceive> {
+        if self.id == *system_ref {
+            self.running = false;
             Ok(())
         } else {
             Err(NotSuitableSystemReceive)
@@ -89,6 +92,7 @@ impl<Args> SystemSendRef<Args> {
 pub struct NotSuitableSystemReceive;
 
 impl<Args> BoxedSystemSend<Args> {
+    
     pub fn new(sys: impl SystemSend<Args> + 'static) -> Self {
         Self {
             system: Box::new(UnsafeCell::new(sys)),
@@ -112,11 +116,9 @@ impl<Args> BoxedSystemSend<Args> {
         self.id
     }
 
-    fn try_receive_ref(
-        &self,
-        system_ref: &SystemSendRef<Args>,
-    ) -> Result<(), NotSuitableSystemReceive> {
-        if self.id == system_ref.id {
+    fn try_receive_ref(&mut self, system_ref: &Entity) -> Result<(), NotSuitableSystemReceive> {
+        if self.id == *system_ref {
+            self.running = false;
             Ok(())
         } else {
             Err(NotSuitableSystemReceive)
@@ -162,11 +164,8 @@ impl<Args> SystemRegistry<Args> {
         self.non_send.iter_mut().filter_map(|x| x.1.try_lock().ok())
     }
 
-    pub fn try_recieve_send_ref(
-        &mut self,
-        system_ref: &SystemSendRef<Args>,
-    ) -> Result<(), SystemNotFound> {
-        match self.send.get_mut(&system_ref.id) {
+    pub fn try_recieve_send_with_id(&mut self, system_ref: &Entity) -> Result<(), SystemNotFound> {
+        match self.send.get_mut(&system_ref) {
             Some(system) => {
                 system.try_receive_ref(system_ref).unwrap();
                 Ok(())
@@ -175,11 +174,11 @@ impl<Args> SystemRegistry<Args> {
         }
     }
 
-    pub fn try_recieve_non_send_ref(
+    pub fn try_recieve_non_send_with_id(
         &mut self,
-        system_ref: &SystemRef<Args>,
+        system_ref: &Entity,
     ) -> Result<(), SystemNotFound> {
-        match self.non_send.get_mut(&system_ref.id) {
+        match self.non_send.get_mut(&system_ref) {
             Some(system) => {
                 system.try_receive_ref(system_ref).unwrap();
                 Ok(())
