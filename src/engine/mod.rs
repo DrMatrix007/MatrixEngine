@@ -99,7 +99,6 @@ impl Engine {
         let elapsed = Instant::now().duration_since(*last_frame_time);
         if frame_duration > elapsed {
             if self.runtime.is_done() {
-                info!("wating--------------------------------------------");
                 spin_sleep::sleep(frame_duration - elapsed);
                 self.runtime
                     .add_available(&mut self.engine_systems, &mut args);
@@ -117,7 +116,6 @@ impl Engine {
         }
 
         if let Event::UserEvent(event) = &event {
-            info!("user event");
             self.runtime.process_engine_event(
                 event,
                 &mut args,
