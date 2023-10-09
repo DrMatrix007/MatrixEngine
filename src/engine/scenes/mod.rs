@@ -43,12 +43,6 @@ impl Scene {
         _target: &EventLoopWindowTarget<EngineEvent>,
         resources: OwnedMutexGuard<ResourceRegistry>,
     ) -> ControlFlow {
-        let scene_reg = self.try_lock_registry().unwrap();
-        runtime.add_available(
-            &mut self.systems,
-            &mut ComponentQueryArgs::new(scene_reg, resources),
-        );
-
         ControlFlow::Poll
     }
 

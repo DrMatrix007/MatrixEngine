@@ -3,6 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use log::info;
 use tokio::sync::Mutex;
 use winit::{
     event::Event,
@@ -49,6 +50,17 @@ impl Engine {
 
         let mut last_frame_time = Instant::now();
 
+        let resources = self.engine_resources.clone().try_lock_owned().unwrap();
+
+        let scene_registry = current_scene.try_lock_registry().unwrap();
+        let mut args = ComponentQueryArgs::new(scene_registry, resources);
+
+        self.runtime
+            .add_available(&mut self.engine_systems, &mut args);
+
+        self.runtime
+            .add_available(current_scene.systems_mut(), &mut args);
+        drop(args);
         event_loop.run(move |event, target, control_flow| {
             self.on_event(
                 &mut current_scene,
@@ -82,34 +94,35 @@ impl Engine {
         let scene_registry = current_scene.try_lock_registry().unwrap();
         let mut args = ComponentQueryArgs::new(scene_registry, resources);
 
+        if let Event::NewEvents(_cause) = event {
+            self.runtime
+                .add_available(&mut self.engine_systems, &mut args);
+
+            self.runtime
+                .add_available(current_scene.systems_mut(), &mut args);
+        }
+
         if let Event::UserEvent(event) = &event {
             self.runtime.process_engine_event(
                 event,
                 &mut args,
                 &mut [&mut current_scene.systems_mut(), &mut self.engine_systems],
             );
+
+            let frame_duration = Duration::from_secs(1)
+                / self.target_fps.load(std::sync::atomic::Ordering::Relaxed) as u32;
+            let elapsed = Instant::now().duration_since(*last_frame_time);
+            if frame_duration > elapsed {
+                spin_sleep::sleep(frame_duration - elapsed);
+                *last_frame_time = Instant::now();
+            }
+            if self.runtime.is_done() {}
         }
 
         // self.runtime.cleanup_systems(
         //     &mut args,
         //     &mut [&mut current_scene.systems_mut(), &mut self.engine_systems],
         // );
-
-        self.runtime
-            .add_available(&mut self.engine_systems, &mut args);
-
-        self.runtime
-            .add_available(current_scene.systems_mut(), &mut args);
-
-        if let Event::MainEventsCleared = &event {
-            let frame_duration = Duration::from_secs(1)
-                / self.target_fps.load(std::sync::atomic::Ordering::Relaxed) as u32;
-            let elapsed = Instant::now().duration_since(*last_frame_time);
-            if frame_duration > elapsed {
-                spin_sleep::sleep(frame_duration - elapsed);
-            }
-            *last_frame_time = Instant::now();
-        }
     }
 
     pub fn engine_systems(&self) -> &SystemRegistry<ComponentQueryArgs> {

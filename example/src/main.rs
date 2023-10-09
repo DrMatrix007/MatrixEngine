@@ -12,6 +12,7 @@ use matrix_engine::engine::{
 };
 use simple_logger::SimpleLogger;
 use std::time::Duration;
+
 #[derive(Debug)]
 struct A;
 
@@ -26,23 +27,21 @@ impl QuerySystem for SysReadA {
         &mut self,
         _args: &mut Self::Query,
     ) -> matrix_engine::engine::systems::SystemControlFlow {
-        info!("take read A");
-        spin_sleep::sleep(Duration::from_secs(1));
-        info!("dis read A");
+        info!("read A");
+        // spin_sleep::sleep(Duration::from_secs(2));
 
         SystemControlFlow::Continue
     }
 }
 
-struct SysWriteA;
+struct SysWriteA(pub usize);
 
 impl QuerySystem for SysWriteA {
     type Query = WriteC<A>;
 
     fn run(&mut self, args: &mut Self::Query) -> SystemControlFlow {
-        info!("take write A");
-        spin_sleep::sleep(Duration::from_secs(1));
-        info!("dis write A");
+        info!("start write A {}", self.0);
+        info!("end   write A {}", self.0);
 
         SystemControlFlow::Continue
     }
@@ -51,14 +50,13 @@ impl QuerySystem for SysWriteA {
 fn main() {
     SimpleLogger::new().init().unwrap();
     let runtime = MultiThreaded::new();
-    let engine = Engine::new(runtime, 1);
+    let engine = Engine::new(runtime, 2);
 
     let scene_builder = SceneBuilder::new(|reg, sys| {
         EntityBuilder::new(reg.components_mut()).add(A).unwrap();
 
         sys.push_send(SysReadA);
-        sys.push_send(SysReadA);
-        sys.push_send(SysWriteA);
+        sys.push_send(SysWriteA(0));
     });
 
     engine.run(&scene_builder);

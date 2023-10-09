@@ -1,5 +1,6 @@
 use std::{collections::VecDeque, sync::Arc};
 
+use log::info;
 use tokio::sync::{Mutex, RwLock};
 use winit::event_loop::EventLoopProxy;
 
@@ -44,6 +45,8 @@ pub trait Runtime<Args> {
     );
 
     fn use_event_loop_proxy(&mut self, proxy: EventLoopProxy<EngineEvent>);
+
+    fn is_done(&self) -> bool;
 }
 
 pub struct SingleThreaded {
@@ -112,6 +115,10 @@ impl<Args: 'static> Runtime<Args> for SingleThreaded {
                     .unwrap();
             }
         }
+    }
+
+    fn is_done(&self) -> bool {
+        true
     }
 
     // fn cleanup_systems(
@@ -227,13 +234,12 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
                         }
                     })
                     .unwrap();
-                match self.pool.data_receiver().recv().unwrap() {
+                match self.pool.recv_iter().next().unwrap() {
                     Ok((mut data, _)) => {
                         data.cleanup(args);
                     }
                     Err(WorkerError::Panic) => panic!("subthread panicked"),
                 }
-
                 let len = self.send_queue.len();
                 for i in 0..len {
                     let s = self
@@ -252,6 +258,10 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
                 }
             }
         }
+    }
+
+    fn is_done(&self) -> bool {
+        self.send_queue.len() == 0 && self.non_send_queue.len() == 0 && self.pool.jobs_count() == 0
     }
 
     // fn cleanup_systems(

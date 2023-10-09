@@ -1,3 +1,4 @@
+use log::info;
 use std::{
     marker::PhantomData,
     sync::{
@@ -107,6 +108,7 @@ pub struct ThreadPool<T: Send = ()> {
     threads: Vec<Worker<T>>,
     job_sender: Sender<Job<T>>,
     data_receiver: Receiver<JobResult<T>>,
+    job_counter: Arc<AtomicIsize>,
     proxies: Arc<Mutex<Vec<Box<dyn FnMut(&mut T) + Send>>>>,
 }
 
@@ -131,6 +133,7 @@ impl<T: Send + 'static> ThreadPool<T> {
             job_sender,
             data_receiver,
             proxies,
+            job_counter: Arc::new(0.into()),
         }
     }
     pub fn add_proxy(&self, f: impl FnMut(&mut T) + Send + 'static) {
@@ -142,7 +145,10 @@ impl<T: Send + 'static> ThreadPool<T> {
         f: F,
     ) -> Result<(), SendError<Box<dyn FnOnce() -> T + Send + 'static>>> {
         match self.job_sender.send(Job::Work(Box::new(f))) {
-            Ok(_) => Ok(()),
+            Ok(_) => {
+                self.job_counter.fetch_add(1, Ordering::Acquire);
+                Ok(())
+            }
             Err(d) => Err(SendError(
                 d.0.try_get_func()
                     .expect("this value should containt a funciton"),
@@ -161,11 +167,13 @@ impl<T: Send + 'static> ThreadPool<T> {
     pub fn try_recv_iter(&self) -> ThreadPoolTryRecvIter<'_, T> {
         ThreadPoolTryRecvIter {
             recv: &self.data_receiver,
+            job_counter: self.job_counter.clone(),
         }
     }
     pub fn recv_iter(&self) -> ThreadPoolRecvIter<'_, T> {
         ThreadPoolRecvIter {
             recv: &self.data_receiver,
+            job_counter: self.job_counter.clone(),
         }
     }
 
@@ -175,38 +183,53 @@ impl<T: Send + 'static> ThreadPool<T> {
     pub fn sender(&self) -> ThreadPoolSender<T> {
         ThreadPoolSender {
             sender: self.job_sender.clone(),
+            counter: self.job_counter.clone(),
         }
     }
 
-    pub fn data_receiver(&self) -> &Receiver<JobResult<T>> {
-        &self.data_receiver
+    pub fn jobs_count(&self) -> isize {
+        self.job_counter.load(Ordering::Relaxed)
     }
 }
 pub struct ThreadPoolTryRecvIter<'a, T> {
     recv: &'a Receiver<JobResult<T>>,
+    job_counter: Arc<AtomicIsize>,
 }
 
 impl<'a, T> Iterator for ThreadPoolTryRecvIter<'a, T> {
     type Item = JobResult<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.recv.try_recv().ok()
+        match self.recv.try_recv().ok() {
+            Some(data) => {
+                self.job_counter.fetch_sub(1, Ordering::SeqCst);
+                Some(data)
+            }
+            None => None,
+        }
     }
 }
 pub struct ThreadPoolRecvIter<'a, T> {
     recv: &'a Receiver<JobResult<T>>,
+    job_counter: Arc<AtomicIsize>,
 }
 
 impl<'a, T> Iterator for ThreadPoolRecvIter<'a, T> {
     type Item = JobResult<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        let c = self.job_counter.fetch_sub(1, Ordering::SeqCst);
+        if c == 0 {
+            assert!(self.job_counter.fetch_add(1, Ordering::SeqCst) == -1);
+            return None;
+        }
         self.recv.recv().ok()
     }
 }
 
 pub struct ThreadPoolSender<T> {
     pub(self) sender: Sender<Job<T>>,
+    pub(self) counter: Arc<AtomicIsize>,
 }
 
 impl<T> ThreadPoolSender<T> {
@@ -214,7 +237,10 @@ impl<T> ThreadPoolSender<T> {
     where
         F: FnOnce() -> T + Send + 'static,
     {
-        self.sender.send(Job::Work(Box::new(job)))
+        self.sender.send(Job::Work(Box::new(job))).map(|x| {
+            self.counter.fetch_add(1, Ordering::Acquire);
+            x
+        })
     }
 }
 
@@ -239,5 +265,23 @@ mod tests {
             data.remove(&i.unwrap());
         }
         println!("{:?}", data);
+    }
+
+    #[test]
+    pub fn test_mutex() {
+        use super::ThreadPool;
+        use std::sync::Arc;
+        use tokio::sync::Mutex;
+
+        let m = Arc::new(Mutex::new(0));
+        let mm = m.clone();
+        let pool = ThreadPool::new(2);
+
+        pool.add(move || {
+            let _ = m.blocking_lock();
+        })
+        .unwrap();
+
+        let _ = mm.blocking_lock();
     }
 }

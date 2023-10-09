@@ -92,7 +92,6 @@ impl<Args> SystemSendRef<Args> {
 pub struct NotSuitableSystemReceive;
 
 impl<Args> BoxedSystemSend<Args> {
-    
     pub fn new(sys: impl SystemSend<Args> + 'static) -> Self {
         Self {
             system: Box::new(UnsafeCell::new(sys)),
