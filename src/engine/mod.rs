@@ -3,7 +3,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use log::info;
 use tokio::sync::Mutex;
 use winit::{
     event::Event,
@@ -64,7 +63,7 @@ impl Engine {
         event_loop.run(move |event, target, control_flow| {
             self.on_event(
                 &mut current_scene,
-                &event,
+                event,
                 target,
                 control_flow,
                 &mut last_frame_time,
@@ -75,7 +74,7 @@ impl Engine {
     fn on_event(
         &mut self,
         current_scene: &mut scenes::Scene,
-        event: &Event<'_, EngineEvent>,
+        event: Event<'_, EngineEvent>,
         target: &winit::event_loop::EventLoopWindowTarget<EngineEvent>,
         control_flow: &mut winit::event_loop::ControlFlow,
         last_frame_time: &mut Instant,
@@ -84,7 +83,7 @@ impl Engine {
 
         current_scene.process_event(
             &event,
-            target, 
+            target,
             self.runtime.as_mut(),
             resources,
             control_flow,
@@ -97,31 +96,30 @@ impl Engine {
         let frame_duration = Duration::from_secs(1)
             / self.target_fps.load(std::sync::atomic::Ordering::Relaxed) as u32;
         let elapsed = Instant::now().duration_since(*last_frame_time);
-        if frame_duration > elapsed {
-            if self.runtime.is_done() {
-                spin_sleep::sleep(frame_duration - elapsed);
+        if let Event::MainEventsCleared = &event {
+            if frame_duration > elapsed {
+                if self.runtime.is_done() {
+                    spin_sleep::sleep(frame_duration - elapsed);
+                    self.runtime
+                        .add_available(&mut self.engine_systems, &mut args);
+
+                    self.runtime
+                        .add_available(current_scene.systems_mut(), &mut args);
+                    *last_frame_time = Instant::now();
+                }
+            } else {
                 self.runtime
                     .add_available(&mut self.engine_systems, &mut args);
 
                 self.runtime
                     .add_available(current_scene.systems_mut(), &mut args);
-                *last_frame_time = Instant::now();
             }
-        } else {
-            self.runtime
-                .add_available(&mut self.engine_systems, &mut args);
-
-            self.runtime
-                .add_available(current_scene.systems_mut(), &mut args);
         }
-
-        if let Event::UserEvent(event) = &event {
-            self.runtime.process_engine_event(
-                event,
-                &mut args,
-                &mut [&mut current_scene.systems_mut(), &mut self.engine_systems],
-            );
-        }
+        self.runtime.process_event(
+            event,
+            &mut args,
+            &mut [&mut current_scene.systems_mut(), &mut self.engine_systems],
+        );
 
         // self.runtime.cleanup_systems(
         //     &mut args,
@@ -135,5 +133,13 @@ impl Engine {
 
     pub fn engine_systems_mut(&mut self) -> &mut SystemRegistry<ComponentQueryArgs> {
         &mut self.engine_systems
+    }
+
+    pub fn event_loop(&self) -> Option<&EventLoop<EngineEvent>> {
+        self.event_loop.as_ref()
+    }
+
+    pub fn event_loop_mut(&mut self) -> Option<&mut EventLoop<EngineEvent>> {
+        self.event_loop.as_mut()
     }
 }

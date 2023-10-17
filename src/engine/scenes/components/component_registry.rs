@@ -6,8 +6,6 @@ use std::{
     ptr::NonNull,
 };
 
-use log::info;
-
 use crate::engine::scenes::entities::Entity;
 
 use super::Component;
@@ -173,6 +171,20 @@ impl<T: Component> ComponentsState<T> {
             _ => Err(NotSuitableComponentsRecieve),
         }
     }
+
+    fn available_for_write(&self) -> bool {
+        match self.state {
+            State::Write => true,
+            State::Read(count) => count == 0,
+            State::Taken => false,
+        }
+    }
+    fn available_for_read(&self) -> bool {
+        match self.state {
+            State::Taken => false,
+            State::Read(_) | State::Write => true,
+        }
+    }
 }
 
 pub struct ComponentRegistry {
@@ -254,6 +266,25 @@ impl ComponentRegistry {
             .downcast_mut::<ComponentsState<C>>()
             .unwrap()
             .receive_ref(&comps)
+    }
+
+    pub(crate) fn available_for_write<C: Component+'static>(&self) -> bool {
+        match self.map.get(&TypeId::of::<C>()) {
+            Some(data) => data
+                .downcast_ref::<ComponentsState<C>>()
+                .unwrap()
+                .available_for_write(),
+            None => true,
+        }
+    }
+    pub(crate) fn available_for_read<C: Component+'static>(&self) -> bool {
+        match self.map.get(&TypeId::of::<C>()) {
+            Some(data) => data
+                .downcast_ref::<ComponentsState<C>>()
+                .unwrap()
+                .available_for_read(),
+            None => true,
+        }
     }
 }
 

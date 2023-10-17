@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     hash::Hash,
+    sync::mpsc::{channel, Receiver, Sender},
     time::{Duration, Instant},
 };
 
@@ -10,6 +11,8 @@ use winit::{
     event::{DeviceEvent, ElementState, Event, MouseButton, VirtualKeyCode, WindowEvent},
     window::WindowId,
 };
+
+use super::engine_event::EngineEvent;
 
 struct ButtonEventGroup<T: Hash + Eq + Clone> {
     keys: HashSet<T>,
@@ -57,7 +60,7 @@ impl<T: Hash + Eq + Clone> Default for ButtonEventGroup<T> {
 pub struct WindowEventRegistry {
     keybaord: ButtonEventGroup<VirtualKeyCode>,
     mouse: ButtonEventGroup<MouseButton>,
-    new_size: Option<PhysicalSize<u32>>,
+    size: PhysicalSize<u32>,
     close_requested: bool,
 }
 
@@ -81,7 +84,7 @@ impl WindowEventRegistry {
                 }
             }
             WindowEvent::Resized(size) => {
-                self.new_size = Some(*size);
+                self.size = *size;
             }
             WindowEvent::CloseRequested => {
                 self.close_requested = true;
@@ -94,7 +97,6 @@ impl WindowEventRegistry {
         };
     }
     pub(crate) fn update(&mut self) {
-        self.new_size.take();
         self.close_requested = false;
         self.keybaord.update();
         self.mouse.update();
@@ -110,11 +112,15 @@ impl WindowEventRegistry {
     pub fn is_released(&self, k: VirtualKeyCode) -> bool {
         self.keybaord.contains_up(&k)
     }
-    pub fn is_resized(&self) -> Option<&PhysicalSize<u32>> {
-        self.new_size.as_ref()
+    pub fn is_resized(&self) -> &PhysicalSize<u32> {
+        &self.size
     }
     pub fn should_close(&self) -> bool {
         self.close_requested
+    }
+
+    pub(crate) fn size(&self) -> PhysicalSize<u32> {
+        self.size
     }
 }
 
@@ -159,6 +165,11 @@ impl EventRegistry {
     pub fn get_window_events(&self, id: WindowId) -> &WindowEventRegistry {
         self.windows.get(&id).unwrap_or(&EMPTY_WINDOW_EVENTS)
     }
+    pub fn all_window_events(
+        &self,
+    ) -> std::collections::hash_map::Values<'_, WindowId, WindowEventRegistry> {
+        self.windows.values()
+    }
 
     pub fn calculate_delta_time(&self) -> Duration {
         Instant::now() - self.start
@@ -178,5 +189,42 @@ impl EventRegistry {
 impl Default for EventRegistry {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+pub struct EventChannelRegistry {
+    event_registry: EventRegistry,
+    sender: Sender<Event<'static, EngineEvent>>,
+    receiver: Receiver<Event<'static, EngineEvent>>,
+}
+
+impl AsRef<EventRegistry> for EventChannelRegistry {
+    fn as_ref(&self) -> &EventRegistry {
+        &self.event_registry
+    }
+}
+impl AsMut<EventRegistry> for EventChannelRegistry {
+    fn as_mut(&mut self) -> &mut EventRegistry {
+        &mut self.event_registry
+    }
+}
+
+impl EventChannelRegistry {
+    pub fn new() -> (Self, Sender<Event<'static, EngineEvent>>) {
+        let event_registry = EventRegistry::default();
+        let (sender, receiver) = channel();
+        (
+            Self {
+                event_registry,
+                sender: sender.clone(),
+                receiver,
+            },
+            sender,
+        )
+    }
+    pub fn update_events_from_channel(&mut self) {
+        for event in self.receiver.try_iter() {
+            self.event_registry.process(&event);
+        }
     }
 }

@@ -6,8 +6,6 @@ use winit::{
     event_loop::{ControlFlow, EventLoopWindowTarget},
 };
 
-use crate::engine::events::event_registry::EventRegistry;
-
 use self::{
     components::component_registry::ComponentRegistry,
     resources::resource_registry::ResourceRegistry,
@@ -58,13 +56,7 @@ impl Scene {
             Event::MainEventsCleared => {
                 *control_flow = self.frame(runtime, target, resources);
             }
-            event => {
-                self.registry
-                    .try_lock()
-                    .expect("this registry should not be locked here")
-                    .events
-                    .process(event);
-            }
+            _ => {}
         }
     }
 
@@ -86,7 +78,6 @@ impl Scene {
 }
 
 pub struct SceneRegistry {
-    events: EventRegistry,
     components: ComponentRegistry,
 }
 
@@ -94,16 +85,7 @@ impl SceneRegistry {
     fn new() -> Self {
         Self {
             components: ComponentRegistry::new(),
-            events: EventRegistry::default(),
         }
-    }
-
-    pub fn events(&self) -> &EventRegistry {
-        &self.events
-    }
-
-    pub fn events_mut(&mut self) -> &mut EventRegistry {
-        &mut self.events
     }
 
     pub fn components(&self) -> &ComponentRegistry {

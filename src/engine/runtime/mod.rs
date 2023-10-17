@@ -1,15 +1,14 @@
 use std::{collections::VecDeque, sync::Arc};
 
-use log::info;
-use tokio::sync::{Mutex, RwLock};
-use winit::event_loop::EventLoopProxy;
+use tokio::sync::RwLock;
+use winit::{event::Event, event_loop::EventLoopProxy};
 
-use self::thread_pool::{ThreadPool, WorkerError};
+use self::thread_pool::{SystemThreadPool, SystemWorkerError};
 
 use super::{
-    events::engine_event::EngineEvent,
+    events::{engine_event::EngineEvent, event_registry::EventRegistry},
     systems::{
-        query::{ComponentQueryArgs, QueryCleanup},
+        query::QueryCleanup,
         system_registry::{SystemRef, SystemRegistry, SystemSendRef},
         Dispatcher, DispatcherSend, SystemControlFlow,
     },
@@ -37,9 +36,9 @@ pub trait Runtime<Args> {
     //     system_registries: &mut [&mut SystemRegistry<Args>],
     // );
 
-    fn process_engine_event(
+    fn process_event(
         &mut self,
-        event: &EngineEvent,
+        event: Event<'_, EngineEvent>,
         args: &mut Args,
         all_system_registries: &mut [&mut SystemRegistry<Args>],
     );
@@ -51,18 +50,22 @@ pub trait Runtime<Args> {
 
 pub struct SingleThreaded {
     proxy: Option<EventLoopProxy<EngineEvent>>,
+    event_registry: EventRegistry,
 }
 
 impl SingleThreaded {
     pub fn new() -> Self {
-        Self { proxy: None }
+        Self {
+            proxy: None,
+            event_registry: EventRegistry::default(),
+        }
     }
 }
 
 impl<Args: 'static> Runtime<Args> for SingleThreaded {
     fn add_send(&mut self, s: SystemSendRef<Args>, args: &mut Args) {
         let (mut clean, (system_ref, control_flow)) =
-            s.dispatch(args).map_err(|e| (e.1)).unwrap()();
+            s.dispatch(args).map_err(|e| (e.1)).unwrap()(&self.event_registry);
         clean.cleanup(args);
         if let Some(proxy) = &self.proxy {
             proxy
@@ -74,7 +77,7 @@ impl<Args: 'static> Runtime<Args> for SingleThreaded {
 
     fn add_non_send(&mut self, s: SystemRef<Args>, args: &mut Args) {
         let (mut clean, (system_ref, control_flow)) =
-            s.dispatch(args).map_err(|e| (e.1)).unwrap()();
+            s.dispatch(args).map_err(|e| (e.1)).unwrap()(&self.event_registry);
         clean.cleanup(args);
         if let Some(proxy) = &self.proxy {
             proxy
@@ -88,62 +91,58 @@ impl<Args: 'static> Runtime<Args> for SingleThreaded {
         self.proxy = Some(proxy);
     }
 
-    fn process_engine_event(
+    fn process_event(
         &mut self,
-        event: &EngineEvent,
+        event: Event<'_, EngineEvent>,
         args: &mut Args,
         all_system_registries: &mut [&mut SystemRegistry<Args>],
     ) {
-        match event {
-            EngineEvent::SystemDone(id, control_flow) => {
-                all_system_registries
-                    .iter_mut()
-                    .find_map(|registry| {
-                        if registry.try_recieve_send_with_id(&id).is_ok() {
-                            match control_flow {
-                                SystemControlFlow::Continue => {}
-                                SystemControlFlow::Quit => panic!("Quit"),
-                                SystemControlFlow::Remove => {
-                                    registry.remove_system_send(id);
-                                }
+        if let Event::UserEvent(EngineEvent::SystemDone(id, control_flow)) = event {
+            all_system_registries
+                .iter_mut()
+                .find_map(|registry| {
+                    if registry.try_recieve_send_with_id(&id).is_ok() {
+                        match control_flow {
+                            SystemControlFlow::Continue => {}
+                            SystemControlFlow::Quit => panic!("Quit"),
+                            SystemControlFlow::Remove => {
+                                registry.remove_system_send(&id);
                             }
-                            Some(())
-                        } else {
-                            None
                         }
-                    })
-                    .unwrap();
-            }
+                        Some(())
+                    } else {
+                        None
+                    }
+                })
+                .unwrap();
+        }
+
+        if let Some(event) = &event.to_static() {
+            self.event_registry.process(event);
         }
     }
 
     fn is_done(&self) -> bool {
         true
     }
-
-    // fn cleanup_systems(
-    //     &mut self,
-    //     args: &mut Args,
-    //     system_registries: &mut [&mut SystemRegistry<Args>],
-    // ) {
-    // }
 }
 
 pub struct MultiThreaded<Args: 'static> {
-    pool: ThreadPool<(
+    pool: SystemThreadPool<(
         Box<dyn QueryCleanup<Args> + Send + Sync>,
         (SystemSendRef<Args>, SystemControlFlow),
     )>,
     send_queue: VecDeque<SystemSendRef<Args>>,
     non_send_queue: VecDeque<SystemRef<Args>>,
     proxy: Arc<RwLock<Option<EventLoopProxy<EngineEvent>>>>,
+    non_send_event_registry: EventRegistry,
 }
 
 impl<Args: 'static> MultiThreaded<Args> {
-    pub fn new() -> Self {
+    pub fn new(workers: usize) -> Self {
         let p = Arc::new(RwLock::new(Option::<EventLoopProxy<EngineEvent>>::None));
         let proxy = p.clone();
-        let pool = ThreadPool::new(10);
+        let pool = SystemThreadPool::new(workers);
         pool.add_proxy(
             move |data: &mut (
                 Box<dyn QueryCleanup<Args> + Send + Sync>,
@@ -164,9 +163,12 @@ impl<Args: 'static> MultiThreaded<Args> {
             non_send_queue: Default::default(),
             pool,
             proxy,
+            non_send_event_registry: Default::default(),
         }
     }
-
+    pub fn new_with_cpu_cores() -> Self {
+        Self::new((num_cpus::get_physical() - 1).max(4))
+    }
     fn try_run_send(&mut self, s: SystemSendRef<Args>, args: &mut Args) {
         match s.dispatch_send(args) {
             Ok(f) => {
@@ -181,7 +183,7 @@ impl<Args: 'static> MultiThreaded<Args> {
     fn try_run_non_send(&mut self, s: SystemRef<Args>, args: &mut Args) {
         match s.dispatch(args) {
             Ok(f) => {
-                let (cleanup, (s, control_flow)) = f();
+                let (cleanup, (s, control_flow)) = f(&self.non_send_event_registry);
                 if let Some(proxy) = self.proxy.blocking_read().as_ref() {
                     proxy
                         .send_event(EngineEvent::SystemDone(s.id(), control_flow))
@@ -209,53 +211,57 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
         *self.proxy.blocking_write() = Some(proxy);
     }
 
-    fn process_engine_event(
+    fn process_event(
         &mut self,
-        event: &EngineEvent,
+        event: Event<'_, EngineEvent>,
         args: &mut Args,
         all_system_registries: &mut [&mut SystemRegistry<Args>],
     ) {
-        match event {
-            EngineEvent::SystemDone(id, control_flow) => {
-                all_system_registries
-                    .iter_mut()
-                    .find_map(|registry| {
-                        if registry.try_recieve_send_with_id(&id).is_ok() {
-                            match control_flow {
-                                SystemControlFlow::Continue => {}
-                                SystemControlFlow::Quit => panic!("Quit"),
-                                SystemControlFlow::Remove => {
-                                    registry.remove_system_send(id);
-                                }
+        if let Event::UserEvent(EngineEvent::SystemDone(id, control_flow)) = event {
+            all_system_registries
+                .iter_mut()
+                .find_map(|registry| {
+                    if registry.try_recieve_send_with_id(&id).is_ok() {
+                        match control_flow {
+                            SystemControlFlow::Continue => {}
+                            SystemControlFlow::Quit => panic!("Quit"),
+                            SystemControlFlow::Remove => {
+                                registry.remove_system_send(&id);
                             }
-                            Some(())
-                        } else {
-                            None
                         }
-                    })
-                    .unwrap();
-                match self.pool.recv_iter().next().unwrap() {
-                    Ok((mut data, _)) => {
-                        data.cleanup(args);
+                        Some(())
+                    } else {
+                        None
                     }
-                    Err(WorkerError::Panic) => panic!("subthread panicked"),
+                })
+                .unwrap();
+            match self.pool.recv_iter().next().unwrap() {
+                Ok((mut data, _)) => {
+                    data.cleanup(args);
                 }
-                let len = self.send_queue.len();
-                for i in 0..len {
-                    let s = self
-                        .send_queue
-                        .pop_front()
-                        .expect("the len promises that there is a value here");
-                    self.try_run_send(s, args);
-                }
-                let len = self.non_send_queue.len();
-                for i in 0..len {
-                    let s = self
-                        .non_send_queue
-                        .pop_front()
-                        .expect("the len promises that there is a value here");
-                    self.try_run_non_send(s, args);
-                }
+                Err(SystemWorkerError::Panic) => panic!("subthread panicked"),
+            }
+            let len = self.send_queue.len();
+            for i in 0..len {
+                let s = self
+                    .send_queue
+                    .pop_front()
+                    .expect("the len promises that there is a value here");
+                self.try_run_send(s, args);
+            }
+            let len = self.non_send_queue.len();
+            for i in 0..len {
+                let s = self
+                    .non_send_queue
+                    .pop_front()
+                    .expect("the len promises that there is a value here");
+                self.try_run_non_send(s, args);
+            }
+        }
+        if let Some(event) = &event.to_static() {
+            self.non_send_event_registry.process(event);
+            for worker in self.pool.workers() {
+                worker.send_event(event);
             }
         }
     }
@@ -263,37 +269,4 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
     fn is_done(&self) -> bool {
         self.send_queue.len() == 0 && self.non_send_queue.len() == 0 && self.pool.jobs_count() == 0
     }
-
-    // fn cleanup_systems(
-    //     &mut self,
-    //     args: &mut Args,
-    //     all_system_registries: &mut [&mut SystemRegistry<Args>],
-    // ) {
-    //     for data in self.pool.try_recv_iter() {
-    //         match data {
-    //             Ok((mut cleanup, (system, state))) => {
-    //                 cleanup.cleanup(args);
-
-    //                 all_system_registries
-    //                     .iter_mut()
-    //                     .find_map(|registry| {
-    //                         if registry.try_recieve_send_ref(&system).is_ok() {
-    //                             match state {
-    //                                 SystemControlFlow::Continue => {}
-    //                                 SystemControlFlow::Quit => panic!("Quit"),
-    //                                 SystemControlFlow::Remove => {
-    //                                     registry.remove_system_send(&system.id());
-    //                                 }
-    //                             }
-    //                             Some(())
-    //                         } else {
-    //                             None
-    //                         }
-    //                     })
-    //                     .unwrap();
-    //             }
-    //             Err(WorkerError::Panic) => panic!("subthread panicked"),
-    //         }
-    //     }
-    // }
 }

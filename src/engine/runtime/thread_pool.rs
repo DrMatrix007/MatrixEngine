@@ -1,4 +1,3 @@
-use log::info;
 use std::{
     marker::PhantomData,
     sync::{
@@ -9,34 +8,41 @@ use std::{
     thread::{self, JoinHandle},
 };
 use tokio::sync::Mutex;
+use winit::event::Event;
 
-pub enum Job<T> {
-    Work(Box<dyn FnOnce() -> T + Send>),
+use crate::engine::events::{
+    engine_event::EngineEvent,
+    event_registry::{EventChannelRegistry, EventRegistry},
+};
+
+pub(crate) enum SystemJob<T> {
+    Work(Box<dyn FnOnce(&EventRegistry) -> T + Send>),
     Close,
 }
-impl<T> Job<T> {
-    fn try_get_func(self) -> Option<Box<dyn FnOnce() -> T + Send>> {
+impl<T> SystemJob<T> {
+    fn try_get_func(self) -> Option<Box<dyn FnOnce(&EventRegistry) -> T + Send>> {
         match self {
-            Job::Work(f) => Some(f),
-            Job::Close => None,
+            SystemJob::Work(f) => Some(f),
+            SystemJob::Close => None,
         }
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum WorkerError {
+pub(crate) enum SystemWorkerError {
     Panic,
 }
 
-pub type JobResult<T> = Result<T, WorkerError>;
+pub(crate) type JobResult<T> = Result<T, SystemWorkerError>;
 
-struct Worker<T: Send> {
+pub(crate) struct Worker<T: Send> {
     _handle: JoinHandle<()>,
     marker: PhantomData<T>,
+    event_sender: Sender<Event<'static, EngineEvent>>,
 }
 
 #[derive(Debug, Clone)]
-struct PosionPill<'a, T>(&'a Sender<JobResult<T>>);
+pub(crate) struct PosionPill<'a, T>(&'a Sender<JobResult<T>>);
 
 impl<'a, T> PosionPill<'a, T> {
     pub fn new(sender: &'a Sender<JobResult<T>>) -> Self {
@@ -48,7 +54,7 @@ impl<'a, T> Drop for PosionPill<'a, T> {
     fn drop(&mut self) {
         if thread::panicking() {
             self.0
-                .send(Err(WorkerError::Panic))
+                .send(Err(SystemWorkerError::Panic))
                 .expect("this function should send this data");
         }
     }
@@ -56,19 +62,22 @@ impl<'a, T> Drop for PosionPill<'a, T> {
 
 impl<T: Send + 'static> Worker<T> {
     fn new(
-        jobs: Arc<Mutex<Receiver<Job<T>>>>,
+        jobs: Arc<Mutex<Receiver<SystemJob<T>>>>,
         done: Sender<JobResult<T>>,
         proxies: Arc<Mutex<Vec<Box<dyn FnMut(&mut T) + Send>>>>,
     ) -> Self {
+        let (reg, event_sender) = EventChannelRegistry::new();
         Self {
-            _handle: std::thread::spawn(|| Worker::run_thread(jobs, done, proxies)),
+            _handle: std::thread::spawn(|| Worker::run_thread(jobs, done, proxies, reg)),
             marker: PhantomData,
+            event_sender,
         }
     }
     fn run_thread(
-        jobs: Arc<Mutex<Receiver<Job<T>>>>,
+        jobs: Arc<Mutex<Receiver<SystemJob<T>>>>,
         done: Sender<JobResult<T>>,
         proxies: Arc<Mutex<Vec<Box<dyn FnMut(&mut T) + Send>>>>,
+        mut event_channel_registry: EventChannelRegistry,
     ) {
         let _pill = PosionPill::new(&done);
         loop {
@@ -77,8 +86,10 @@ impl<T: Send + 'static> Worker<T> {
             drop(mutex_lock);
             match job {
                 Ok(job) => match job {
-                    Job::Work(job) => {
-                        let mut ans = job();
+                    SystemJob::Work(job) => {
+                        event_channel_registry.update_events_from_channel();
+
+                        let mut ans = job(event_channel_registry.as_ref());
 
                         let mut proxies = proxies.blocking_lock();
 
@@ -92,7 +103,7 @@ impl<T: Send + 'static> Worker<T> {
                             return;
                         }
                     }
-                    Job::Close => {
+                    SystemJob::Close => {
                         return;
                     }
                 },
@@ -102,17 +113,21 @@ impl<T: Send + 'static> Worker<T> {
             }
         }
     }
+
+    pub(crate) fn send_event(&self, event: &Event<'static, EngineEvent>) {
+        self.event_sender.send(event.clone()).unwrap();
+    }
 }
 
-pub struct ThreadPool<T: Send = ()> {
+pub(crate) struct SystemThreadPool<T: Send = ()> {
     threads: Vec<Worker<T>>,
-    job_sender: Sender<Job<T>>,
+    job_sender: Sender<SystemJob<T>>,
     data_receiver: Receiver<JobResult<T>>,
     job_counter: Arc<AtomicIsize>,
     proxies: Arc<Mutex<Vec<Box<dyn FnMut(&mut T) + Send>>>>,
 }
 
-impl<T: Send + 'static> ThreadPool<T> {
+impl<T: Send + 'static> SystemThreadPool<T> {
     pub fn new(threads_count: usize) -> Self {
         let proxies = Arc::new(Mutex::new(vec![]));
         assert!(threads_count > 0);
@@ -140,11 +155,11 @@ impl<T: Send + 'static> ThreadPool<T> {
         self.proxies.blocking_lock().push(Box::new(f));
     }
 
-    pub fn add<F: FnOnce() -> T + Send + 'static>(
+    pub fn add<F: FnOnce(&EventRegistry) -> T + Send + 'static>(
         &self,
         f: F,
-    ) -> Result<(), SendError<Box<dyn FnOnce() -> T + Send + 'static>>> {
-        match self.job_sender.send(Job::Work(Box::new(f))) {
+    ) -> Result<(), SendError<Box<dyn FnOnce(&EventRegistry) -> T + Send + 'static>>> {
+        match self.job_sender.send(SystemJob::Work(Box::new(f))) {
             Ok(_) => {
                 self.job_counter.fetch_add(1, Ordering::Acquire);
                 Ok(())
@@ -158,7 +173,7 @@ impl<T: Send + 'static> ThreadPool<T> {
 
     pub fn join(self) {
         for _ in 0..self.threads.len() {
-            self.job_sender.send(Job::Close).unwrap();
+            self.job_sender.send(SystemJob::Close).unwrap();
         }
         for t in self.threads {
             t._handle.join().expect("a thread panicked");
@@ -190,8 +205,12 @@ impl<T: Send + 'static> ThreadPool<T> {
     pub fn jobs_count(&self) -> isize {
         self.job_counter.load(Ordering::Relaxed)
     }
+
+    pub(crate) fn workers(&self) -> &Vec<Worker<T>> {
+        &self.threads
+    }
 }
-pub struct ThreadPoolTryRecvIter<'a, T> {
+pub(crate) struct ThreadPoolTryRecvIter<'a, T> {
     recv: &'a Receiver<JobResult<T>>,
     job_counter: Arc<AtomicIsize>,
 }
@@ -209,7 +228,7 @@ impl<'a, T> Iterator for ThreadPoolTryRecvIter<'a, T> {
         }
     }
 }
-pub struct ThreadPoolRecvIter<'a, T> {
+pub(crate) struct ThreadPoolRecvIter<'a, T> {
     recv: &'a Receiver<JobResult<T>>,
     job_counter: Arc<AtomicIsize>,
 }
@@ -228,16 +247,16 @@ impl<'a, T> Iterator for ThreadPoolRecvIter<'a, T> {
 }
 
 pub struct ThreadPoolSender<T> {
-    pub(self) sender: Sender<Job<T>>,
+    pub(self) sender: Sender<SystemJob<T>>,
     pub(self) counter: Arc<AtomicIsize>,
 }
 
 impl<T> ThreadPoolSender<T> {
-    pub fn send<F>(&self, job: F) -> Result<(), SendError<Job<T>>>
+    pub(crate) fn send<F>(&self, job: F) -> Result<(), SendError<SystemJob<T>>>
     where
-        F: FnOnce() -> T + Send + 'static,
+        F: FnOnce(&EventRegistry) -> T + Send + 'static,
     {
-        self.sender.send(Job::Work(Box::new(job))).map(|x| {
+        self.sender.send(SystemJob::Work(Box::new(job))).map(|x| {
             self.counter.fetch_add(1, Ordering::Acquire);
             x
         })
@@ -247,10 +266,10 @@ impl<T> ThreadPoolSender<T> {
 mod tests {
     #[test]
     pub fn thread_pool_test() {
-        use crate::engine::runtime::thread_pool::ThreadPool;
+        use crate::engine::runtime::thread_pool::SystemThreadPool;
         use std::collections::HashSet;
 
-        let pool = ThreadPool::new(10);
+        let pool = SystemThreadPool::new(10);
 
         let mut data = (0..200).collect::<HashSet<_>>();
 
@@ -259,7 +278,7 @@ mod tests {
             let _ = i128::pow(i, 4);
         }
         for i in data.iter().copied() {
-            pool.add(move || i).unwrap();
+            pool.add(move |_| i).unwrap();
         }
         for i in pool.recv_iter() {
             data.remove(&i.unwrap());
@@ -269,15 +288,15 @@ mod tests {
 
     #[test]
     pub fn test_mutex() {
-        use super::ThreadPool;
+        use super::SystemThreadPool;
         use std::sync::Arc;
         use tokio::sync::Mutex;
 
         let m = Arc::new(Mutex::new(0));
         let mm = m.clone();
-        let pool = ThreadPool::new(2);
+        let pool = SystemThreadPool::new(2);
 
-        pool.add(move || {
+        pool.add(move |_| {
             let _ = m.blocking_lock();
         })
         .unwrap();

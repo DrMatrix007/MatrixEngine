@@ -7,7 +7,13 @@ edition = "2021"
 [dependencies]
 lazy_static = "1.4.0"
 spin_sleep = "1.1.1"
-tokio = { version = "*", features = ["sync"] }
+tokio = { version = "*", features = ["sync","rt"] }
 wgpu = "0.17.1"
 winit = "0.28.3"
 log = { version = "0.4.20", features = ["std"] }
+num_cpus = "1.16.0"
+
+[[test]]
+name = "main_test"
+path = "tests/test.rs"
+harness = false

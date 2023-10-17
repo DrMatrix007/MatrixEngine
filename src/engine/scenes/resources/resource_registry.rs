@@ -129,6 +129,20 @@ impl<T: Resource> ResourceState<T> {
             _ => Err(NotSuitableResourceRecieve),
         }
     }
+
+    fn available_for_read(&self) -> bool {
+        match self.state {
+            State::Taken => false,
+            State::Write | State::Read(_) => true,
+        }
+    }
+    fn available_for_write(&self) -> bool {
+        match self.state {
+            State::Taken => false,
+            State::Read(count) => count == 0,
+            State::Write => true,
+        }
+    }
 }
 
 impl ResourceRegistry {
@@ -192,6 +206,26 @@ impl ResourceRegistry {
             .unwrap()
             .recieve_ref(&comps)
     }
+
+    pub(crate) fn available_for_write<R: Resource+'static>(&self) -> bool {
+        match self.map.get(&TypeId::of::<R>()) {
+            Some(data) => data
+                .downcast_ref::<ResourceState<R>>()
+                .unwrap()
+                .available_for_write(),
+            None => true,
+        }
+    }
+    pub(crate) fn available_for_read<R: Resource+'static>(&self) -> bool {
+        match self.map.get(&TypeId::of::<R>()) {
+            Some(data) => data
+                .downcast_ref::<ResourceState<R>>()
+                .unwrap()
+                .available_for_read(),
+            None => true,
+        }
+    }
+
 }
 
 #[derive(Debug)]

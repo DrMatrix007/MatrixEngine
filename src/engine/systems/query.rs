@@ -1,14 +1,8 @@
 use tokio::sync::OwnedMutexGuard;
 
-use crate::{
-    engine::{
-        events::event_registry::EventRegistry,
-        scenes::{
-            components::component_registry::ComponentRegistry,
-            resources::resource_registry::ResourceRegistry, SceneRegistry,
-        },
-    },
-    impl_all,
+use crate::engine::scenes::{
+    components::component_registry::ComponentRegistry,
+    resources::resource_registry::ResourceRegistry, SceneRegistry,
 };
 
 #[derive(Debug)]
@@ -19,6 +13,7 @@ pub enum QueryError {
 
 pub trait Query<Args>: QueryCleanup<Args> + Sized + 'static {
     fn get(args: &mut Args) -> Result<Self, QueryError>;
+    fn available(args: &mut Args) -> bool;
 }
 
 pub trait QueryCleanup<Args> {
@@ -48,9 +43,7 @@ impl ComponentQueryArgs {
     pub fn components(&self) -> &ComponentRegistry {
         &self.scene_registry.components()
     }
-    pub fn events(&self) -> &EventRegistry {
-        self.scene_registry.events()
-    }
+
     pub fn resources(&self) -> &ResourceRegistry {
         &self.resources_registry
     }
@@ -94,6 +87,10 @@ pub mod components {
                     data: x,
                 })
         }
+
+        fn available(args: &mut ComponentQueryArgs) -> bool {
+            args.components().available_for_write::<C>()
+        }
     }
 
     impl<C: Component + 'static> QueryCleanup<ComponentQueryArgs> for ReadC<C> {
@@ -111,6 +108,10 @@ pub mod components {
                     marker: PhantomData,
                     data: x,
                 })
+        }
+
+        fn available(args: &mut ComponentQueryArgs) -> bool {
+            args.components().available_for_read::<C>()
         }
     }
 }
@@ -149,6 +150,10 @@ pub mod resources {
                     data: x,
                 })
         }
+
+        fn available(args: &mut ComponentQueryArgs) -> bool {
+            args.resources().available_for_write::<R>()
+        }
     }
     impl<R: Resource + 'static> QueryCleanup<ComponentQueryArgs> for ReadR<R> {
         fn cleanup(&mut self, args: &mut ComponentQueryArgs) {
@@ -166,41 +171,25 @@ pub mod resources {
                     data: x,
                 })
         }
+
+        fn available(args: &mut ComponentQueryArgs) -> bool {
+            args.resources().available_for_read::<R>()
+        }
     }
 }
 
-macro_rules! impl_query_components {
-    ($t1:tt $(,$t:tt)*) => {
-        #[allow(non_snake_case)]
-        impl<Args, $t1:Query<Args>,$($t:Query<Args>),*> Query<Args> for ($t1,$($t),*) {
+pub struct ReadEvents {}
 
-            fn get(args:&mut Args) -> Result<Self,QueryError>{
-                Ok(($t1::get(args)?,$($t::get(args)?),*))
-            }
-        }
-        #[allow(non_snake_case)]
-        impl<Args, $t1:Query<Args>,$($t:Query<Args>),*> QueryCleanup<Args> for ($t1,$($t),*) {
-
-            fn cleanup(&mut self,args:&mut Args){
-                let (ref mut $t1,$(ref mut $t),*)= self;
-                $t1::cleanup($t1, args);$($t::cleanup($t,args));*
-            }
-        }
-    };
+impl QueryCleanup<ComponentQueryArgs> for ReadEvents {
+    fn cleanup(&mut self, args: &mut ComponentQueryArgs) {}
 }
 
-// impl<Args, A: Query<Args>, B: Query<Args>> Query<Args> for (A, B) {
-//     fn get(args: &mut Args) -> Result<Self, QueryError> {
-//         Ok((A::get(args)?, B::get(args)?))
-//     }
-// }
-// impl<Args, A: Query<Args>, B: Query<Args>> QueryCleanup<Args> for (A, B) {
-//     fn cleanup(&mut self, sargs: &mut Args) {
-//         let (ref mut A, ref mut B) = self;
+// impl Query<ComponentQueryArgs> for ReadEvents {
+//     fn get(args: &mut ComponentQueryArgs) -> Result<Self, QueryError> {
+
 //     }
 // }
 
-impl_all!(impl_query_components);
 pub trait QuerySend<Args>: Query<Args> + Sized
 where
     Self: Send + Sync,
@@ -219,5 +208,9 @@ impl<Args> QueryCleanup<Args> for () {
 impl<Args> Query<Args> for () {
     fn get(args: &mut Args) -> Result<Self, QueryError> {
         Ok(())
+    }
+
+    fn available(args: &mut Args) -> bool {
+        true
     }
 }
