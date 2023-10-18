@@ -248,6 +248,10 @@ impl QuerySystem for RendererSystem {
             {
                 render_resource.resize(&new_size);
             }
+
+            if events.should_close() {
+                return SystemControlFlow::Quit;
+            }
         }
 
         let camera_resource =
