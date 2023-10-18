@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     hash::Hash,
+    ops::{Deref, DerefMut},
     sync::mpsc::{channel, Receiver, Sender},
     time::{Duration, Instant},
 };
@@ -69,7 +70,7 @@ lazy_static! {
 }
 
 impl WindowEventRegistry {
-    pub(crate) fn push(&mut self, event: &WindowEvent<'_>) {
+    pub(crate) fn process(&mut self, event: &WindowEvent<'_>) {
         match event {
             WindowEvent::KeyboardInput {
                 device_id: _,
@@ -97,7 +98,6 @@ impl WindowEventRegistry {
         };
     }
     pub(crate) fn update(&mut self) {
-        self.close_requested = false;
         self.keybaord.update();
         self.mouse.update();
     }
@@ -150,14 +150,15 @@ impl EventRegistry {
 
     fn process_window_event(&mut self, id: &WindowId, event: &WindowEvent<'_>) {
         let events = self.windows.entry(*id).or_default();
-        events.push(event);
+        events.process(event);
     }
     pub(crate) fn process<T>(&mut self, event: &Event<'_, T>) {
         match event {
-            Event::WindowEvent { window_id, event } => self.process_window_event(window_id, event),
-            Event::DeviceEvent { event, .. } => {
-                self.process_device_event(event);
+            Event::MainEventsCleared => {
+                self.update();
             }
+            Event::WindowEvent { window_id, event } => self.process_window_event(window_id, event),
+            Event::DeviceEvent { event, .. } => self.process_device_event(event),
             _ => {}
         }
     }
@@ -196,6 +197,20 @@ pub struct EventChannelRegistry {
     event_registry: EventRegistry,
     sender: Sender<Event<'static, EngineEvent>>,
     receiver: Receiver<Event<'static, EngineEvent>>,
+}
+
+impl Deref for EventChannelRegistry {
+    type Target = EventRegistry;
+
+    fn deref(&self) -> &Self::Target {
+        &self.event_registry
+    }
+}
+
+impl DerefMut for EventChannelRegistry {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.event_registry
+    }
 }
 
 impl AsRef<EventRegistry> for EventChannelRegistry {

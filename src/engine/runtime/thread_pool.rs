@@ -88,8 +88,8 @@ impl<T: Send + 'static> Worker<T> {
                 Ok(job) => match job {
                     SystemJob::Work(job) => {
                         event_channel_registry.update_events_from_channel();
-
-                        let mut ans = job(event_channel_registry.as_ref());
+                        
+                        let mut ans = job(&event_channel_registry);
 
                         let mut proxies = proxies.blocking_lock();
 
@@ -242,7 +242,7 @@ impl<'a, T> Iterator for ThreadPoolRecvIter<'a, T> {
             assert!(self.job_counter.fetch_add(1, Ordering::SeqCst) == -1);
             return None;
         }
-        self.recv.recv().ok()
+        Some(self.recv.recv().unwrap())
     }
 }
 

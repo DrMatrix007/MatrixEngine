@@ -1,11 +1,41 @@
-use std::sync::Arc;
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
-use wgpu::{CommandEncoderDescriptor, Device, Queue, Surface, SurfaceError, TextureViewDescriptor};
+use wgpu::{
+    CommandEncoderDescriptor, Device, Instance, Queue, Surface, SurfaceError, TextureViewDescriptor,
+};
 use winit::window::Window;
 
 use crate::engine::{
-    events::event_registry::EventRegistry, scenes::resources::Resource, systems::{QuerySystem, SystemControlFlow},
+    events::event_registry::EventRegistry,
+    scenes::resources::Resource,
+    systems::{QuerySystem, SystemControlFlow},
 };
+
+struct FpsCounter {
+    last: Instant,
+}
+
+impl FpsCounter {
+    pub fn new() -> Self {
+        Self {
+            last: Instant::now(),
+        }
+    }
+    pub fn capture(&mut self) -> Duration {
+        let now = Instant::now();
+        let duration = now - self.last;
+        self.last = now;
+
+        duration
+    }
+    pub fn capture_as_fps(&mut self) -> f64 {
+        let d = self.capture();
+        1. / d.as_secs_f64()
+    }
+}
 
 impl Resource for Window {}
 
@@ -35,6 +65,7 @@ pub struct RendererSystem {
     device: DeviceQueue,
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
+    fps: FpsCounter,
 }
 
 impl RendererSystem {
@@ -42,7 +73,7 @@ impl RendererSystem {
         let size = window.inner_size();
 
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::PRIMARY,
+            backends: wgpu::Backends::DX12,
             dx12_shader_compiler: Default::default(),
         });
 
@@ -107,6 +138,7 @@ impl RendererSystem {
             device: device_queue,
             size,
             surface,
+            fps: FpsCounter::new(),
         }
     }
 
@@ -156,6 +188,8 @@ impl QuerySystem for RendererSystem {
         events: &EventRegistry,
         args: &mut Self::Query,
     ) -> crate::engine::systems::SystemControlFlow {
+        println!("fps: {}", self.fps.capture_as_fps());
+
         let _ = self.render();
 
         let window_events = events.get_window_events(self.window.id());
@@ -164,7 +198,7 @@ impl QuerySystem for RendererSystem {
         if self.size != new_size && new_size.width != 0 && new_size.height != 0 {
             self.config.width = new_size.width;
             self.config.height = new_size.height;
-
+            self.size = new_size;
             self.surface.configure(&self.device.device, &self.config);
         }
 

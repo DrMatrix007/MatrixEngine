@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use matrix_engine::engine::{
     events::event_registry::EventRegistry, runtime::SingleThreaded, systems::SystemControlFlow,
 };
@@ -32,6 +34,9 @@ impl QuerySystem for SysC {
         _event: &EventRegistry,
         _args: &mut Self::Query,
     ) -> matrix_engine::engine::systems::SystemControlFlow {
+
+        
+
         SystemControlFlow::Continue
     }
 }
@@ -50,6 +55,8 @@ impl QuerySystem for SysD {
                 println!("dam");
             }
         }
+        // print!("???????\r");
+
 
         SystemControlFlow::Continue
     }
@@ -57,8 +64,9 @@ impl QuerySystem for SysD {
 
 fn main() {
     let runtime = MultiThreaded::new(8);
+    // let runtime = SingleThreaded::new();
 
-    let mut engine = Engine::new(runtime, 144);
+    let mut engine = Engine::new(runtime, 1);
 
     let window = WindowBuilder::new()
         .build(engine.event_loop().unwrap())

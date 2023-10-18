@@ -1,12 +1,12 @@
 use std::{
-    sync::{atomic::AtomicUsize, Arc},
+    sync::{atomic::AtomicIsize, Arc},
     time::{Duration, Instant},
 };
 
 use tokio::sync::Mutex;
 use winit::{
-    event::Event,
-    event_loop::{EventLoop, EventLoopBuilder},
+    event::{Event, StartCause},
+    event_loop::{ControlFlow, EventLoop, EventLoopBuilder},
 };
 
 use self::{
@@ -23,14 +23,14 @@ pub mod systems;
 
 pub struct Engine {
     runtime: Box<dyn Runtime<ComponentQueryArgs>>,
-    target_fps: AtomicUsize,
+    target_fps: AtomicIsize,
     engine_systems: SystemRegistry<ComponentQueryArgs>,
     engine_resources: Arc<Mutex<ResourceRegistry>>,
     event_loop: Option<EventLoop<EngineEvent>>,
 }
 
 impl Engine {
-    pub fn new(runtime: impl Runtime<ComponentQueryArgs> + 'static, fps: usize) -> Self {
+    pub fn new(runtime: impl Runtime<ComponentQueryArgs> + 'static, fps: isize) -> Self {
         Self {
             runtime: Box::new(runtime),
             target_fps: fps.into(),
@@ -60,6 +60,7 @@ impl Engine {
         self.runtime
             .add_available(current_scene.systems_mut(), &mut args);
         drop(args);
+
         event_loop.run(move |event, target, control_flow| {
             self.on_event(
                 &mut current_scene,
@@ -93,13 +94,28 @@ impl Engine {
         let scene_registry = current_scene.try_lock_registry().unwrap();
         let mut args = ComponentQueryArgs::new(scene_registry, resources);
 
-        let frame_duration = Duration::from_secs(1)
-            / self.target_fps.load(std::sync::atomic::Ordering::Relaxed) as u32;
-        let elapsed = Instant::now().duration_since(*last_frame_time);
+        // if let Event::UserEvent(EngineEvent::SystemDone(_, _)) = &event {
+        //     if frame_duration < elapsed {
+        //         self.runtime
+        //             .add_available(&mut self.engine_systems, &mut args);
+
+        //         self.runtime
+        //             .add_available(current_scene.systems_mut(), &mut args);
+        //     }
+        // }
         if let Event::MainEventsCleared = &event {
-            if frame_duration > elapsed {
-                if self.runtime.is_done() {
-                    spin_sleep::sleep(frame_duration - elapsed);
+            let frame_duration = Duration::from_secs(1)
+                / self.target_fps.load(std::sync::atomic::Ordering::Relaxed) as _;
+            let elapsed: Duration = Instant::now().duration_since(*last_frame_time);
+            if self.runtime.is_done() && frame_duration > elapsed {
+                *control_flow = ControlFlow::WaitUntil(*last_frame_time + frame_duration);
+            } else {
+                *control_flow = ControlFlow::Poll;
+            }
+        }
+        if let Event::NewEvents(reason) = &event {
+            match reason {
+                StartCause::Init | StartCause::Poll | StartCause::ResumeTimeReached { .. } => {
                     self.runtime
                         .add_available(&mut self.engine_systems, &mut args);
 
@@ -107,12 +123,7 @@ impl Engine {
                         .add_available(current_scene.systems_mut(), &mut args);
                     *last_frame_time = Instant::now();
                 }
-            } else {
-                self.runtime
-                    .add_available(&mut self.engine_systems, &mut args);
-
-                self.runtime
-                    .add_available(current_scene.systems_mut(), &mut args);
+                _ => {}
             }
         }
         self.runtime.process_event(

@@ -46,6 +46,7 @@ pub trait Runtime<Args> {
     fn use_event_loop_proxy(&mut self, proxy: EventLoopProxy<EngineEvent>);
 
     fn is_done(&self) -> bool;
+
 }
 
 pub struct SingleThreaded {
@@ -125,6 +126,8 @@ impl<Args: 'static> Runtime<Args> for SingleThreaded {
     fn is_done(&self) -> bool {
         true
     }
+
+
 }
 
 pub struct MultiThreaded<Args: 'static> {
@@ -196,6 +199,25 @@ impl<Args: 'static> MultiThreaded<Args> {
             }
         };
     }
+
+    fn try_send_all(&mut self, args: &mut Args) {
+        let len = self.send_queue.len();
+        for i in 0..len {
+            let s = self
+                .send_queue
+                .pop_front()
+                .expect("the len promises that there is a value here");
+            self.try_run_send(s, args);
+        }
+        let len = self.non_send_queue.len();
+        for i in 0..len {
+            let s = self
+                .non_send_queue
+                .pop_front()
+                .expect("the len promises that there is a value here");
+            self.try_run_non_send(s, args);
+        }
+    }
 }
 
 impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
@@ -241,22 +263,7 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
                 }
                 Err(SystemWorkerError::Panic) => panic!("subthread panicked"),
             }
-            let len = self.send_queue.len();
-            for i in 0..len {
-                let s = self
-                    .send_queue
-                    .pop_front()
-                    .expect("the len promises that there is a value here");
-                self.try_run_send(s, args);
-            }
-            let len = self.non_send_queue.len();
-            for i in 0..len {
-                let s = self
-                    .non_send_queue
-                    .pop_front()
-                    .expect("the len promises that there is a value here");
-                self.try_run_non_send(s, args);
-            }
+            self.try_send_all(args);
         }
         if let Some(event) = &event.to_static() {
             self.non_send_event_registry.process(event);
@@ -269,4 +276,5 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
     fn is_done(&self) -> bool {
         self.send_queue.len() == 0 && self.non_send_queue.len() == 0 && self.pool.jobs_count() == 0
     }
+
 }
