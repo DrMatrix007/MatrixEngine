@@ -207,7 +207,7 @@ impl ResourceRegistry {
             .recieve_ref(&comps)
     }
 
-    pub(crate) fn available_for_write<R: Resource+'static>(&self) -> bool {
+    pub(crate) fn available_for_write<R: Resource + 'static>(&self) -> bool {
         match self.map.get(&TypeId::of::<R>()) {
             Some(data) => data
                 .downcast_ref::<ResourceState<R>>()
@@ -216,7 +216,7 @@ impl ResourceRegistry {
             None => true,
         }
     }
-    pub(crate) fn available_for_read<R: Resource+'static>(&self) -> bool {
+    pub(crate) fn available_for_read<R: Resource + 'static>(&self) -> bool {
         match self.map.get(&TypeId::of::<R>()) {
             Some(data) => data
                 .downcast_ref::<ResourceState<R>>()
@@ -225,12 +225,17 @@ impl ResourceRegistry {
             None => true,
         }
     }
-
 }
 
 #[derive(Debug)]
 pub struct ResourceHolder<R: Resource> {
     data: Option<R>,
+}
+
+impl<R: Resource> ResourceHolder<R> {
+    pub fn get_or_insert_with(&mut self, f: impl FnOnce() -> R) -> &mut R {
+        self.data.get_or_insert_with(f)
+    }
 }
 
 impl<R: Resource> AsMut<Option<R>> for ResourceHolder<R> {

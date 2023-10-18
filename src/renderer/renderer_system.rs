@@ -38,11 +38,11 @@ impl FpsCounter {
 impl Resource for Window {}
 
 #[derive(Debug, Clone)]
-pub struct DeviceQueue {
+pub struct DeviceQueue1 {
     device: Arc<Device>,
     queue: Arc<Queue>,
 }
-impl DeviceQueue {
+impl DeviceQueue1 {
     fn new(device: Device, queue: Queue) -> Self {
         Self {
             device: Arc::new(device),
@@ -60,7 +60,7 @@ impl DeviceQueue {
 pub struct RendererSystem {
     window: Window,
     surface: Surface,
-    device: DeviceQueue,
+    device: DeviceQueue1,
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
     fps: FpsCounter,
@@ -109,7 +109,7 @@ impl RendererSystem {
                 (adapter, queue, device)
             });
 
-        let device_queue = DeviceQueue::new(device, queue);
+        let device_queue = DeviceQueue1::new(device, queue);
 
         let surface_caps = surface.get_capabilities(&adapter);
 

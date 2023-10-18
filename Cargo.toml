@@ -13,6 +13,8 @@ winit = "0.28.3"
 log = { version = "0.4.20", features = ["std"] }
 num_cpus = "1.16.0"
 num-traits = "0.2.17"
+bytemuck = { version = "1.13.0", features = ["derive"] }
+image = "0.24.7"
 
 [[test]]
 name = "main_test"

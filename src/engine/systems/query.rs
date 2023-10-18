@@ -116,10 +116,13 @@ pub mod components {
     }
 }
 pub mod resources {
-    use std::marker::PhantomData;
+    use std::{
+        marker::PhantomData,
+        ops::{Deref, DerefMut},
+    };
 
     use crate::engine::scenes::resources::{
-        resource_registry::{ResourceMut, ResourceRef},
+        resource_registry::{ResourceHolder, ResourceMut, ResourceRef},
         Resource,
     };
 
@@ -129,10 +132,65 @@ pub mod resources {
         marker: PhantomData<R>,
         data: ResourceRef<R>,
     }
+    impl<R: Resource> ReadR<R> {
+     
+        pub fn get(&self) -> Option<&R> {
+            self.data.as_ref().as_ref()
+        }
+    }
 
     pub struct WriteR<R: Resource> {
         marker: PhantomData<R>,
         data: ResourceMut<R>,
+    }
+
+    impl<R: Resource> WriteR<R> {
+        pub fn get_mut(&mut self) -> Option<&mut R> {
+            self.data.as_mut().as_mut()
+        }
+
+        pub fn get(&self) -> Option<&R> {
+            self.data.as_ref().as_ref()
+        }
+    }
+
+    impl<R: Resource> AsMut<ResourceHolder<R>> for WriteR<R> {
+        fn as_mut(&mut self) -> &mut ResourceHolder<R> {
+            &mut self.data
+        }
+    }
+
+    impl<R: Resource> AsRef<ResourceHolder<R>> for WriteR<R> {
+        fn as_ref(&self) -> &ResourceHolder<R> {
+            &self.data
+        }
+    }
+    impl<R: Resource> AsRef<ResourceHolder<R>> for ReadR<R> {
+        fn as_ref(&self) -> &ResourceHolder<R> {
+            &self.data
+        }
+    }
+
+    impl<R: Resource> Deref for WriteR<R> {
+        type Target = ResourceHolder<R>;
+
+        fn deref(&self) -> &Self::Target {
+            &self.data
+        }
+    }
+
+    impl<R: Resource> Deref for ReadR<R> {
+        type Target = ResourceHolder<R>;
+
+        fn deref(&self) -> &Self::Target {
+            &self.data
+        }
+    }
+
+    impl<R: Resource> DerefMut for WriteR<R> {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.data
+        }
     }
 
     impl<R: Resource + 'static> QueryCleanup<ComponentQueryArgs> for WriteR<R> {
