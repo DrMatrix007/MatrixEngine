@@ -1,4 +1,4 @@
-use std::{cell::UnsafeCell, collections::BTreeMap, ptr::NonNull};
+use std::{cell::UnsafeCell, collections::BTreeMap, ptr::NonNull, time::Instant};
 
 use crate::engine::scenes::entities::Entity;
 
@@ -8,6 +8,7 @@ pub struct BoxedSystem<Args> {
     system: Box<UnsafeCell<dyn System<Args>>>,
     id: Entity,
     running: bool,
+    taken_when: Instant,
 }
 
 pub struct SystemRef<Args> {
@@ -35,6 +36,7 @@ impl<Args> BoxedSystem<Args> {
             system: Box::new(UnsafeCell::new(sys)),
             id: Entity::new(),
             running: false,
+            taken_when: Instant::now(),
         }
     }
     pub fn try_lock(&mut self) -> Result<SystemRef<Args>, ()> {
@@ -42,6 +44,7 @@ impl<Args> BoxedSystem<Args> {
             Err(())
         } else {
             self.running = true;
+            self.taken_when = Instant::now();
             Ok(SystemRef::new(
                 NonNull::new(self.system.get()).unwrap(),
                 self.id.clone(),
@@ -61,11 +64,16 @@ impl<Args> BoxedSystem<Args> {
             Err(NotSuitableSystemReceive)
         }
     }
+
+    pub fn taken_when(&self) -> Instant {
+        self.taken_when
+    }
 }
 pub struct BoxedSystemSend<Args> {
     system: Box<UnsafeCell<dyn SystemSend<Args>>>,
     running: bool,
     id: Entity,
+    taken_when: Instant,
 }
 pub struct SystemSendRef<Args> {
     system: NonNull<dyn SystemSend<Args>>,
@@ -97,6 +105,7 @@ impl<Args> BoxedSystemSend<Args> {
             system: Box::new(UnsafeCell::new(sys)),
             running: false,
             id: Entity::new(),
+            taken_when: Instant::now(),
         }
     }
     pub fn try_lock(&mut self) -> Result<SystemSendRef<Args>, ()> {
@@ -104,6 +113,7 @@ impl<Args> BoxedSystemSend<Args> {
             Err(())
         } else {
             self.running = true;
+            self.taken_when = Instant::now();
             Ok(SystemSendRef::new(
                 NonNull::new(self.system.get()).unwrap(),
                 self.id.clone(),
@@ -122,6 +132,10 @@ impl<Args> BoxedSystemSend<Args> {
         } else {
             Err(NotSuitableSystemReceive)
         }
+    }
+
+    pub fn taken_when(&self) -> Instant {
+        self.taken_when
     }
 }
 
@@ -163,11 +177,14 @@ impl<Args> SystemRegistry<Args> {
         self.non_send.iter_mut().filter_map(|x| x.1.try_lock().ok())
     }
 
-    pub fn try_recieve_send_with_id(&mut self, system_ref: &Entity) -> Result<(), SystemNotFound> {
+    pub fn try_recieve_send_with_id(
+        &mut self,
+        system_ref: &Entity,
+    ) -> Result<&mut BoxedSystemSend<Args>, SystemNotFound> {
         match self.send.get_mut(&system_ref) {
             Some(system) => {
                 system.try_receive_ref(system_ref).unwrap();
-                Ok(())
+                Ok(system)
             }
             None => Err(SystemNotFound),
         }

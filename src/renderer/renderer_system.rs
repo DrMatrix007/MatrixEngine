@@ -3,9 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use wgpu::{
-    CommandEncoderDescriptor, Device, Instance, Queue, Surface, SurfaceError, TextureViewDescriptor,
-};
+use wgpu::{CommandEncoderDescriptor, Device, Queue, Surface, SurfaceError, TextureViewDescriptor};
 use winit::window::Window;
 
 use crate::engine::{
@@ -73,7 +71,7 @@ impl RendererSystem {
         let size = window.inner_size();
 
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::DX12,
+            backends: wgpu::Backends::VULKAN,
             dx12_shader_compiler: Default::default(),
         });
 
@@ -205,7 +203,7 @@ impl QuerySystem for RendererSystem {
         if window_events.should_close() {
             return SystemControlFlow::Quit;
         }
-
+        // spin_sleep::sleep(Duration::from_secs_f64(0.3));
         crate::engine::systems::SystemControlFlow::Continue
     }
 }

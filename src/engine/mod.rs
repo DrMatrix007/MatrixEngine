@@ -102,6 +102,8 @@ impl Engine {
         //             .add_available(current_scene.systems_mut(), &mut args);
         //     }
         // }
+        let frame_duration = Duration::from_secs(1)
+            / self.target_fps.load(std::sync::atomic::Ordering::Relaxed) as _;
 
         if let Event::UserEvent(EngineEvent::SystemDone(_, _)) = &event {
         } else if let Event::NewEvents(reason) = &event {
@@ -113,8 +115,7 @@ impl Engine {
 
                     self.runtime
                         .add_available(current_scene.systems_mut(), &mut args);
-                    let frame_duration = Duration::from_secs(1)
-                        / self.target_fps.load(std::sync::atomic::Ordering::Relaxed) as _;
+
                     *control_flow = ControlFlow::WaitUntil(*last_frame_time + frame_duration);
                     // println!("send {} {:?}", match start_cause{
                     //     StartCause::ResumeTimeReached { start, requested_resume }=> {
@@ -131,6 +132,7 @@ impl Engine {
         self.runtime.process_event(
             event,
             &mut args,
+            frame_duration,
             &mut [&mut current_scene.systems_mut(), &mut self.engine_systems],
         );
 

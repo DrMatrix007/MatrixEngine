@@ -52,6 +52,7 @@ impl QuerySystem for SysD {
     ) -> matrix_engine::engine::systems::SystemControlFlow {
         for event in _event.all_window_events() {
             if event.is_pressed(winit::event::VirtualKeyCode::A) {
+                spin_sleep::sleep(Duration::from_secs_f64(3.));
                 println!("dam");
             }
         }
@@ -66,7 +67,7 @@ fn main() {
     let runtime = MultiThreaded::new(8);
     // let runtime = SingleThreaded::new();
 
-    let mut engine = Engine::new(runtime, 1);
+    let mut engine = Engine::new(runtime, 144);
 
     let window = WindowBuilder::new()
         .build(engine.event_loop().unwrap())
@@ -74,7 +75,7 @@ fn main() {
 
     engine
         .engine_systems_mut()
-        .push_send(RendererSystem::new(window));
+        .push_non_send(RendererSystem::new(window));
 
     let builder = SceneBuilder::new(|scene_reg, system_reg| {
         for _i in 1..100 {
