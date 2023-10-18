@@ -40,8 +40,7 @@ impl Scene {
         runtime: &mut dyn Runtime<ComponentQueryArgs>,
         _target: &EventLoopWindowTarget<EngineEvent>,
         resources: OwnedMutexGuard<ResourceRegistry>,
-    ) -> ControlFlow {
-        ControlFlow::Poll
+    ) {
     }
 
     pub fn process_event(
@@ -54,7 +53,7 @@ impl Scene {
     ) {
         match event {
             Event::MainEventsCleared => {
-                *control_flow = self.frame(runtime, target, resources);
+                self.frame(runtime, target, resources);
             }
             _ => {}
         }
