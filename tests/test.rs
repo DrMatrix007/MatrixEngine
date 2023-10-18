@@ -1,8 +1,6 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use matrix_engine::engine::{
-    events::event_registry::EventRegistry, runtime::SingleThreaded, systems::SystemControlFlow,
-};
+use matrix_engine::engine::{events::event_registry::EventRegistry, systems::SystemControlFlow};
 #[allow(unused_imports)]
 use matrix_engine::{
     engine::{
@@ -34,9 +32,6 @@ impl QuerySystem for SysC {
         _event: &EventRegistry,
         _args: &mut Self::Query,
     ) -> matrix_engine::engine::systems::SystemControlFlow {
-
-        
-
         SystemControlFlow::Continue
     }
 }
@@ -57,7 +52,6 @@ impl QuerySystem for SysD {
             }
         }
         // print!("???????\r");
-
 
         SystemControlFlow::Continue
     }
