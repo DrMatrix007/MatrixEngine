@@ -203,19 +203,6 @@ impl QuerySystem for RendererSystem {
         if window_events.should_close() {
             return SystemControlFlow::Quit;
         }
-        // spin_sleep::sleep(Duration::from_secs_f64(0.3));
         crate::engine::systems::SystemControlFlow::Continue
     }
 }
-
-// impl QuerySystem for RendererSystem {
-//     type Query = ReadR<Window>;
-
-//     fn run(
-//         &mut self,
-//         args: &mut <Self::Query as crate::engine::systems::query::Query<
-//             crate::engine::systems::query::ComponentQueryArgs,
-//         >>::Target,
-//     ) {
-//     }
-// }
