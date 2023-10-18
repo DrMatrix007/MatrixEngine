@@ -1,19 +1,22 @@
 use std::time::Duration;
 
-use matrix_engine::engine::{events::event_registry::EventRegistry, systems::SystemControlFlow};
 #[allow(unused_imports)]
-use matrix_engine::{
-    engine::{
-        runtime::MultiThreaded,
-        scenes::{components::Component, entities::Entity, scene_builder::SceneBuilder},
-        systems::{
-            query::components::{ReadC, WriteC},
-            QuerySystem,
-        },
-        Engine,
+use matrix_engine::engine::{
+    runtime::MultiThreaded,
+    scenes::{components::Component, entities::Entity, scene_builder::SceneBuilder},
+    systems::{
+        query::components::{ReadC, WriteC},
+        QuerySystem,
     },
-    renderer::renderer_system::RendererSystem,
+    Engine,
 };
+use matrix_engine::{
+    engine::{events::event_registry::EventRegistry, systems::SystemControlFlow},
+    renderer::matrix_renderer::renderer_system::{
+        RendererResource, RendererResourceArgs, RendererSystem,
+    },
+};
+use wgpu::Color;
 use winit::window::WindowBuilder;
 
 #[derive(Debug)]
@@ -68,8 +71,13 @@ fn main() {
         .unwrap();
 
     engine
-        .engine_systems_mut()
-        .push_non_send(RendererSystem::new(window));
+        .lock_engine_resources()
+        .insert(RendererResource::new(RendererResourceArgs {
+            background_color: Color::GREEN,
+            window,
+        }));
+
+    engine.engine_systems_mut().push_non_send(RendererSystem);
 
     let builder = SceneBuilder::new(|scene_reg, system_reg| {
         for _i in 1..100 {

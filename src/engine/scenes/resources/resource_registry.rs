@@ -146,7 +146,16 @@ impl<T: Resource> ResourceState<T> {
 }
 
 impl ResourceRegistry {
-    pub fn try_read<R: Resource + 'static>(
+    pub fn insert<R: Resource + 'static>(&mut self, r: R) {
+        self.map.insert(
+            TypeId::of::<R>(),
+            Box::new(ResourceState::new(Box::new(UnsafeCell::new(
+                ResourceHolder::<R>::new(r),
+            )))),
+        );
+    }
+
+    pub(crate) fn try_read<R: Resource + 'static>(
         &mut self,
     ) -> Result<ResourceRef<R>, ResourcesNotAvailable> {
         self.map
@@ -161,7 +170,7 @@ impl ResourceRegistry {
             .try_read()
     }
 
-    pub fn try_write<C: Resource + 'static>(
+    pub(crate) fn try_write<C: Resource + 'static>(
         &mut self,
     ) -> Result<ResourceMut<C>, ResourcesNotAvailable> {
         self.map
@@ -176,7 +185,7 @@ impl ResourceRegistry {
             .try_write()
     }
 
-    pub fn try_recieve_mut<R: Resource + 'static>(
+    pub(crate) fn try_recieve_mut<R: Resource + 'static>(
         &mut self,
         comps: &ResourceMut<R>,
     ) -> Result<(), NotSuitableResourceRecieve> {
@@ -191,7 +200,7 @@ impl ResourceRegistry {
             .unwrap()
             .recieve_mut(comps)
     }
-    pub fn try_recieve_ref<R: Resource + 'static>(
+    pub(crate) fn try_recieve_ref<R: Resource + 'static>(
         &mut self,
         comps: &ResourceRef<R>,
     ) -> Result<(), NotSuitableResourceRecieve> {
@@ -235,6 +244,12 @@ pub struct ResourceHolder<R: Resource> {
 impl<R: Resource> ResourceHolder<R> {
     pub fn get_or_insert_with(&mut self, f: impl FnOnce() -> R) -> &mut R {
         self.data.get_or_insert_with(f)
+    }
+
+    fn new(resource: R) -> Self {
+        Self {
+            data: Some(resource),
+        }
     }
 }
 

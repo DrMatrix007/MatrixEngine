@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, MutexGuard};
 use winit::{
     event::{Event, StartCause},
     event_loop::{ControlFlow, EventLoop, EventLoopBuilder},
@@ -156,5 +156,9 @@ impl Engine {
 
     pub fn event_loop_mut(&mut self) -> Option<&mut EventLoop<EngineEvent>> {
         self.event_loop.as_mut()
+    }
+
+    pub fn lock_engine_resources(&self) -> MutexGuard<'_, ResourceRegistry> {
+        self.engine_resources.blocking_lock()
     }
 }
