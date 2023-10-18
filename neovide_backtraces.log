@@ -1,4 +1,4 @@
-2023-04-21 21:33:53 - Neovide panicked with the message 'Could not setup setting notifier for refresh_rate_idle: Error sending request 'nvim_command''. (File: src/error_handling.rs; Line: 5, Column: 5)
+2023-09-24 09:46:02 - Neovide panicked with the message 'Input failed: DecodeError(ReaderError(Custom { kind: UnexpectedEof, error: "EOF" }), "nvim_input")'. (File: src\bridge\ui_commands.rs; Line: 53, Column: 50)
    0: <unknown>
    1: <unknown>
    2: <unknown>
@@ -14,5 +14,6 @@
   12: <unknown>
   13: <unknown>
   14: <unknown>
-  15: <unknown>
+  15: BaseThreadInitThunk
+  16: RtlUserThreadStart
 

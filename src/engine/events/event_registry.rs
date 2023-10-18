@@ -1,7 +1,8 @@
 use std::{
-    any::TypeId,
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     hash::Hash,
+    ops::{Deref, DerefMut},
+    sync::mpsc::{channel, Receiver, Sender},
     time::{Duration, Instant},
 };
 
@@ -12,9 +13,7 @@ use winit::{
     window::WindowId,
 };
 
-use crate::components::resources::Resource;
-
-use super::matrix_event::{MatrixEvent, MatrixEventReceiver};
+use super::engine_event::EngineEvent;
 
 struct ButtonEventGroup<T: Hash + Eq + Clone> {
     keys: HashSet<T>,
@@ -62,7 +61,7 @@ impl<T: Hash + Eq + Clone> Default for ButtonEventGroup<T> {
 pub struct WindowEventRegistry {
     keybaord: ButtonEventGroup<VirtualKeyCode>,
     mouse: ButtonEventGroup<MouseButton>,
-    new_size: Option<PhysicalSize<u32>>,
+    size: PhysicalSize<u32>,
     close_requested: bool,
 }
 
@@ -71,7 +70,7 @@ lazy_static! {
 }
 
 impl WindowEventRegistry {
-    pub(crate) fn push(&mut self, event: WindowEvent<'_>) {
+    pub(crate) fn process(&mut self, event: &WindowEvent<'_>) {
         match event {
             WindowEvent::KeyboardInput {
                 device_id: _,
@@ -86,21 +85,19 @@ impl WindowEventRegistry {
                 }
             }
             WindowEvent::Resized(size) => {
-                self.new_size = Some(size);
+                self.size = *size;
             }
             WindowEvent::CloseRequested => {
                 self.close_requested = true;
             }
             WindowEvent::MouseInput { state, button, .. } => match state {
-                ElementState::Pressed => self.mouse.insert(button),
-                ElementState::Released => self.mouse.remove(button),
+                ElementState::Pressed => self.mouse.insert(*button),
+                ElementState::Released => self.mouse.remove(*button),
             },
             _ => {}
         };
     }
     pub(crate) fn update(&mut self) {
-        self.new_size.take();
-        self.close_requested = false;
         self.keybaord.update();
         self.mouse.update();
     }
@@ -115,17 +112,20 @@ impl WindowEventRegistry {
     pub fn is_released(&self, k: VirtualKeyCode) -> bool {
         self.keybaord.contains_up(&k)
     }
-    pub fn is_resized(&self) -> Option<&PhysicalSize<u32>> {
-        self.new_size.as_ref()
+    pub fn is_resized(&self) -> &PhysicalSize<u32> {
+        &self.size
     }
     pub fn should_close(&self) -> bool {
         self.close_requested
+    }
+
+    pub(crate) fn size(&self) -> PhysicalSize<u32> {
+        self.size
     }
 }
 
 pub struct EventRegistry {
     windows: HashMap<WindowId, WindowEventRegistry>,
-    matrix_events: VecDeque<MatrixEvent>,
     start: Instant,
     mouse_delta: (f64, f64),
 }
@@ -134,34 +134,31 @@ impl EventRegistry {
     pub fn new() -> Self {
         Self {
             windows: Default::default(),
-            matrix_events: Default::default(),
             start: Instant::now(),
             mouse_delta: (0., 0.),
         }
     }
 
-    pub(crate) fn update(&mut self, recv: &MatrixEventReceiver) {
+    pub(crate) fn update(&mut self) {
         for i in &mut self.windows {
             i.1.update();
         }
-        self.matrix_events.clear();
-        for i in recv.iter_current() {
-            self.matrix_events.push_back(i);
-        }
+
         self.start = Instant::now();
         self.mouse_delta = (0.0, 0.0);
     }
 
-    fn push_window_event(&mut self, id: WindowId, event: WindowEvent<'_>) {
-        let events = self.windows.entry(id).or_default();
-        events.push(event);
+    fn process_window_event(&mut self, id: &WindowId, event: &WindowEvent<'_>) {
+        let events = self.windows.entry(*id).or_default();
+        events.process(event);
     }
-    pub(crate) fn push<T>(&mut self, event: Event<'_, T>) {
+    pub(crate) fn process<T>(&mut self, event: &Event<'_, T>) {
         match event {
-            Event::WindowEvent { window_id, event } => self.push_window_event(window_id, event),
-            Event::DeviceEvent { event, .. } => {
-                self.push_device_event(event);
+            Event::MainEventsCleared => {
+                self.update();
             }
+            Event::WindowEvent { window_id, event } => self.process_window_event(window_id, event),
+            Event::DeviceEvent { event, .. } => self.process_device_event(event),
             _ => {}
         }
     }
@@ -169,25 +166,19 @@ impl EventRegistry {
     pub fn get_window_events(&self, id: WindowId) -> &WindowEventRegistry {
         self.windows.get(&id).unwrap_or(&EMPTY_WINDOW_EVENTS)
     }
-
-    pub fn is_resource_created<T: Resource + 'static>(&self) -> bool {
-        let id = TypeId::of::<T>();
-        for i in &self.matrix_events {
-            if let MatrixEvent::CreatedResource(other_id) = i {
-                if &id == other_id {
-                    return true;
-                }
-            }
-        }
-        false
+    pub fn all_window_events(
+        &self,
+    ) -> std::collections::hash_map::Values<'_, WindowId, WindowEventRegistry> {
+        self.windows.values()
     }
+
     pub fn calculate_delta_time(&self) -> Duration {
         Instant::now() - self.start
     }
 
-    fn push_device_event(&mut self, event: DeviceEvent) {
+    fn process_device_event(&mut self, event: &DeviceEvent) {
         if let DeviceEvent::MouseMotion { delta } = event {
-            self.mouse_delta = delta;
+            self.mouse_delta = *delta;
         }
     }
 
@@ -199,5 +190,56 @@ impl EventRegistry {
 impl Default for EventRegistry {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+pub struct EventChannelRegistry {
+    event_registry: EventRegistry,
+    sender: Sender<Event<'static, EngineEvent>>,
+    receiver: Receiver<Event<'static, EngineEvent>>,
+}
+
+impl Deref for EventChannelRegistry {
+    type Target = EventRegistry;
+
+    fn deref(&self) -> &Self::Target {
+        &self.event_registry
+    }
+}
+
+impl DerefMut for EventChannelRegistry {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.event_registry
+    }
+}
+
+impl AsRef<EventRegistry> for EventChannelRegistry {
+    fn as_ref(&self) -> &EventRegistry {
+        &self.event_registry
+    }
+}
+impl AsMut<EventRegistry> for EventChannelRegistry {
+    fn as_mut(&mut self) -> &mut EventRegistry {
+        &mut self.event_registry
+    }
+}
+
+impl EventChannelRegistry {
+    pub fn new() -> (Self, Sender<Event<'static, EngineEvent>>) {
+        let event_registry = EventRegistry::default();
+        let (sender, receiver) = channel();
+        (
+            Self {
+                event_registry,
+                sender: sender.clone(),
+                receiver,
+            },
+            sender,
+        )
+    }
+    pub fn update_events_from_channel(&mut self) {
+        for event in self.receiver.try_iter() {
+            self.event_registry.process(&event);
+        }
     }
 }
