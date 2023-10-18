@@ -1,9 +1,12 @@
-use wgpu::{BufferUsages};
+use wgpu::BufferUsages;
 
-use crate::renderer::{pipelines::{
-    buffers::{BufferContainer, Vertex, VertexBuffer},
-    instance_manager::VertexStructure,
-}, matrix_renderer::renderer_system::DeviceQueue};
+use crate::renderer::{
+    matrix_renderer::renderer_system::DeviceQueue,
+    pipelines::{
+        buffers::{BufferContainer, Vertex, VertexBuffer},
+        instance_manager::VertexStructure,
+    },
+};
 
 pub struct Plain;
 

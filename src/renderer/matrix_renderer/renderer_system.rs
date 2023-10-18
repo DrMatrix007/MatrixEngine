@@ -2,13 +2,10 @@ use std::{collections::VecDeque, sync::Arc};
 
 use crate::{
     engine::{
-        events::event_registry::{EventRegistry},
+        events::event_registry::EventRegistry,
         scenes::resources::Resource,
         systems::{
-            query::{
-                components::ReadC,
-                resources::{WriteR},
-            },
+            query::{components::ReadC, resources::WriteR},
             QuerySystem, SystemControlFlow,
         },
     },
