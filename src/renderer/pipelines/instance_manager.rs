@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use wgpu::{BufferUsages, Device, Queue};
+use wgpu::{BufferUsages};
 
 use crate::renderer::matrix_renderer::{render_object::RenderObject, renderer_system::DeviceQueue};
 

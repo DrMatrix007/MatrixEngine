@@ -1,4 +1,4 @@
-use wgpu::{BufferUsages, Device, Queue};
+use wgpu::{BufferUsages};
 
 use crate::renderer::{pipelines::{
     buffers::{BufferContainer, Vertex, VertexBuffer},

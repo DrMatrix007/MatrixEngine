@@ -1,6 +1,6 @@
 use std::{any::TypeId, collections::HashMap, sync::Arc};
 
-use wgpu::{BindGroupLayout, Device};
+use wgpu::{BindGroupLayout};
 
 use crate::renderer::matrix_renderer::renderer_system::DeviceQueue;
 

@@ -2,12 +2,12 @@ use std::{collections::VecDeque, sync::Arc};
 
 use crate::{
     engine::{
-        events::event_registry::{self, EventRegistry},
+        events::event_registry::{EventRegistry},
         scenes::resources::Resource,
         systems::{
             query::{
                 components::ReadC,
-                resources::{ReadR, WriteR},
+                resources::{WriteR},
             },
             QuerySystem, SystemControlFlow,
         },
@@ -25,9 +25,8 @@ use crate::{
 };
 
 use wgpu::{
-    Backends, Color, CommandBuffer, CommandEncoderDescriptor, Device, DeviceDescriptor, Features,
-    Instance, Limits, Operations, PowerPreference, Queue, Surface, SurfaceConfiguration,
-    SurfaceError, TextureUsages,
+    Color, CommandEncoderDescriptor, Device, Operations, Queue, Surface, SurfaceConfiguration,
+    SurfaceError,
 };
 use winit::{dpi::PhysicalSize, window::Window};
 
