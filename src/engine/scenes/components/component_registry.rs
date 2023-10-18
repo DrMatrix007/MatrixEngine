@@ -1,7 +1,7 @@
 use std::{
     any::{Any, TypeId},
     cell::UnsafeCell,
-    collections::BTreeMap,
+    collections::{btree_map, BTreeMap},
     ops::{Deref, DerefMut},
     ptr::NonNull,
 };
@@ -30,10 +30,10 @@ impl<C: Component> Components<C> {
     pub fn get_mut(&mut self, e: &Entity) -> Option<&mut C> {
         self.map.get_mut(e)
     }
-    pub fn iter(&self) -> impl Iterator<Item = (&'_ Entity, &'_ C)> {
+    pub fn iter(&self) -> btree_map::Iter<'_, Entity, C> {
         self.map.iter()
     }
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&'_ Entity, &'_ mut C)> {
+    pub fn iter_mut(&mut self) -> btree_map::IterMut<'_, Entity, C> {
         self.map.iter_mut()
     }
 }
@@ -227,14 +227,14 @@ impl ComponentRegistry {
             .try_write()
     }
 
-    pub fn try_add_component<C: Component + 'static>(&mut self, e: Entity, c: C) -> Result<(), C> {
+    pub fn try_add_component<C: Component + 'static>(&mut self, e: Entity, c: C) -> Result<(), ()> {
         match self.try_write() {
             Ok(mut map) => {
                 map.add(e, c);
                 self.try_recieve_mut(&map).unwrap();
                 Ok(())
             }
-            Err(_) => Err(c),
+            Err(_) => Err(()),
         }
     }
     pub fn try_recieve_mut<C: Component + 'static>(
@@ -268,7 +268,7 @@ impl ComponentRegistry {
             .receive_ref(&comps)
     }
 
-    pub(crate) fn available_for_write<C: Component+'static>(&self) -> bool {
+    pub(crate) fn available_for_write<C: Component + 'static>(&self) -> bool {
         match self.map.get(&TypeId::of::<C>()) {
             Some(data) => data
                 .downcast_ref::<ComponentsState<C>>()
@@ -277,7 +277,7 @@ impl ComponentRegistry {
             None => true,
         }
     }
-    pub(crate) fn available_for_read<C: Component+'static>(&self) -> bool {
+    pub(crate) fn available_for_read<C: Component + 'static>(&self) -> bool {
         match self.map.get(&TypeId::of::<C>()) {
             Some(data) => data
                 .downcast_ref::<ComponentsState<C>>()

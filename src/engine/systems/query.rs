@@ -52,7 +52,10 @@ impl ComponentQueryArgs {
     }
 }
 pub mod components {
-    use std::marker::PhantomData;
+    use std::{
+        marker::PhantomData,
+        ops::{Deref, DerefMut},
+    };
 
     use crate::engine::scenes::components::{
         component_registry::{ComponentsMut, ComponentsRef},
@@ -64,6 +67,28 @@ pub mod components {
     pub struct ReadC<C: Component> {
         marker: PhantomData<C>,
         data: ComponentsRef<C>,
+    }
+
+    impl<C: Component> Deref for ReadC<C> {
+        type Target = ComponentsRef<C>;
+
+        fn deref(&self) -> &Self::Target {
+            &self.data
+        }
+    }
+
+    impl<C: Component> Deref for WriteC<C> {
+        type Target = ComponentsMut<C>;
+
+        fn deref(&self) -> &Self::Target {
+            &self.data
+        }
+    }
+
+    impl<C: Component> DerefMut for WriteC<C> {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.data
+        }
     }
 
     pub struct WriteC<C: Component> {
@@ -133,7 +158,6 @@ pub mod resources {
         data: ResourceRef<R>,
     }
     impl<R: Resource> ReadR<R> {
-     
         pub fn get(&self) -> Option<&R> {
             self.data.as_ref().as_ref()
         }

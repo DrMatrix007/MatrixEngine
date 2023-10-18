@@ -19,7 +19,7 @@ use crate::{
     },
 };
 
-use super::renderer_system::RendererResource;
+use super::renderer_system::MatrixRendererResource;
 
 #[repr(C)]
 #[derive(Pod, Zeroable, Debug, Clone, Copy)]
@@ -136,7 +136,7 @@ impl CameraResource {
 }
 
 impl CameraResource {
-    pub fn new(resource: &mut RendererResource) -> Self {
+    pub fn new(resource: &mut MatrixRendererResource) -> Self {
         let layout = resource
             .group_layout_manager_mut()
             .get_bind_group_layout::<(CameraUniform,)>();

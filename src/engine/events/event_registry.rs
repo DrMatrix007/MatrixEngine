@@ -128,6 +128,7 @@ pub struct EventRegistry {
     windows: HashMap<WindowId, WindowEventRegistry>,
     start: Instant,
     mouse_delta: (f64, f64),
+    delta_time: Duration,
 }
 
 impl EventRegistry {
@@ -136,6 +137,7 @@ impl EventRegistry {
             windows: Default::default(),
             start: Instant::now(),
             mouse_delta: (0., 0.),
+            delta_time: Duration::ZERO,
         }
     }
 
@@ -152,13 +154,20 @@ impl EventRegistry {
         let events = self.windows.entry(*id).or_default();
         events.process(event);
     }
-    pub(crate) fn process<T>(&mut self, event: &Event<'_, T>) {
+    pub(crate) fn process(&mut self, event: &Event<'_, EngineEvent>) {
         match event {
             Event::MainEventsCleared => {
                 self.update();
             }
             Event::WindowEvent { window_id, event } => self.process_window_event(window_id, event),
             Event::DeviceEvent { event, .. } => self.process_device_event(event),
+            Event::UserEvent(engine_event) => match engine_event {
+                EngineEvent::UpdateDeltaTime(dt) => {
+                    self.delta_time = *dt;
+                }
+
+                _ => {}
+            },
             _ => {}
         }
     }
@@ -172,10 +181,6 @@ impl EventRegistry {
         self.windows.values()
     }
 
-    pub fn calculate_delta_time(&self) -> Duration {
-        Instant::now() - self.start
-    }
-
     fn process_device_event(&mut self, event: &DeviceEvent) {
         if let DeviceEvent::MouseMotion { delta } = event {
             self.mouse_delta = *delta;
@@ -184,6 +189,10 @@ impl EventRegistry {
 
     pub fn mouse_delta(&self) -> (f64, f64) {
         self.mouse_delta
+    }
+
+    pub fn delta_time(&self) -> &Duration {
+        &self.delta_time
     }
 }
 

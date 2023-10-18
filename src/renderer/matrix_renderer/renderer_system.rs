@@ -6,6 +6,7 @@ use crate::{
         scenes::resources::Resource,
         systems::{
             query::{components::ReadC, resources::WriteR},
+            query_group::ComponentRefIterable,
             QuerySystem, SystemControlFlow,
         },
     },
@@ -57,7 +58,7 @@ pub struct RendererResourceArgs {
     pub background_color: Color,
 }
 
-pub struct RendererResource {
+pub struct MatrixRendererResource {
     surface: Surface,
     window: Window,
     device: DeviceQueue,
@@ -69,7 +70,7 @@ pub struct RendererResource {
     command_buffer_queue: VecDeque<(wgpu::CommandBuffer, std::boxed::Box<wgpu::SurfaceTexture>)>,
 }
 
-impl RendererResource {
+impl MatrixRendererResource {
     pub fn new(args: RendererResourceArgs) -> Self {
         let size = args.window.inner_size();
 
@@ -172,14 +173,14 @@ impl RendererResource {
     }
 }
 
-impl Resource for RendererResource {}
+impl Resource for MatrixRendererResource {}
 
-pub struct RendererSystem;
+pub struct MatrixRendererSystem;
 
-impl QuerySystem for RendererSystem {
+impl QuerySystem for MatrixRendererSystem {
     type Query = (
         (
-            WriteR<RendererResource>,
+            WriteR<MatrixRendererResource>,
             WriteR<MainPipeline>,
             WriteR<CameraResource>,
         ),
@@ -189,14 +190,14 @@ impl QuerySystem for RendererSystem {
     fn run(
         &mut self,
         events: &EventRegistry,
-        (
-            (render_resource, main_pipeline, camera_resource),
-            (render_objects, transforms),
-        ): &mut Self::Query,
+        ((render_resource, main_pipeline, camera_resource), objects): &mut Self::Query,
     ) -> SystemControlFlow {
         let render_resource = match render_resource.get_mut() {
             Some(data) => data,
-            None => return SystemControlFlow::Continue,
+            None => {
+                println!("fuck");
+                panic!()
+            }
         };
 
         // for (buff, output) in render_resource.command_buffer_queue.drain(..) {
@@ -240,9 +241,14 @@ impl QuerySystem for RendererSystem {
                 }),
             })
         });
-        let events = events.get_window_events(render_resource.window.id());
         {
+            let events = events.get_window_events(render_resource.window.id());
             let new_size = events.size();
+            println!(
+                "{:?} {:?}",
+                new_size,
+                (render_resource.config.width, render_resource.config.height)
+            );
             if new_size.width != render_resource.config.width
                 || new_size.height != render_resource.config.height
             {
@@ -293,24 +299,26 @@ impl QuerySystem for RendererSystem {
                 });
 
                 main_pipeline.begin(&mut pass);
-                // objects.iter().for_each(|(_, data, trans)| {
-                //     render_resource.instance_manager.register_object(
-                //         data,
-                //         trans,
-                //         &mut render_resource.group_layout_manager,
-                //     );
-                //     // main_pipeline
-                //     //     .apply_groups(&mut pass, (data.texture_group(), camera_resource.group()));
+                objects
+                    .component_iter()
+                    .for_each(|(_, (render_obj, transform))| {
+                        render_resource.instance_manager.register_object(
+                            render_obj,
+                            transform,
+                            &mut render_resource.group_layout_manager,
+                        );
+                        // main_pipeline
+                        //     .apply_groups(&mut pass, (data.texture_group(), camera_resource.group()));
 
-                //     // main_pipeline.apply_index_buffer(&mut pass, data.index_buffer());
-                //     // main_pipeline.apply_buffer(&mut pass, data.buffer());
+                        // main_pipeline.apply_index_buffer(&mut pass, data.index_buffer());
+                        // main_pipeline.apply_buffer(&mut pass, data.buffer());
 
-                //     // main_pipeline.draw_indexed(
-                //     //     &mut pass,
-                //     //     0..data.index_buffer().size() as u32,
-                //     //     0..1,
-                //     // );
-                // });
+                        // main_pipeline.draw_indexed(
+                        //     &mut pass,
+                        //     0..data.index_buffer().size() as u32,
+                        //     0..1,
+                        // );
+                    });
                 render_resource.instance_manager.prepare();
                 for i in render_resource.instance_manager.iter_data() {
                     main_pipeline
@@ -334,7 +342,7 @@ impl QuerySystem for RendererSystem {
             output.present();
         } else if let Err(err) = current {
             match err {
-                SurfaceError::Lost => {
+                SurfaceError::Lost | SurfaceError::Outdated | SurfaceError::Timeout => {
                     render_resource.resize(&render_resource.window.inner_size());
                 }
                 _ => {
@@ -342,6 +350,7 @@ impl QuerySystem for RendererSystem {
                 }
             };
         };
+
         SystemControlFlow::Continue
     }
 }
