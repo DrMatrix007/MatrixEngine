@@ -302,26 +302,15 @@ impl QuerySystem for MatrixRendererSystem {
                 });
 
                 main_pipeline.begin(&mut pass);
-                objects
-                    .component_iter()
-                    .for_each(|(_, (render_obj, transform))| {
-                        render_resource.instance_manager.register_object(
-                            render_obj,
-                            transform,
-                            &mut render_resource.group_layout_manager,
-                        );
-                        // main_pipeline
-                        //     .apply_groups(&mut pass, (data.texture_group(), camera_resource.group()));
-
-                        // main_pipeline.apply_index_buffer(&mut pass, data.index_buffer());
-                        // main_pipeline.apply_buffer(&mut pass, data.buffer());
-
-                        // main_pipeline.draw_indexed(
-                        //     &mut pass,
-                        //     0..data.index_buffer().size() as u32,
-                        //     0..1,
-                        // );
-                    });
+                for (_, (render_obj, transform)) in objects
+                    .component_iter() {
+                    render_resource.instance_manager.register_object(
+                        render_obj,
+                        transform,
+                        &mut render_resource.group_layout_manager,
+                    );
+   
+                }
                 render_resource.instance_manager.prepare();
                 for i in render_resource.instance_manager.iter_data() {
                     main_pipeline
@@ -354,7 +343,7 @@ impl QuerySystem for MatrixRendererSystem {
             };
         };
 
-        // println!("{}" ,self.fps_counter.capture().as_secs_f32()-events.delta_time().as_secs_f32());
+        println!("{}" ,self.fps_counter.capture().as_secs_f32()-events.calc_delta_time().as_secs_f32());
 
         SystemControlFlow::Continue
     }

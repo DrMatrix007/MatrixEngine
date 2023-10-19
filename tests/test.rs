@@ -15,12 +15,9 @@ use matrix_engine::{
         events::event_registry::EventRegistry,
         runtime::SingleThreaded,
         scenes::entities::entity_builder::EntityBuilder,
-        systems::{query::resources::WriteR, SystemControlFlow},
+        systems::{query::resources::WriteR, query_group::ComponentRefIterable, SystemControlFlow},
     },
-    math::{
-        matrices::Vector3,
-        vectors::{Vector3D, Vector4D},
-    },
+    math::{matrices::Vector3, vectors::Vector3D},
     renderer::{
         matrix_renderer::{
             camera::CameraResource,
@@ -30,7 +27,7 @@ use matrix_engine::{
         pipelines::{structures::cube::Cube, transform::Transform},
     },
 };
-use num_traits::{clamp, clamp_max};
+use num_traits::clamp_max;
 use wgpu::Color;
 use winit::window::WindowBuilder;
 
@@ -140,11 +137,39 @@ impl QuerySystem for CameraPlayerSystem {
 
         let sens = cam.camera().prespective.fovy_rad;
         cam.camera_mut().rotate_camera(
-            x as f32 * events.delta_time().as_secs_f32() * sens,
-            y as f32 * events.delta_time().as_secs_f32() * sens,
+            x as f32 * events.calc_delta_time().as_secs_f32() * sens,
+            y as f32 * events.calc_delta_time().as_secs_f32() * sens,
         );
         cam.camera_mut()
-            .move_camera(delta * events.delta_time().as_secs_f32());
+            .move_camera(delta * events.calc_delta_time().as_secs_f32());
+
+        SystemControlFlow::Continue
+    }
+}
+
+#[derive(Default)]
+pub struct RotateAll {
+    toggle: bool,
+}
+
+impl QuerySystem for RotateAll {
+    type Query = (WriteC<Transform>, ReadC<RenderObject>);
+
+    fn run(&mut self, events: &EventRegistry, args: &mut Self::Query) -> SystemControlFlow {
+        let dt = events.calc_delta_time().as_secs_f32();
+
+        if events
+            .all_window_events()
+            .find(|x| x.is_pressed_down(winit::event::VirtualKeyCode::G))
+            .is_some()
+        {
+            self.toggle = !self.toggle;
+        }
+        if self.toggle {
+            for (_e, (a, _b)) in args.component_iter() {
+                a.apply_rotation(Vector3::from([[1., 1., 1.]]) * dt);
+            }
+        }
 
         SystemControlFlow::Continue
     }
@@ -177,8 +202,8 @@ fn main() {
         .push_send(MatrixRendererSystem::default());
 
     let builder = SceneBuilder::new(|scene_reg, system_reg| {
-        for y in 0..10000 {
-            for i in 0..1 {
+        for y in 0..100 {
+            for i in 0..100 {
                 let mut t = Transform::identity();
                 t.apply_position_diff(Vector3::from([[1.2 * i as f32, 0., y as f32 * 1.2]]));
                 EntityBuilder::new(scene_reg.components_mut())
@@ -193,6 +218,7 @@ fn main() {
         system_reg.push_send(SysC);
         system_reg.push_send(SysD);
         system_reg.push_send(CameraPlayerSystem::new());
+        system_reg.push_send(RotateAll::default());
     });
 
     engine.run(&builder)

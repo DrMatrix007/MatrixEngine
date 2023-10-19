@@ -213,7 +213,7 @@ impl EventRegistry {
         self.mouse_delta
     }
 
-    pub fn delta_time(&self) -> Duration {
+    pub fn calc_delta_time(&self) -> Duration {
         Instant::now() - self.start
     }
 

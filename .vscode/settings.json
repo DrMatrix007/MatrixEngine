@@ -2,5 +2,8 @@
     "rust-analyzer.showUnlinkedFileNotification": false,
     "cSpell.words": [
         "winit"
+    ],
+    "githubPullRequests.ignoredPullRequestBranches": [
+        "master"
     ]
 }
