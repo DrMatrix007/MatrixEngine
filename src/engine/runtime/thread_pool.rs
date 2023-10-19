@@ -88,7 +88,7 @@ impl<T: Send + 'static> Worker<T> {
                 Ok(job) => match job {
                     SystemJob::Work(job) => {
                         event_channel_registry.update_events_from_channel();
-                        
+
                         let mut ans = job(&event_channel_registry);
 
                         let mut proxies = proxies.blocking_lock();

@@ -1,4 +1,8 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::{
+    collections::VecDeque,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use crate::{
     engine::{
@@ -12,8 +16,8 @@ use crate::{
     },
     renderer::pipelines::{
         buffers::Vertex,
-        group_layout_manager::BindGroupLayoutManager,
-        instance_manager::InstanceManager,
+        group_layout_manager::BindGroupLayoutAtlas,
+        instance_manager::InstanceAtlas,
         matrix_render_pipeline::{MatrixRenderPipeline, MatrixRenderPipelineArgs},
         shaders::ShaderConfig,
         texture::MatrixTexture,
@@ -64,8 +68,8 @@ pub struct MatrixRendererResource {
     device: DeviceQueue,
     config: SurfaceConfiguration,
     background_color: Color,
-    group_layout_manager: BindGroupLayoutManager,
-    instance_manager: InstanceManager,
+    group_layout_manager: BindGroupLayoutAtlas,
+    instance_manager: InstanceAtlas,
     depth_texture: MatrixTexture,
     command_buffer_queue: VecDeque<(wgpu::CommandBuffer, std::boxed::Box<wgpu::SurfaceTexture>)>,
 }
@@ -137,8 +141,8 @@ impl MatrixRendererResource {
             config,
             surface,
             background_color: args.background_color,
-            group_layout_manager: BindGroupLayoutManager::new(device.clone()),
-            instance_manager: InstanceManager::new(device.clone()),
+            group_layout_manager: BindGroupLayoutAtlas::new(device.clone()),
+            instance_manager: InstanceAtlas::new(device.clone()),
             command_buffer_queue: VecDeque::new(),
             device,
             window: args.window,
@@ -160,11 +164,11 @@ impl MatrixRendererResource {
         &self.device
     }
 
-    pub fn group_layout_manager_mut(&mut self) -> &mut BindGroupLayoutManager {
+    pub fn group_layout_manager_mut(&mut self) -> &mut BindGroupLayoutAtlas {
         &mut self.group_layout_manager
     }
 
-    pub fn instance_manager_mut(&mut self) -> &mut InstanceManager {
+    pub fn instance_manager_mut(&mut self) -> &mut InstanceAtlas {
         &mut self.instance_manager
     }
 
@@ -175,7 +179,10 @@ impl MatrixRendererResource {
 
 impl Resource for MatrixRendererResource {}
 
-pub struct MatrixRendererSystem;
+#[derive(Default)]
+pub struct MatrixRendererSystem {
+    fps_counter: FpsCounter,
+}
 
 impl QuerySystem for MatrixRendererSystem {
     type Query = (
@@ -244,11 +251,7 @@ impl QuerySystem for MatrixRendererSystem {
         {
             let events = events.get_window_events(render_resource.window.id());
             let new_size = events.size();
-            println!(
-                "{:?} {:?}",
-                new_size,
-                (render_resource.config.width, render_resource.config.height)
-            );
+
             if new_size.width != render_resource.config.width
                 || new_size.height != render_resource.config.height
             {
@@ -351,7 +354,41 @@ impl QuerySystem for MatrixRendererSystem {
             };
         };
 
+        // println!("{}" ,self.fps_counter.capture().as_secs_f32()-events.delta_time().as_secs_f32());
+
         SystemControlFlow::Continue
+    }
+}
+
+#[derive(Debug)]
+struct FpsCounter {
+    last: Instant,
+}
+
+impl Default for FpsCounter {
+    fn default() -> Self {
+        Self {
+            last: Instant::now(),
+        }
+    }
+}
+
+impl FpsCounter {
+    pub fn new() -> Self {
+        Self {
+            last: Instant::now(),
+        }
+    }
+    pub fn capture(&mut self) -> Duration {
+        let now = Instant::now();
+        let duration = now - self.last;
+        self.last = now;
+
+        duration
+    }
+    pub fn capture_as_fps(&mut self) -> f64 {
+        let d = self.capture();
+        1. / d.as_secs_f64()
     }
 }
 

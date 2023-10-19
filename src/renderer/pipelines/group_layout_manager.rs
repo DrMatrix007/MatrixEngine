@@ -6,11 +6,11 @@ use crate::renderer::matrix_renderer::renderer_system::DeviceQueue;
 
 use super::bind_groups::{BindData, BindGroupContainer, BindGroupLayoutContainer};
 
-pub struct BindGroupLayoutManager {
+pub struct BindGroupLayoutAtlas {
     bind_groups: HashMap<TypeId, Arc<BindGroupLayout>>,
     device: DeviceQueue,
 }
-impl BindGroupLayoutManager {
+impl BindGroupLayoutAtlas {
     pub fn new(device: DeviceQueue) -> Self {
         Self {
             bind_groups: Default::default(),

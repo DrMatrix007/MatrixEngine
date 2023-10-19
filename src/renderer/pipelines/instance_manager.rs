@@ -11,13 +11,13 @@ use crate::renderer::matrix_renderer::{render_object::RenderObject, renderer_sys
 use super::{
     bind_groups::BindGroupContainer,
     buffers::{BufferContainer, Bufferable, Vertex, VertexBuffer},
-    group_layout_manager::BindGroupLayoutManager,
+    group_layout_manager::BindGroupLayoutAtlas,
     texture::MatrixTexture,
     transform::{InstanceTransform, Transform},
 };
 
 pub trait VertexStructure<Vertex: Bufferable>: Any {
-    fn craete_buffer(&self, device: &DeviceQueue) -> VertexBuffer<Vertex>;
+    fn create_buffer(&self, device: &DeviceQueue) -> VertexBuffer<Vertex>;
 }
 
 pub struct InstancedData {
@@ -33,7 +33,7 @@ impl InstancedData {
         texture_name: &str,
         device: &DeviceQueue,
         buffer: Arc<VertexBuffer<Vertex>>,
-        manager: &mut BindGroupLayoutManager,
+        manager: &mut BindGroupLayoutAtlas,
     ) -> Self {
         let t = MatrixTexture::from_name(texture_name, device, "instanced generated texture")
             .expect("this shouldnt be implemnted now");
@@ -117,13 +117,13 @@ impl InstancedData {
     }
 }
 
-pub struct InstanceManager {
+pub struct InstanceAtlas {
     device: DeviceQueue,
     data: HashMap<(TypeId, String), InstancedData>,
     buffer: HashMap<TypeId, (u64, Arc<VertexBuffer<Vertex>>)>,
 }
 
-impl InstanceManager {
+impl InstanceAtlas {
     pub fn new(device: DeviceQueue) -> Self {
         Self {
             device,
@@ -136,7 +136,7 @@ impl InstanceManager {
         &mut self,
         obj: &RenderObject,
         transform: &Transform,
-        group_manager: &mut BindGroupLayoutManager,
+        group_manager: &mut BindGroupLayoutAtlas,
     ) {
         self.data
             .entry((obj.structure_type_id(), obj.texture_name().into()))

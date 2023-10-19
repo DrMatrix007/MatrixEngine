@@ -106,7 +106,7 @@ impl<T, const N: usize> Vector<T> for Matrix<T, N, 1> {
     {
         self.clone_cast::<f32>()
             .into_iter()
-            .map(|(_, x)| x)
+            .map(|(_, x)| x*x)
             .sum::<f32>()
             .sqrt()
     }

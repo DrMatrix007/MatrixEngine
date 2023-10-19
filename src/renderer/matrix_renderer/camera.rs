@@ -1,10 +1,9 @@
 use std::f32::consts::PI;
 
-
-
-use crate::engine::scenes::resources::Resource;
+use crate::{engine::scenes::resources::Resource, math::matrices::Matrix3};
 use bytemuck::{Pod, Zeroable};
 use lazy_static::lazy_static;
+use num_traits::clamp;
 use wgpu::{BindGroupEntry, BindGroupLayoutEntry, BufferUsages, Queue, ShaderStages};
 
 use crate::{
@@ -83,35 +82,42 @@ lazy_static! {
 }
 
 pub struct Camera {
-    pub prespective: Prespective<f32>,
     pub transform: Transform,
-    pub rotation: Vector3<f32>,
+    pub prespective: Prespective<f32>,
+    pub rotation2d: (f32, f32),
     pub position: Vector3<f32>,
 }
 
 impl Camera {
-    pub fn new(
-        prespective: Prespective<f32>,
-        position: Vector3<f32>,
-        rotation: Vector3<f32>,
-    ) -> Self {
+    pub fn new(prespective: Prespective<f32>, transform: Transform) -> Self {
         Self {
             prespective,
-            transform: Transform::identity(),
-            position,
-            rotation,
+            transform,
+            position: Vector3::zeros(),
+            rotation2d: (0., 0.),
         }
     }
     pub fn generate_transform_matrix(&self) -> Matrix4<f32> {
-        let rotate = self.rotation.euler_into_rotation_matrix3();
+        let (sin_x, cos_x) = (self.rotation2d.0).sin_cos();
+        let (sin_y, cos_y) = (-self.rotation2d.1).sin_cos();
 
-        let dir = rotate * Vector3::from([[0., 0., -1.]]);
+        &*OPENGL_TO_WGPU_MATRIX
+            * self.prespective.into_matrix()
+            * Matrix4::look_to_rh(
+                &Vector3::from([[self.position[0], self.position[1], self.position[2]]]),
+                &Vector3::from([[cos_y * cos_x, sin_y, cos_y * sin_x]]),
+                &Vector3::up(),
+            )
+    }
+    pub fn rotate_camera(&mut self, x: f32, y: f32) {
+        self.rotation2d.0 += x;
+        self.rotation2d.1 += y;
 
-        let view = Matrix4::look_at_rh(&self.position, &(&self.position + &dir), &Vector3::up());
-
-        let proj: Matrix4<f32> = &*OPENGL_TO_WGPU_MATRIX * Matrix4::from(&self.prespective) * view;
-
-        proj
+        self.rotation2d.1 = clamp(self.rotation2d.1, -PI / 2.001, PI / 2.001);
+        // self.rotation2d.1 = clamp(self.rotation2d.1, -PI, PI);
+    }
+    pub fn move_camera(&mut self, vec: Vector3<f32>) {
+        self.position += Matrix3::rotate_y(self.rotation2d.0 + PI / 2.) * vec;
     }
 }
 
@@ -150,15 +156,16 @@ impl CameraResource {
 
         let group = layout.create_bind_group(&resource.device().device(), (&buffer,));
 
+        let mut t = Transform::identity();
+        t.apply_position_diff(Vector3::from([[-100., 0., -100.]]));
         let camera = Camera::new(
             Prespective {
-                fovy_rad: PI / 4.0,
+                fovy_rad: PI / 3.0,
                 aspect: 1.0,
                 near: 0.1,
                 far: 1000.0,
             },
-            [[0.0, 0.0, 2.0]].into(),
-            Vector3::zeros(),
+            t,
         );
 
         Self {

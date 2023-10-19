@@ -11,7 +11,7 @@ use crate::renderer::{
 pub struct Plain;
 
 impl VertexStructure<Vertex> for Plain {
-    fn craete_buffer(&self, device: &DeviceQueue) -> VertexBuffer<Vertex> {
+    fn create_buffer(&self, device: &DeviceQueue) -> VertexBuffer<Vertex> {
         VertexBuffer::new(
             BufferContainer::<Vertex>::create_buffer(
                 &Self::VERTICES,

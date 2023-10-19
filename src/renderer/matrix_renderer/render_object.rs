@@ -32,7 +32,7 @@ impl RenderObject {
         self.buffer.type_id()
     }
     pub fn create_buffer(&self, device: &DeviceQueue) -> VertexBuffer<Vertex> {
-        self.buffer.craete_buffer(device)
+        self.buffer.create_buffer(device)
     }
 }
 

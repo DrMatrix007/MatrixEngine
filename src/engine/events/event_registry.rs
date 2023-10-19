@@ -9,7 +9,9 @@ use std::{
 use lazy_static::lazy_static;
 use winit::{
     dpi::PhysicalSize,
-    event::{DeviceEvent, ElementState, Event, MouseButton, VirtualKeyCode, WindowEvent},
+    event::{
+        DeviceEvent, ElementState, Event, MouseButton, StartCause, VirtualKeyCode, WindowEvent,
+    },
     window::WindowId,
 };
 
@@ -126,9 +128,11 @@ impl WindowEventRegistry {
 
 pub struct EventRegistry {
     windows: HashMap<WindowId, WindowEventRegistry>,
+    delta_time_updatable: bool,
     start: Instant,
     mouse_delta: (f64, f64),
     delta_time: Duration,
+    mouse_scroll_delta: (f64, f64),
 }
 
 impl EventRegistry {
@@ -138,6 +142,8 @@ impl EventRegistry {
             start: Instant::now(),
             mouse_delta: (0., 0.),
             delta_time: Duration::ZERO,
+            delta_time_updatable: true,
+            mouse_scroll_delta: (0., 0.),
         }
     }
 
@@ -147,7 +153,9 @@ impl EventRegistry {
         }
 
         self.start = Instant::now();
-        self.mouse_delta = (0.0, 0.0);
+        self.mouse_delta = (0., 0.);
+        self.mouse_scroll_delta = (0., 0.);
+        self.delta_time_updatable = true;
     }
 
     fn process_window_event(&mut self, id: &WindowId, event: &WindowEvent<'_>) {
@@ -156,14 +164,19 @@ impl EventRegistry {
     }
     pub(crate) fn process(&mut self, event: &Event<'_, EngineEvent>) {
         match event {
-            Event::MainEventsCleared => {
+            Event::NewEvents(StartCause::Init | StartCause::ResumeTimeReached { .. }) => {
                 self.update();
             }
-            Event::WindowEvent { window_id, event } => self.process_window_event(window_id, event),
+            Event::WindowEvent { window_id, event } => {
+                self.process_window_event(window_id, event);
+            }
             Event::DeviceEvent { event, .. } => self.process_device_event(event),
             Event::UserEvent(engine_event) => match engine_event {
-                EngineEvent::UpdateDeltaTime(dt) => {
-                    self.delta_time = *dt;
+                EngineEvent::UpdateDeltaTime { frame_start } => {
+                    if self.delta_time_updatable {
+                        self.delta_time_updatable = false;
+                        self.start = *frame_start;
+                    }
                 }
 
                 _ => {}
@@ -182,8 +195,17 @@ impl EventRegistry {
     }
 
     fn process_device_event(&mut self, event: &DeviceEvent) {
-        if let DeviceEvent::MouseMotion { delta } = event {
-            self.mouse_delta = *delta;
+        match event {
+            DeviceEvent::MouseMotion { delta } => {
+                self.mouse_delta = *delta;
+            }
+            DeviceEvent::MouseWheel { delta } => {
+                self.mouse_scroll_delta = match delta {
+                    winit::event::MouseScrollDelta::LineDelta(x, y) => (*x as _, *y as _),
+                    winit::event::MouseScrollDelta::PixelDelta(data) => (data.x as _, data.y as _),
+                }
+            }
+            _ => {}
         }
     }
 
@@ -191,8 +213,12 @@ impl EventRegistry {
         self.mouse_delta
     }
 
-    pub fn delta_time(&self) -> &Duration {
-        &self.delta_time
+    pub fn delta_time(&self) -> Duration {
+        Instant::now() - self.start
+    }
+
+    pub fn mouse_scroll_delta(&self) -> (f64,f64) {
+        self.mouse_scroll_delta
     }
 }
 

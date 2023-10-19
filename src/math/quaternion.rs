@@ -1,14 +1,14 @@
 use num_traits::Float;
 
-use super::matrices::{Matrix4, Vector4};
+use super::matrices::{Matrix4};
 
 pub struct Quaternion<T> {
     mat: Matrix4<T>,
 }
 
 impl<T: Float> Quaternion<T> {
-    pub fn new(vec: Vector4<T>) -> Self {
-        let (a, b, c, d) = (vec[0], vec[1], vec[2], vec[3]);
+    pub fn new(vec: [T; 4]) -> Self {
+        let [a, b, c, d] = vec;
         Self {
             mat: Matrix4::from([[a, -b, -c, -d], [b, a, -d, c], [c, d, a, -b], [d, -c, b, a]]),
         }
@@ -52,5 +52,14 @@ impl<T: Float> Quaternion<T> {
         self.mat[(1, 2)] = -d;
         self.mat[(2, 1)] = d;
         self.mat[(3, 0)] = d;
+    }
+    pub fn conjugated(&self) -> Quaternion<T> {
+        // each one correspond to the correct value
+        Quaternion::new([
+            self.mat[(0, 0)],
+            self.mat[(1, 0)],
+            self.mat[(0, 2)],
+            self.mat[(0, 3)],
+        ])
     }
 }

@@ -6,7 +6,7 @@ use std::{
 use tokio::sync::{Mutex, MutexGuard};
 use winit::{
     event::{Event, StartCause},
-    event_loop::{ControlFlow, EventLoop, EventLoopBuilder},
+    event_loop::{ControlFlow, EventLoop, EventLoopBuilder, EventLoopProxy},
 };
 
 use self::{
@@ -58,6 +58,9 @@ impl Engine {
         self.runtime
             .add_available(current_scene.systems_mut(), &mut args);
         drop(args);
+
+        let event_proxy = event_loop.create_proxy();
+
         let mut last_frame_time = Instant::now();
 
         event_loop.run(move |event, target, control_flow| {
@@ -65,6 +68,7 @@ impl Engine {
                 &mut current_scene,
                 event,
                 target,
+                &event_proxy,
                 control_flow,
                 &mut last_frame_time,
             );
@@ -76,6 +80,7 @@ impl Engine {
         current_scene: &mut scenes::Scene,
         event: Event<'_, EngineEvent>,
         target: &winit::event_loop::EventLoopWindowTarget<EngineEvent>,
+        proxy: &EventLoopProxy<EngineEvent>,
         control_flow: &mut winit::event_loop::ControlFlow,
         last_frame_time: &mut Instant,
     ) {
@@ -110,12 +115,15 @@ impl Engine {
             match reason {
                 start_cause @ (StartCause::Init | StartCause::ResumeTimeReached { .. }) => {
                     *last_frame_time = Instant::now();
+
                     self.runtime
                         .add_available(&mut self.engine_systems, &mut args);
 
                     self.runtime
                         .add_available(current_scene.systems_mut(), &mut args);
-
+                    proxy.send_event(EngineEvent::UpdateDeltaTime {
+                        frame_start: Instant::now(),
+                    }).unwrap();
                     *control_flow = ControlFlow::WaitUntil(*last_frame_time + frame_duration);
                     // println!("send {} {:?}", match start_cause{
                     //     StartCause::ResumeTimeReached { start, requested_resume }=> {

@@ -5,7 +5,7 @@ use std::{
 
 use num_traits::{One, Zero};
 
-#[derive(Debug)]
+#[derive(Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Matrix<T, const N: usize, const M: usize>([[T; N]; M]);
 
 impl<T: 'static, const N: usize, const M: usize> IntoIterator for Matrix<T, N, M> {

@@ -1,7 +1,7 @@
 use std::{
     collections::VecDeque,
     sync::Arc,
-    time::{Duration, Instant},
+    time::{Duration},
 };
 
 use tokio::sync::RwLock;
@@ -250,7 +250,6 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
                 .iter_mut()
                 .find_map(|registry| {
                     if let Ok(boxed) = registry.try_recieve_send_with_id(&id) {
-                        
                         match self.pool.recv_iter().next().unwrap() {
                             Ok((mut data, _)) => {
                                 data.cleanup(args);
@@ -259,9 +258,9 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
                         }
                         match control_flow {
                             SystemControlFlow::Continue => {
-                                if (Instant::now() - boxed.taken_when()) > frame_duration {
-                                    self.try_run_send(boxed.try_lock().unwrap(), args);
-                                }
+                                // if (Instant::now() - boxed.taken_when()) > frame_duration {
+                                //     self.try_run_send(boxed.try_lock().unwrap(), args);
+                                // }
                             }
                             SystemControlFlow::Quit => panic!("Quit"),
                             SystemControlFlow::Remove => {
@@ -285,6 +284,7 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
                     }
                 })
                 .unwrap();
+            self.try_send_all(args);
         }
         if let Some(event) = &event.to_static() {
             self.non_send_event_registry.process(event);

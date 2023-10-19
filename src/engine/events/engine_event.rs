@@ -1,9 +1,9 @@
-use std::time::Duration;
+use std::time::Instant;
 
 use crate::engine::{scenes::entities::Entity, systems::SystemControlFlow};
 
-#[derive(Clone, Copy,Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum EngineEvent {
     SystemDone(Entity, SystemControlFlow),
-    UpdateDeltaTime(Duration)
+    UpdateDeltaTime { frame_start: Instant },
 }
