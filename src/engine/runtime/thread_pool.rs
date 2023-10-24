@@ -6,6 +6,7 @@ use std::{
         Arc,
     },
     thread::{self, JoinHandle},
+    time::Instant,
 };
 use tokio::sync::Mutex;
 use winit::event::Event;
@@ -33,7 +34,22 @@ pub(crate) enum SystemWorkerError {
     Panic,
 }
 
-pub(crate) type JobResult<T> = Result<T, SystemWorkerError>;
+pub(crate) enum JobResult<T> {
+    Ok {
+        data: T,
+        started_at: Instant,
+        ended_at: Instant,
+    },
+    Err(SystemWorkerError),
+}
+impl<T> JobResult<T> {
+    fn unwrap(self) -> T {
+        match self {
+            JobResult::Ok { data, .. } => data,
+            JobResult::Err(_) => panic!("called unwrap"),
+        }
+    }
+}
 
 pub(crate) struct Worker<T: Send> {
     _handle: JoinHandle<()>,
@@ -54,7 +70,7 @@ impl<'a, T> Drop for PosionPill<'a, T> {
     fn drop(&mut self) {
         if thread::panicking() {
             self.0
-                .send(Err(SystemWorkerError::Panic))
+                .send(JobResult::Err(SystemWorkerError::Panic))
                 .expect("this function should send this data");
         }
     }
@@ -87,9 +103,15 @@ impl<T: Send + 'static> Worker<T> {
             match job {
                 Ok(job) => match job {
                     SystemJob::Work(job) => {
-                        event_channel_registry.update_events_from_channel();
-
+                        let update = event_channel_registry.update_events_from_channel();
+                        let started_at = Instant::now();
                         let mut ans = job(&event_channel_registry);
+                        if update {
+                            event_channel_registry.starting_frame = true;
+                            event_channel_registry.update();
+                            event_channel_registry.starting_frame = false;
+                        }
+                        let ended_at = Instant::now();
 
                         let mut proxies = proxies.blocking_lock();
 
@@ -99,7 +121,14 @@ impl<T: Send + 'static> Worker<T> {
 
                         drop(proxies);
 
-                        if done.send(Ok(ans)).is_err() {
+                        if done
+                            .send(JobResult::Ok {
+                                data: ans,
+                                ended_at,
+                                started_at,
+                            })
+                            .is_err()
+                        {
                             return;
                         }
                     }

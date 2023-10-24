@@ -1,13 +1,13 @@
 use std::{
     collections::VecDeque,
     sync::Arc,
-    time::{Duration},
+    time::{Duration, Instant},
 };
 
 use tokio::sync::RwLock;
 use winit::{event::Event, event_loop::EventLoopProxy};
 
-use self::thread_pool::{SystemThreadPool, SystemWorkerError};
+use self::thread_pool::{JobResult, SystemThreadPool, SystemWorkerError};
 
 use super::{
     events::{engine_event::EngineEvent, event_registry::EventRegistry},
@@ -205,7 +205,7 @@ impl<Args: 'static> MultiThreaded<Args> {
         };
     }
 
-    fn try_send_all(&mut self, args: &mut Args) {
+    fn try_send_all_queue(&mut self, args: &mut Args) {
         let len = self.send_queue.len();
         for i in 0..len {
             let s = self
@@ -250,17 +250,26 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
                 .iter_mut()
                 .find_map(|registry| {
                     if let Ok(boxed) = registry.try_recieve_send_with_id(&id) {
-                        match self.pool.recv_iter().next().unwrap() {
-                            Ok((mut data, _)) => {
-                                data.cleanup(args);
+                        let (started_at, ended_at) = match self.pool.recv_iter().next().unwrap() {
+                            JobResult::Ok {
+                                mut data,
+                                started_at,
+                                ended_at,
+                            } => {
+                                data.0.cleanup(args);
+                                (started_at, ended_at)
                             }
-                            Err(SystemWorkerError::Panic) => panic!("subthread panicked"),
-                        }
+                            JobResult::Err(SystemWorkerError::Panic) => {
+                                panic!("subthread panicked")
+                            }
+                        };
+                        boxed.set_started_at(started_at);
+
                         match control_flow {
                             SystemControlFlow::Continue => {
-                                // if (Instant::now() - boxed.taken_when()) > frame_duration {
-                                //     self.try_run_send(boxed.try_lock().unwrap(), args);
-                                // }
+                                if (ended_at - started_at) > frame_duration {
+                                    // self.try_run_send(boxed.try_lock().unwrap(), args);
+                                }
                             }
                             SystemControlFlow::Quit => panic!("Quit"),
                             SystemControlFlow::Remove => {
@@ -269,7 +278,7 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
                         }
 
                         Some(())
-                    } else if let Ok(_) = registry.try_recieve_non_send_with_id(&id) {
+                    } else if let Ok(boxed) = registry.try_recieve_non_send_with_id(&id) {
                         match control_flow {
                             SystemControlFlow::Continue => {}
                             SystemControlFlow::Quit => panic!("Quit"),
@@ -277,14 +286,14 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
                                 registry.remove_system_non_send(&id);
                             }
                         }
-
+                        self.try_send_all_queue(args);
                         Some(())
                     } else {
                         None
                     }
                 })
                 .unwrap();
-            self.try_send_all(args);
+            self.try_send_all_queue(args);
         }
         if let Some(event) = &event.to_static() {
             self.non_send_event_registry.process(event);

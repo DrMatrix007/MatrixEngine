@@ -180,9 +180,7 @@ impl MatrixRendererResource {
 impl Resource for MatrixRendererResource {}
 
 #[derive(Default)]
-pub struct MatrixRendererSystem {
-    fps_counter: FpsCounter,
-}
+pub struct MatrixRendererSystem;
 
 impl QuerySystem for MatrixRendererSystem {
     type Query = (
@@ -302,14 +300,12 @@ impl QuerySystem for MatrixRendererSystem {
                 });
 
                 main_pipeline.begin(&mut pass);
-                for (_, (render_obj, transform)) in objects
-                    .component_iter() {
+                for (_, (render_obj, transform)) in objects.component_iter() {
                     render_resource.instance_manager.register_object(
                         render_obj,
                         transform,
                         &mut render_resource.group_layout_manager,
                     );
-   
                 }
                 render_resource.instance_manager.prepare();
                 for i in render_resource.instance_manager.iter_data() {
@@ -343,41 +339,9 @@ impl QuerySystem for MatrixRendererSystem {
             };
         };
 
-        println!("{}" ,self.fps_counter.capture().as_secs_f32()-events.calc_delta_time().as_secs_f32());
+        // spin_sleep::sleep(Duration::from_secs_f32(0.1));
 
         SystemControlFlow::Continue
-    }
-}
-
-#[derive(Debug)]
-struct FpsCounter {
-    last: Instant,
-}
-
-impl Default for FpsCounter {
-    fn default() -> Self {
-        Self {
-            last: Instant::now(),
-        }
-    }
-}
-
-impl FpsCounter {
-    pub fn new() -> Self {
-        Self {
-            last: Instant::now(),
-        }
-    }
-    pub fn capture(&mut self) -> Duration {
-        let now = Instant::now();
-        let duration = now - self.last;
-        self.last = now;
-
-        duration
-    }
-    pub fn capture_as_fps(&mut self) -> f64 {
-        let d = self.capture();
-        1. / d.as_secs_f64()
     }
 }
 

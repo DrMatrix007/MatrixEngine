@@ -8,7 +8,6 @@ pub struct BoxedSystem<Args> {
     system: Box<UnsafeCell<dyn System<Args>>>,
     id: Entity,
     running: bool,
-    taken_when: Instant,
 }
 
 pub struct SystemRef<Args> {
@@ -36,7 +35,6 @@ impl<Args> BoxedSystem<Args> {
             system: Box::new(UnsafeCell::new(sys)),
             id: Entity::new(),
             running: false,
-            taken_when: Instant::now(),
         }
     }
     pub fn try_lock(&mut self) -> Result<SystemRef<Args>, ()> {
@@ -44,7 +42,6 @@ impl<Args> BoxedSystem<Args> {
             Err(())
         } else {
             self.running = true;
-            self.taken_when = Instant::now();
             Ok(SystemRef::new(
                 NonNull::new(self.system.get()).unwrap(),
                 self.id.clone(),
@@ -64,16 +61,12 @@ impl<Args> BoxedSystem<Args> {
             Err(NotSuitableSystemReceive)
         }
     }
-
-    pub fn taken_when(&self) -> Instant {
-        self.taken_when
-    }
 }
 pub struct BoxedSystemSend<Args> {
     system: Box<UnsafeCell<dyn SystemSend<Args>>>,
+    started_at: Instant,
     running: bool,
     id: Entity,
-    taken_when: Instant,
 }
 pub struct SystemSendRef<Args> {
     system: NonNull<dyn SystemSend<Args>>,
@@ -102,10 +95,10 @@ pub struct NotSuitableSystemReceive;
 impl<Args> BoxedSystemSend<Args> {
     pub fn new(sys: impl SystemSend<Args> + 'static) -> Self {
         Self {
+            started_at: Instant::now(),
             system: Box::new(UnsafeCell::new(sys)),
             running: false,
             id: Entity::new(),
-            taken_when: Instant::now(),
         }
     }
     pub fn try_lock(&mut self) -> Result<SystemSendRef<Args>, ()> {
@@ -113,7 +106,6 @@ impl<Args> BoxedSystemSend<Args> {
             Err(())
         } else {
             self.running = true;
-            self.taken_when = Instant::now();
             Ok(SystemSendRef::new(
                 NonNull::new(self.system.get()).unwrap(),
                 self.id.clone(),
@@ -134,8 +126,12 @@ impl<Args> BoxedSystemSend<Args> {
         }
     }
 
-    pub fn taken_when(&self) -> Instant {
-        self.taken_when
+    pub fn started_at(&self) -> Instant {
+        self.started_at
+    }
+
+    pub fn set_started_at(&mut self, started_at: Instant) {
+        self.started_at = started_at;
     }
 }
 
@@ -209,4 +205,17 @@ impl<Args> SystemRegistry<Args> {
     pub fn remove_system_non_send(&mut self, id: &Entity) {
         self.non_send.remove(id);
     }
+
+    // pub(crate) fn try_update_send_start_time(
+    //     &mut self,
+    //     id: &Entity,
+    //     started_at: Instant,
+    // ) -> Result<(), ()> {
+    //     match self.send.get_mut(id) {
+    //         Some(data) => data,
+    //         None => return Err(()),
+    //     }
+    //     .started_at = started_at;
+    //     Ok(())
+    // }
 }

@@ -28,10 +28,10 @@ impl<T: Hash + Eq + Clone> ButtonEventGroup<T> {
         self.down_keys.insert(code);
     }
     fn remove(&mut self, code: T) {
-        self.keys.remove(&code);
         self.up_keys.insert(code);
     }
     fn update(&mut self) {
+        self.keys.retain(|x| !self.up_keys.contains(x));
         self.down_keys.clear();
         self.up_keys.clear();
     }
@@ -81,8 +81,11 @@ impl WindowEventRegistry {
             } => {
                 if let Some(code) = input.virtual_keycode {
                     match input.state {
-                        ElementState::Pressed => self.keybaord.insert(code),
+                        ElementState::Pressed if !self.keybaord.contains(&code) => {
+                            self.keybaord.insert(code)
+                        }
                         ElementState::Released => self.keybaord.remove(code),
+                        _ => {}
                     };
                 }
             }
@@ -128,11 +131,12 @@ impl WindowEventRegistry {
 
 pub struct EventRegistry {
     windows: HashMap<WindowId, WindowEventRegistry>,
-    delta_time_updatable: bool,
     start: Instant,
     mouse_delta: (f64, f64),
     delta_time: Duration,
     mouse_scroll_delta: (f64, f64),
+    pub(crate) delta_time_updatable: bool,
+    pub(crate) starting_frame: bool,
 }
 
 impl EventRegistry {
@@ -144,10 +148,15 @@ impl EventRegistry {
             delta_time: Duration::ZERO,
             delta_time_updatable: true,
             mouse_scroll_delta: (0., 0.),
+            starting_frame: true,
         }
     }
 
     pub(crate) fn update(&mut self) {
+        if !self.starting_frame {
+            return;
+        }
+
         for i in &mut self.windows {
             i.1.update();
         }
@@ -217,7 +226,7 @@ impl EventRegistry {
         Instant::now() - self.start
     }
 
-    pub fn mouse_scroll_delta(&self) -> (f64,f64) {
+    pub fn mouse_scroll_delta(&self) -> (f64, f64) {
         self.mouse_scroll_delta
     }
 }
@@ -261,8 +270,9 @@ impl AsMut<EventRegistry> for EventChannelRegistry {
 
 impl EventChannelRegistry {
     pub fn new() -> (Self, Sender<Event<'static, EngineEvent>>) {
-        let event_registry = EventRegistry::default();
+        let mut event_registry = EventRegistry::default();
         let (sender, receiver) = channel();
+        event_registry.starting_frame = false;
         (
             Self {
                 event_registry,
@@ -272,9 +282,20 @@ impl EventChannelRegistry {
             sender,
         )
     }
-    pub fn update_events_from_channel(&mut self) {
+    pub fn update_events_from_channel(&mut self) -> bool {
+        let mut need_update = false;
         for event in self.receiver.try_iter() {
             self.event_registry.process(&event);
+            need_update =
+                if let Event::NewEvents(StartCause::ResumeTimeReached { .. } | StartCause::Init) =
+                    &event
+                {
+                    true
+                } else {
+                    false
+                }
         }
+
+        need_update
     }
 }

@@ -1,4 +1,7 @@
-use std::f32::consts::PI;
+use std::{
+    f32::consts::PI,
+    time::{Duration, Instant},
+};
 
 #[allow(unused_imports)]
 use matrix_engine::engine::{
@@ -71,11 +74,15 @@ impl QuerySystem for SysD {
     }
 }
 
-struct CameraPlayerSystem;
+struct CameraPlayerSystem {
+    fps_counter: FpsCounter,
+}
 
 impl CameraPlayerSystem {
     fn new() -> Self {
-        Self
+        Self {
+            fps_counter: Default::default(),
+        }
     }
 }
 
@@ -135,15 +142,51 @@ impl QuerySystem for CameraPlayerSystem {
         // *cam.camera_mut().rotation.x_mut() = self.phi;
         // cam.camera_mut().position += delta;
 
+        let dt = self.fps_counter.capture().as_secs_f32();
+
         let sens = cam.camera().prespective.fovy_rad;
-        cam.camera_mut().rotate_camera(
-            x as f32 * events.calc_delta_time().as_secs_f32() * sens,
-            y as f32 * events.calc_delta_time().as_secs_f32() * sens,
-        );
         cam.camera_mut()
-            .move_camera(delta * events.calc_delta_time().as_secs_f32());
+            .rotate_camera(x as f32 * dt * sens, y as f32 * dt * sens);
+        cam.camera_mut().move_camera(delta * dt);
+
+        // println!(
+        //     "{:.4} {:.4}",
+        //     self.fps_counter.capture().as_secs_f32() - events.calc_delta_time().as_secs_f32(),events.calc_delta_time().as_secs_f32()
+        // );
 
         SystemControlFlow::Continue
+    }
+}
+
+#[derive(Debug)]
+struct FpsCounter {
+    last: Instant,
+}
+
+impl Default for FpsCounter {
+    fn default() -> Self {
+        Self {
+            last: Instant::now(),
+        }
+    }
+}
+
+impl FpsCounter {
+    pub fn new() -> Self {
+        Self {
+            last: Instant::now(),
+        }
+    }
+    pub fn capture(&mut self) -> Duration {
+        let now = Instant::now();
+        let duration = now - self.last;
+        self.last = now;
+
+        duration
+    }
+    pub fn capture_as_fps(&mut self) -> f64 {
+        let d = self.capture();
+        1. / d.as_secs_f64()
     }
 }
 
@@ -163,6 +206,7 @@ impl QuerySystem for RotateAll {
             .find(|x| x.is_pressed_down(winit::event::VirtualKeyCode::G))
             .is_some()
         {
+            println!("toggled");
             self.toggle = !self.toggle;
         }
         if self.toggle {
@@ -176,10 +220,10 @@ impl QuerySystem for RotateAll {
 }
 
 fn main() {
-    // let runtime = MultiThreaded::new(4);
+    // let runtime = MultiThreaded::new(10);
     let runtime = SingleThreaded::new();
 
-    let mut engine = Engine::new(runtime, -1);
+    let mut engine = Engine::new(runtime, 144);
 
     let window = WindowBuilder::new()
         .build(engine.event_loop().unwrap())
@@ -205,7 +249,7 @@ fn main() {
         for y in 0..100 {
             for i in 0..100 {
                 let mut t = Transform::identity();
-                t.apply_position_diff(Vector3::from([[1.2 * i as f32, 0., y as f32 * 1.2]]));
+                t.apply_position_diff(Vector3::from([[i as f32, 0., y as f32]]));
                 EntityBuilder::new(scene_reg.components_mut())
                     .add(A)
                     .unwrap()

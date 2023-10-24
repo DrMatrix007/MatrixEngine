@@ -107,13 +107,17 @@ impl Engine {
         //             .add_available(current_scene.systems_mut(), &mut args);
         //     }
         // }
-        let frame_duration = Duration::from_secs(1)
-            / self.target_fps.load(std::sync::atomic::Ordering::Relaxed) as _;
+
+        let frame_duration = match self.target_fps.load(std::sync::atomic::Ordering::Relaxed) {
+            fps if fps > 0 => Duration::from_secs_f64(1. / fps as f64),
+            _ => Duration::ZERO,
+        };
 
         if let Event::UserEvent(EngineEvent::SystemDone(_, _)) = &event {
         } else if let Event::NewEvents(reason) = &event {
             match reason {
                 start_cause @ (StartCause::Init | StartCause::ResumeTimeReached { .. }) => {
+                    println!("frame");
                     *last_frame_time = Instant::now();
 
                     self.runtime
@@ -121,11 +125,13 @@ impl Engine {
 
                     self.runtime
                         .add_available(current_scene.systems_mut(), &mut args);
-                    proxy.send_event(EngineEvent::UpdateDeltaTime {
-                        frame_start: Instant::now(),
-                    }).unwrap();
+                    proxy
+                        .send_event(EngineEvent::UpdateDeltaTime {
+                            frame_start: Instant::now(),
+                        })
+                        .unwrap();
+
                     *control_flow = ControlFlow::WaitUntil(*last_frame_time + frame_duration);
-                    // println!("send {} {:?}", match start_cause{
                     //     StartCause::ResumeTimeReached { start, requested_resume }=> {
                     //         format!("{:?}",*requested_resume-*start)
                     //     }
