@@ -2,11 +2,10 @@ use wgpu::BufferUsages;
 
 use crate::renderer::{
     matrix_renderer::renderer_system::DeviceQueue,
-    pipelines::{
-        buffers::{BufferContainer, Vertex, VertexBuffer},
-        instance_manager::VertexStructure,
-    },
+    pipelines::buffers::{BufferContainer, Vertex, VertexBuffer},
 };
+
+use super::VertexStructure;
 pub struct Cube;
 
 impl VertexStructure<Vertex> for Cube {

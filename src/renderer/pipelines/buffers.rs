@@ -166,6 +166,17 @@ impl<T: Pod + Zeroable> IntoBytes<T> for &'_ [T] {
         <[T]>::len(self)
     }
 }
+
+impl<T: Pod + Zeroable> IntoBytes<T> for Vec<T> {
+    fn get_bytes(&self) -> &[u8] {
+        bytemuck::cast_slice(self.as_slice())
+    }
+
+    fn size(&self) -> usize {
+        self.len()
+    }
+}
+
 pub enum BufferType {
     Vertex(u32),
     Index,

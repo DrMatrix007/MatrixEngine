@@ -2,9 +2,9 @@ use std::any::TypeId;
 
 use crate::engine::scenes::components::Component;
 
+use crate::renderer::pipelines::structures::VertexStructure;
 use crate::renderer::pipelines::{
     buffers::{Vertex, VertexBuffer},
-    instance_manager::VertexStructure,
 };
 
 use super::renderer_system::DeviceQueue;

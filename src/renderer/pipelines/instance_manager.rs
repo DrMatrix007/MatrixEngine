@@ -16,9 +16,6 @@ use super::{
     transform::{InstanceTransform, Transform},
 };
 
-pub trait VertexStructure<Vertex: Bufferable>: Any {
-    fn create_buffer(&self, device: &DeviceQueue) -> VertexBuffer<Vertex>;
-}
 
 pub struct InstancedData {
     texture: MatrixTexture,

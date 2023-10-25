@@ -2,11 +2,10 @@ use wgpu::BufferUsages;
 
 use crate::renderer::{
     matrix_renderer::renderer_system::DeviceQueue,
-    pipelines::{
-        buffers::{BufferContainer, Vertex, VertexBuffer},
-        instance_manager::VertexStructure,
-    },
+    pipelines::buffers::{BufferContainer, Vertex, VertexBuffer},
 };
+
+use super::VertexStructure;
 
 pub struct Plain;
 
@@ -48,5 +47,5 @@ impl Plain {
             texture_pos: [0.0, 1.0],
         },
     ];
-    const INDEXES: &[u16] = &[0, 2, 1, 0, 3, 2];
+    const INDEXES: &[u16] = &[0, 1, 2, 2,3,0];
 }

@@ -27,7 +27,10 @@ use matrix_engine::{
             render_object::RenderObject,
             renderer_system::{MatrixRendererResource, MatrixRendererSystem, RendererResourceArgs},
         },
-        pipelines::{structures::cube::Cube, transform::Transform},
+        pipelines::{
+            structures::{circle::Circle, cube::Cube, plain::Plain},
+            transform::Transform,
+        },
     },
 };
 use num_traits::clamp_max;
@@ -253,7 +256,10 @@ fn main() {
                 EntityBuilder::new(scene_reg.components_mut())
                     .add(A)
                     .unwrap()
-                    .add(RenderObject::new(Cube, "tests/dirt.jpg".to_string()))
+                    .add(RenderObject::new(
+                        Circle::<160>,
+                        "tests/dirt.jpg".to_string(),
+                    ))
                     .unwrap()
                     .add(t)
                     .unwrap();
