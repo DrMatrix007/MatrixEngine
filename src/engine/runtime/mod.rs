@@ -1,5 +1,6 @@
 use std::{
     collections::VecDeque,
+    process::exit,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -111,7 +112,7 @@ impl<Args: 'static> Runtime<Args> for SingleThreaded {
                     if registry.try_recieve_send_with_id(&id).is_ok() {
                         match control_flow {
                             SystemControlFlow::Continue => {}
-                            SystemControlFlow::Quit => panic!("Quit"),
+                            SystemControlFlow::Quit => exit(0),
                             SystemControlFlow::Remove => {
                                 registry.remove_system_send(&id);
                             }

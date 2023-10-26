@@ -28,7 +28,7 @@ use matrix_engine::{
             renderer_system::{MatrixRendererResource, MatrixRendererSystem, RendererResourceArgs},
         },
         pipelines::{
-            structures::{circle::Circle, cube::Cube, plain::Plain},
+            structures::{circle::Circle, cube::Cube, icosphere::Icosphere, plain::Plain},
             transform::Transform,
         },
     },
@@ -69,7 +69,6 @@ impl QuerySystem for SysD {
         for event in _event.all_window_events() {
             if event.is_pressed(winit::event::VirtualKeyCode::A) {
                 // spin_sleep::sleep(Duration::from_secs_f64(3.));
-                println!("dam");
             }
         }
 
@@ -257,7 +256,7 @@ fn main() {
                     .add(A)
                     .unwrap()
                     .add(RenderObject::new(
-                        Circle::<160>,
+                        Icosphere::<2>,
                         "tests/dirt.jpg".to_string(),
                     ))
                     .unwrap()

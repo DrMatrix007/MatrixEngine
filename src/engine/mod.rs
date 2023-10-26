@@ -117,7 +117,6 @@ impl Engine {
         } else if let Event::NewEvents(reason) = &event {
             match reason {
                 start_cause @ (StartCause::Init | StartCause::ResumeTimeReached { .. }) => {
-                    println!("frame");
                     *last_frame_time = Instant::now();
 
                     self.runtime
