@@ -248,20 +248,22 @@ fn main() {
         .push_send(MatrixRendererSystem::default());
 
     let builder = SceneBuilder::new(|scene_reg, system_reg| {
-        for y in 0..100 {
-            for i in 0..100 {
-                let mut t = Transform::identity();
-                t.apply_position_diff(Vector3::from([[i as f32, 0., y as f32]]));
-                EntityBuilder::new(scene_reg.components_mut())
-                    .add(A)
-                    .unwrap()
-                    .add(RenderObject::new(
-                        Icosphere::<2>,
-                        "tests/dirt.jpg".to_string(),
-                    ))
-                    .unwrap()
-                    .add(t)
-                    .unwrap();
+        for z in 0..100 {
+            for y in 0..10 {
+                for x in 0..10 {
+                    let mut t = Transform::identity();
+                    t.apply_position_diff(Vector3::from([[x as f32, y as f32, z as f32]]));
+                    EntityBuilder::new(scene_reg.components_mut())
+                        .add(A)
+                        .unwrap()
+                        .add(RenderObject::new(
+                            Icosphere::<2>,
+                            "tests/dirt.jpg".to_string(),
+                        ))
+                        .unwrap()
+                        .add(t)
+                        .unwrap();
+                }
             }
         }
         system_reg.push_send(SysC);

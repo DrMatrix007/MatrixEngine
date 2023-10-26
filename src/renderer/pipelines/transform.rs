@@ -31,10 +31,26 @@ impl Transform {
                 [*position.x(), *position.y(), *position.z(), 1.],
             ]);
     }
+    pub fn with_position_diff(mut self, position: Vector3<f32>) -> Self {
+        self.mat = &self.mat
+            * Matrix4::from([
+                [1., 0.0, 0.0, 0.0],
+                [0.0, 1., 0.0, 0.0],
+                [0.0, 0.0, 1., 0.0],
+                [*position.x(), *position.y(), *position.z(), 1.],
+            ]);
+        self
+    }
     pub fn apply_rotation(&mut self, rotation: Vector3<f32>) {
         self.mat = &self.mat * rotation.euler_into_rotation_matrix4();
     }
-    pub fn with_scale(&mut self, scale: Vector3<f32>) {
+
+    pub fn with_rotation(mut self, rotation: Vector3<f32>) -> Self {
+        self.mat = &self.mat * rotation.euler_into_rotation_matrix4();
+        self
+    }
+
+    pub fn apply_scale(&mut self, scale: Vector3<f32>) {
         self.mat = &self.mat
             * Matrix4::from([
                 [*scale.x(), 0.0, 0.0, 0.0],
@@ -42,6 +58,17 @@ impl Transform {
                 [0.0, 0.0, *scale.z(), 0.0],
                 [0., 0., 0., 1.],
             ]);
+    }
+
+    pub fn with_scale(mut self, scale: Vector3<f32>) -> Self {
+        self.mat = &self.mat
+            * Matrix4::from([
+                [*scale.x(), 0.0, 0.0, 0.0],
+                [0.0, *scale.y(), 0.0, 0.0],
+                [0.0, 0.0, *scale.z(), 0.0],
+                [0., 0., 0., 1.],
+            ]);
+        self
     }
 }
 
