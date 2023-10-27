@@ -17,7 +17,7 @@ impl<const STEPS: u16> VertexStructure<Vertex> for Icosphere<STEPS> {
             .into_iter()
             .map(|[a, b, c]| Vertex {
                 position: [a / 2., b / 2., c / 2.],
-                texture_pos: [a/2.+0.5, c/2.+0.5],
+                texture_pos: [a / 2. + 0.5, c / 2. + 0.5],
             })
             .collect::<Vec<_>>();
 
@@ -58,7 +58,7 @@ pub(super) mod icosahedron {
 
     impl Triangle {
         const fn new(a: Index, b: Index, c: Index) -> Self {
-            Triangle { vertex: [a, c, b] }
+            Triangle { vertex: [a, b, c] }
         }
     }
 
@@ -82,26 +82,26 @@ pub(super) mod icosahedron {
     ];
 
     pub const TRIANGLES: &[Triangle] = &[
-        Triangle::new(0, 4, 1),
-        Triangle::new(0, 9, 4),
-        Triangle::new(9, 5, 4),
-        Triangle::new(4, 5, 8),
-        Triangle::new(4, 8, 1),
-        Triangle::new(8, 10, 1),
-        Triangle::new(8, 3, 10),
-        Triangle::new(5, 3, 8),
-        Triangle::new(5, 2, 3),
-        Triangle::new(2, 7, 3),
-        Triangle::new(7, 10, 3),
-        Triangle::new(7, 6, 10),
-        Triangle::new(7, 11, 6),
-        Triangle::new(11, 0, 6),
-        Triangle::new(0, 1, 6),
-        Triangle::new(6, 1, 10),
-        Triangle::new(9, 0, 11),
-        Triangle::new(9, 11, 2),
-        Triangle::new(9, 2, 5),
-        Triangle::new(7, 2, 11),
+        Triangle::new(0, 1, 4),
+        Triangle::new(0, 4, 9),
+        Triangle::new(9, 4, 5),
+        Triangle::new(4, 8, 5),
+        Triangle::new(4, 1, 8),
+        Triangle::new(8, 1, 10),
+        Triangle::new(8, 10, 3),
+        Triangle::new(5, 8, 3),
+        Triangle::new(5, 3, 2),
+        Triangle::new(2, 3, 7),
+        Triangle::new(7, 3, 10),
+        Triangle::new(7, 10, 6),
+        Triangle::new(7, 6, 11),
+        Triangle::new(11, 6, 0),
+        Triangle::new(0, 6, 1),
+        Triangle::new(6, 10, 1),
+        Triangle::new(0, 9, 11),
+        Triangle::new(11, 9, 2),
+        Triangle::new(2, 9, 5),
+        Triangle::new(7, 11, 2),
     ];
 
     fn vertex_for_edge(
@@ -133,7 +133,7 @@ pub(super) mod icosahedron {
         }
     }
 
-    fn subdivide(vertices: &mut VertexList, triangles: &TriangleList) -> TriangleList {
+    fn subdivide(vertices: &mut VertexList, triangles: &TriangleList, step: usize) -> TriangleList {
         let mut lookup: Lookup = HashMap::new();
         let mut result: TriangleList = Vec::new();
 
@@ -148,10 +148,17 @@ pub(super) mod icosahedron {
                 );
             }
 
-            result.push(Triangle::new(triangle.vertex[0], mid[0], mid[2]));
-            result.push(Triangle::new(triangle.vertex[1], mid[1], mid[0]));
-            result.push(Triangle::new(triangle.vertex[2], mid[2], mid[1]));
-            result.push(Triangle::new(mid[0], mid[1], mid[2]));
+            // if step % 2 != 0 {
+                result.push(Triangle::new(triangle.vertex[0], mid[0], mid[2]));
+                result.push(Triangle::new(triangle.vertex[1], mid[1], mid[0]));
+                result.push(Triangle::new(triangle.vertex[2], mid[2], mid[1]));
+                result.push(Triangle::new(mid[0], mid[1], mid[2]));
+            // } else {
+            // result.push(Triangle::new(triangle.vertex[0], mid[2], mid[0]));
+            // result.push(Triangle::new(triangle.vertex[1], mid[0], mid[1]));
+            // result.push(Triangle::new(triangle.vertex[2], mid[1], mid[2]));
+            // result.push(Triangle::new(mid[0], mid[2], mid[1]));
+            // }
         }
 
         result
@@ -168,8 +175,8 @@ pub(super) mod icosahedron {
         let mut vertices: VertexList = VERTICES.iter().cloned().collect();
         let mut triangles: TriangleList = TRIANGLES.iter().cloned().collect();
 
-        for _ in 0..subdivisions {
-            triangles = subdivide(&mut vertices, &triangles);
+        for s in 0..subdivisions {
+            triangles = subdivide(&mut vertices, &triangles, s);
         }
 
         (vertices, triangles)
