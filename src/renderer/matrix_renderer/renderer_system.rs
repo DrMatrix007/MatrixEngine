@@ -1,13 +1,9 @@
-use std::{
-    collections::VecDeque,
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{collections::VecDeque, sync::Arc};
 
 use crate::{
     engine::{
         events::event_registry::EventRegistry,
-        scenes::resources::Resource,
+        scenes::{components::transform::Transform, resources::Resource},
         systems::{
             query::{components::ReadC, resources::WriteR},
             query_group::ComponentRefIterable,
@@ -21,7 +17,7 @@ use crate::{
         matrix_render_pipeline::{MatrixRenderPipeline, MatrixRenderPipelineArgs},
         shaders::ShaderConfig,
         texture::MatrixTexture,
-        transform::{InstanceTransform, Transform},
+        transform::InstanceTransform,
     },
     shaders,
 };

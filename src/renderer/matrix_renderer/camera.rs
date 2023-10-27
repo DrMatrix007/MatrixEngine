@@ -1,6 +1,9 @@
 use std::f32::consts::PI;
 
-use crate::{engine::scenes::resources::Resource, math::matrices::Matrix3};
+use crate::{
+    engine::scenes::{components::transform::Transform, resources::Resource},
+    math::matrices::Matrix3,
+};
 use bytemuck::{Pod, Zeroable};
 use lazy_static::lazy_static;
 use num_traits::clamp;
@@ -14,7 +17,6 @@ use crate::{
     renderer::pipelines::{
         bind_groups::{BindDataEntry, BindGroupContainer},
         buffers::{BufferContainer, Bufferable},
-        transform::Transform,
     },
 };
 

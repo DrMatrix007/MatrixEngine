@@ -1,21 +1,19 @@
-use std::{
-    any::{Any, TypeId},
-    collections::HashMap,
-    sync::Arc,
-};
+use std::{any::TypeId, collections::HashMap, sync::Arc};
 
 use wgpu::BufferUsages;
 
-use crate::renderer::matrix_renderer::{render_object::RenderObject, renderer_system::DeviceQueue};
+use crate::{
+    engine::scenes::components::transform::Transform,
+    renderer::matrix_renderer::{render_object::RenderObject, renderer_system::DeviceQueue},
+};
 
 use super::{
     bind_groups::BindGroupContainer,
-    buffers::{BufferContainer, Bufferable, Vertex, VertexBuffer},
+    buffers::{BufferContainer, Vertex, VertexBuffer},
     group_layout_manager::BindGroupLayoutAtlas,
     texture::MatrixTexture,
-    transform::{InstanceTransform, Transform},
+    transform::InstanceTransform,
 };
-
 
 pub struct InstancedData {
     texture: MatrixTexture,
