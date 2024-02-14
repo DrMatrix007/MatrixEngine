@@ -1,11 +1,9 @@
-pub mod entity_builder;
+use std::sync::atomic::AtomicU64;
 
-use std::sync::atomic::AtomicUsize;
-
-static COUNTER: AtomicUsize = AtomicUsize::new(0);
+static COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
-pub struct Entity(usize);
+pub struct Entity(u64);
 
 impl Entity {
     pub fn new() -> Self {
@@ -18,3 +16,4 @@ impl Default for Entity {
         Self::new()
     }
 }
+
