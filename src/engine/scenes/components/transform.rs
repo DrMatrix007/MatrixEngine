@@ -1,4 +1,9 @@
-use crate::math::matrices::{Matrix4, Vector3};
+use crate::math::{
+    matrices::{Matrix4, Vector3},
+    vectors::Vector3D,
+};
+
+use super::Component;
 
 pub struct Transform {
     pub mat: Matrix4<f32>,

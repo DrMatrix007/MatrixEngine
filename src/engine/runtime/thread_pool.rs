@@ -54,7 +54,7 @@ impl<T> JobResult<T> {
 pub(crate) struct Worker<T: Send> {
     _handle: JoinHandle<()>,
     marker: PhantomData<T>,
-    event_sender: Sender<Event<'static, EngineEvent>>,
+    event_sender: Sender<Event<EngineEvent>>,
 }
 
 #[derive(Debug, Clone)]
@@ -143,7 +143,7 @@ impl<T: Send + 'static> Worker<T> {
         }
     }
 
-    pub(crate) fn send_event(&self, event: &Event<'static, EngineEvent>) {
+    pub(crate) fn send_event(&self, event: &Event<EngineEvent>) {
         self.event_sender.send(event.clone()).unwrap();
     }
 }

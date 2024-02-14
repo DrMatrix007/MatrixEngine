@@ -43,7 +43,7 @@ pub trait Runtime<Args> {
 
     fn process_event(
         &mut self,
-        event: Event<'_, EngineEvent>,
+        event: Event<EngineEvent>,
         args: &mut Args,
         frame_duration: Duration,
         all_system_registries: &mut [&mut SystemRegistry<Args>],
@@ -99,7 +99,7 @@ impl<Args: 'static> Runtime<Args> for SingleThreaded {
 
     fn process_event(
         &mut self,
-        event: Event<'_, EngineEvent>,
+        event: Event<EngineEvent>,
         args: &mut Args,
         frame_duration: Duration,
 
@@ -125,9 +125,7 @@ impl<Args: 'static> Runtime<Args> for SingleThreaded {
                 .unwrap();
         }
 
-        if let Some(event) = &event.to_static() {
-            self.event_registry.process(event);
-        }
+        self.event_registry.process(&event);
     }
 
     fn is_done(&self) -> bool {
@@ -241,7 +239,7 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
 
     fn process_event(
         &mut self,
-        event: Event<'_, EngineEvent>,
+        event: Event<EngineEvent>,
         args: &mut Args,
         frame_duration: Duration,
         all_system_registries: &mut [&mut SystemRegistry<Args>],
@@ -296,11 +294,9 @@ impl<Args: 'static> Runtime<Args> for MultiThreaded<Args> {
                 .unwrap();
             self.try_send_all_queue(args);
         }
-        if let Some(event) = &event.to_static() {
-            self.non_send_event_registry.process(event);
-            for worker in self.pool.workers() {
-                worker.send_event(event);
-            }
+        self.non_send_event_registry.process(&event);
+        for worker in self.pool.workers() {
+            worker.send_event(&event);
         }
     }
 

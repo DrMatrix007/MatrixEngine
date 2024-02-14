@@ -49,10 +49,9 @@ impl Scene {
         target: &EventLoopWindowTarget<EngineEvent>,
         runtime: &mut dyn Runtime<ComponentQueryArgs>,
         resources: OwnedMutexGuard<ResourceRegistry>,
-        control_flow: &mut ControlFlow,
     ) {
         match event {
-            Event::MainEventsCleared => {
+            Event::NewEvents(_) => {
                 self.frame(runtime, target, resources);
             }
             _ => {}

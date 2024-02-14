@@ -26,7 +26,11 @@ use wgpu::{
     Color, CommandEncoderDescriptor, Device, Operations, Queue, Surface, SurfaceConfiguration,
     SurfaceError,
 };
-use winit::{dpi::PhysicalSize, window::Window};
+use winit::{
+    dpi::PhysicalSize,
+    raw_window_handle::{HasRawWindowHandle, HasWindowHandle},
+    window::Window,
+};
 
 use super::{
     camera::{CameraResource, CameraUniform},

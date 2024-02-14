@@ -36,11 +36,15 @@ impl Engine {
             target_fps: fps.into(),
             engine_systems: Default::default(),
             engine_resources: Default::default(),
-            event_loop: Some(EventLoopBuilder::<EngineEvent>::with_user_event().build()),
+            event_loop: Some(
+                EventLoopBuilder::<EngineEvent>::with_user_event()
+                    .build()
+                    .unwrap(),
+            ),
         }
     }
 
-    pub fn run(mut self, builder: &SceneBuilder) -> ! {
+    pub fn run(mut self, builder: &SceneBuilder) {
         let mut current_scene = builder.build();
 
         let event_loop = self.event_loop.take().unwrap();
@@ -63,36 +67,30 @@ impl Engine {
 
         let mut last_frame_time = Instant::now();
 
-        event_loop.run(move |event, target, control_flow| {
-            self.on_event(
-                &mut current_scene,
-                event,
-                target,
-                &event_proxy,
-                control_flow,
-                &mut last_frame_time,
-            );
-        });
+        event_loop
+            .run(move |event, control_flow| {
+                self.on_event(
+                    &mut current_scene,
+                    event,
+                    control_flow,
+                    &event_proxy,
+                    &mut last_frame_time,
+                );
+            })
+            .unwrap();
     }
 
     fn on_event(
         &mut self,
         current_scene: &mut scenes::Scene,
-        event: Event<'_, EngineEvent>,
+        event: Event<EngineEvent>,
         target: &winit::event_loop::EventLoopWindowTarget<EngineEvent>,
         proxy: &EventLoopProxy<EngineEvent>,
-        control_flow: &mut winit::event_loop::ControlFlow,
         last_frame_time: &mut Instant,
     ) {
         let resources = self.engine_resources.clone().try_lock_owned().unwrap();
 
-        current_scene.process_event(
-            &event,
-            target,
-            self.runtime.as_mut(),
-            resources,
-            control_flow,
-        );
+        current_scene.process_event(&event, target, self.runtime.as_mut(), resources);
         let resources = self.engine_resources.clone().try_lock_owned().unwrap();
 
         let scene_registry = current_scene.try_lock_registry().unwrap();
@@ -129,8 +127,8 @@ impl Engine {
                             frame_start: Instant::now(),
                         })
                         .unwrap();
-
-                    *control_flow = ControlFlow::WaitUntil(*last_frame_time + frame_duration);
+                    // target.
+                    // *control_flow = ControlFlow::WaitUntil(*last_frame_time + frame_duration);
                     //     StartCause::ResumeTimeReached { start, requested_resume }=> {
                     //         format!("{:?}",*requested_resume-*start)
                     //     }

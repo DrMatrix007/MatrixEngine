@@ -17,7 +17,7 @@ use matrix_engine::{
     engine::{
         events::event_registry::EventRegistry,
         runtime::SingleThreaded,
-        scenes::entities::entity_builder::EntityBuilder,
+        scenes::{components::transform::Transform, entities::entity_builder::EntityBuilder},
         systems::{query::resources::WriteR, query_group::ComponentRefIterable, SystemControlFlow},
     },
     math::{matrices::Vector3, vectors::Vector3D},
@@ -27,10 +27,7 @@ use matrix_engine::{
             render_object::RenderObject,
             renderer_system::{MatrixRendererResource, MatrixRendererSystem, RendererResourceArgs},
         },
-        pipelines::{
-            structures::{circle::Circle, cube::Cube, icosphere::Icosphere, plain::Plain},
-            transform::Transform,
-        },
+        pipelines::structures::{circle::Circle, cube::Cube, icosphere::Icosphere, plain::Plain},
     },
 };
 use num_traits::clamp_max;
@@ -67,7 +64,7 @@ impl QuerySystem for SysD {
         _args: &mut Self::Query,
     ) -> matrix_engine::engine::systems::SystemControlFlow {
         for event in _event.all_window_events() {
-            if event.is_pressed(winit::event::VirtualKeyCode::A) {
+            if event.is_pressed(winit::keyboard::KeyCode::KeyA) {
                 // spin_sleep::sleep(Duration::from_secs_f64(3.));
             }
         }
@@ -107,22 +104,22 @@ impl QuerySystem for CameraPlayerSystem {
         let _rotate_speed = PI / 4.0;
 
         for window_events in events.all_window_events() {
-            if window_events.is_pressed(winit::event::VirtualKeyCode::A) {
+            if window_events.is_pressed(winit::keyboard::KeyCode::KeyA) {
                 *delta.x_mut() -= speed;
             }
-            if window_events.is_pressed(winit::event::VirtualKeyCode::D) {
+            if window_events.is_pressed(winit::keyboard::KeyCode::KeyD) {
                 *delta.x_mut() += speed;
             }
-            if window_events.is_pressed(winit::event::VirtualKeyCode::W) {
+            if window_events.is_pressed(winit::keyboard::KeyCode::KeyW) {
                 *delta.z_mut() -= speed;
             }
-            if window_events.is_pressed(winit::event::VirtualKeyCode::S) {
+            if window_events.is_pressed(winit::keyboard::KeyCode::KeyS) {
                 *delta.z_mut() += speed;
             }
-            if window_events.is_pressed(winit::event::VirtualKeyCode::Space) {
+            if window_events.is_pressed(winit::keyboard::KeyCode::Space) {
                 *delta.y_mut() += speed;
             }
-            if window_events.is_pressed(winit::event::VirtualKeyCode::C) {
+            if window_events.is_pressed(winit::keyboard::KeyCode::KeyC) {
                 *delta.y_mut() -= speed;
             }
         }
@@ -202,10 +199,10 @@ impl QuerySystem for RotateAll {
 
     fn run(&mut self, events: &EventRegistry, args: &mut Self::Query) -> SystemControlFlow {
         let dt = events.calc_delta_time().as_secs_f32();
-
+        println!("frame");
         if events
             .all_window_events()
-            .find(|x| x.is_pressed_down(winit::event::VirtualKeyCode::G))
+            .find(|x| x.is_pressed_down(winit::keyboard::KeyCode::KeyG))
             .is_some()
         {
             println!("toggled");

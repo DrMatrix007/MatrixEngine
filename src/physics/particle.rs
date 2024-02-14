@@ -13,6 +13,7 @@ impl QuerySystem for ParticleSystem {
         events: &crate::engine::events::event_registry::EventRegistry,
         args: &mut Self::Query,
     ) -> crate::engine::systems::SystemControlFlow {
+        crate::engine::systems::SystemControlFlow::Continue
     }
 }
 

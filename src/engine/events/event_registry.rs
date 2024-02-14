@@ -9,9 +9,8 @@ use std::{
 use lazy_static::lazy_static;
 use winit::{
     dpi::PhysicalSize,
-    event::{
-        DeviceEvent, ElementState, Event, MouseButton, StartCause, VirtualKeyCode, WindowEvent,
-    },
+    event::{DeviceEvent, ElementState, Event, MouseButton, StartCause, WindowEvent},
+    keyboard::{KeyCode, PhysicalKey},
     window::WindowId,
 };
 
@@ -61,7 +60,7 @@ impl<T: Hash + Eq + Clone> Default for ButtonEventGroup<T> {
 
 #[derive(Default)]
 pub struct WindowEventRegistry {
-    keybaord: ButtonEventGroup<VirtualKeyCode>,
+    keybaord: ButtonEventGroup<KeyCode>,
     mouse: ButtonEventGroup<MouseButton>,
     size: PhysicalSize<u32>,
     close_requested: bool,
@@ -72,14 +71,14 @@ lazy_static! {
 }
 
 impl WindowEventRegistry {
-    pub(crate) fn process(&mut self, event: &WindowEvent<'_>) {
+    pub(crate) fn process(&mut self, event: &WindowEvent) {
         match event {
             WindowEvent::KeyboardInput {
                 device_id: _,
-                input,
+                event: input,
                 is_synthetic: _,
             } => {
-                if let Some(code) = input.virtual_keycode {
+                if let PhysicalKey::Code(code) = input.physical_key {
                     match input.state {
                         ElementState::Pressed if !self.keybaord.contains(&code) => {
                             self.keybaord.insert(code)
@@ -107,14 +106,14 @@ impl WindowEventRegistry {
         self.mouse.update();
     }
 
-    pub fn is_pressed(&self, k: VirtualKeyCode) -> bool {
+    pub fn is_pressed(&self, k: KeyCode) -> bool {
         self.keybaord.contains(&k)
     }
-    pub fn is_pressed_down(&self, k: VirtualKeyCode) -> bool {
+    pub fn is_pressed_down(&self, k: KeyCode) -> bool {
         self.keybaord.contains_down(&k)
     }
 
-    pub fn is_released(&self, k: VirtualKeyCode) -> bool {
+    pub fn is_released(&self, k: KeyCode) -> bool {
         self.keybaord.contains_up(&k)
     }
     pub fn is_resized(&self) -> &PhysicalSize<u32> {
@@ -167,11 +166,11 @@ impl EventRegistry {
         self.delta_time_updatable = true;
     }
 
-    fn process_window_event(&mut self, id: &WindowId, event: &WindowEvent<'_>) {
+    fn process_window_event(&mut self, id: &WindowId, event: &WindowEvent) {
         let events = self.windows.entry(*id).or_default();
         events.process(event);
     }
-    pub(crate) fn process(&mut self, event: &Event<'_, EngineEvent>) {
+    pub(crate) fn process(&mut self, event: &Event<EngineEvent>) {
         match event {
             Event::NewEvents(StartCause::Init | StartCause::ResumeTimeReached { .. }) => {
                 self.update();
@@ -239,8 +238,8 @@ impl Default for EventRegistry {
 
 pub struct EventChannelRegistry {
     event_registry: EventRegistry,
-    sender: Sender<Event<'static, EngineEvent>>,
-    receiver: Receiver<Event<'static, EngineEvent>>,
+    sender: Sender<Event<EngineEvent>>,
+    receiver: Receiver<Event<EngineEvent>>,
 }
 
 impl Deref for EventChannelRegistry {
@@ -269,7 +268,7 @@ impl AsMut<EventRegistry> for EventChannelRegistry {
 }
 
 impl EventChannelRegistry {
-    pub fn new() -> (Self, Sender<Event<'static, EngineEvent>>) {
+    pub fn new() -> (Self, Sender<Event<EngineEvent>>) {
         let mut event_registry = EventRegistry::default();
         let (sender, receiver) = channel();
         event_registry.starting_frame = false;
