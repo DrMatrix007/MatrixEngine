@@ -1,10 +1,9 @@
 use std::{
     any::{Any, TypeId},
     collections::BTreeMap,
-    sync::{Arc, Mutex},
 };
 
-use super::entity::Entity;
+use super::{entity::Entity, read_write_state::{RwState, RwStateAccessError}};
 
 pub trait Component: 'static {}
 
@@ -31,6 +30,12 @@ impl<T: Component> ComponentMap<T> {
     }
 }
 
+impl<T: Component> Default for ComponentMap<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct ComponentRegistry {
     map: BTreeMap<TypeId, Box<dyn Any>>,
 }
@@ -41,12 +46,25 @@ impl ComponentRegistry {
             map: Default::default(),
         }
     }
-    pub fn get<T: Component>(&mut self) -> &Arc<Mutex<ComponentMap<T>>> {
-        self.map
-            .entry(TypeId::of::<T>())
-            .or_insert_with(|| Box::new(Arc::new(Mutex::new(ComponentMap::<T>::new()))))
-            .downcast_ref::<Arc<Mutex<ComponentMap<T>>>>()
-            .clone()
-            .unwrap()
+    pub fn get<T: Component>(&mut self) -> &mut RwState<ComponentMap<T>> {
+        unsafe {
+            self.map
+                .entry(TypeId::of::<T>())
+                .or_insert_with(|| Box::new(RwState::new(ComponentMap::<T>::new())))
+                .downcast_mut_unchecked::<RwState<ComponentMap<T>>>()
+        }
+    }
+
+    pub fn try_set<C:Component>(&mut self, e: Entity, comp: C) -> Result<(),RwStateAccessError> {
+        let mut a = self.get::<C>().write()?;
+        a.push(e,comp);
+        self.get::<C>().consume_write(a).unwrap();
+        Ok(())
+    }
+}
+
+impl Default for ComponentRegistry {
+    fn default() -> Self {
+        Self::new()
     }
 }
