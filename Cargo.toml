@@ -9,12 +9,12 @@ lazy_static = "1.4.0"
 # spin_sleep = "1.1.1"
 tokio = { version = "*", features = ["sync", "rt"] }
 # wgpu = "0.17.1"
-winit = { version = "0.29.10", features = ["rwh_05"] }
 # log = { version = "0.4.20", features = ["std"] }
 # num_cpus = "1.16.0"
 num-traits = "0.2.17"
 bytemuck = { version = "1.13.0", features = ["derive"] }
 image = "0.24.7"
+glfw = "0.55.0"
 
 [[test]]
 name = "main_test"

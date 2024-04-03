@@ -17,7 +17,7 @@ impl Scene {
         &mut self.components
     }
 
-    pub(crate) fn update(&self)  {
+    pub(crate) fn update(&mut self)  {
     }
 }
 
