@@ -1,9 +1,11 @@
 use std::{any::Any, marker::PhantomData};
 
-
 use crate::impl_all;
 
-use super::{components::{Component, ComponentMap, ComponentRegistry}, read_write_state::{RwReadState, RwWriteState}};
+use super::{
+    components::{Component, ComponentMap, ComponentRegistry},
+    read_write_state::{RwReadState, RwWriteState},
+};
 
 pub trait System {
     type Args;
@@ -22,7 +24,7 @@ pub enum DispatchError {
 }
 
 pub struct SystemArgs {
-    pub components: RwWriteState<ComponentRegistry>
+    pub components: RwWriteState<ComponentRegistry>,
 }
 
 pub trait QuerySystem {
@@ -30,14 +32,12 @@ pub trait QuerySystem {
 
     fn try_dispatch(&mut self, args: Self::Query) -> Result<Box<dyn Any>, DispatchError>;
     fn update(&mut self, args: <Self::Query as Query<SystemArgs>>::Data);
-
-
 }
 
 pub trait Query<Args> {
     type Data;
-
-    fn try_fetch(data:&mut Args) -> Result<Self::Data,DispatchError>;
+    fn check_fetch_availability(data: &mut Args) -> bool;
+    fn try_fetch(data: &mut Args) -> Result<Self::Data, DispatchError>;
 }
 
 pub struct ReadC<T>(PhantomData<T>);
@@ -46,22 +46,29 @@ pub struct WriteC<T>(PhantomData<T>);
 impl<T: Component> Query<SystemArgs> for ReadC<T> {
     type Data = RwReadState<ComponentMap<T>>;
 
-    fn try_fetch(data:&mut SystemArgs) -> Result<Self::Data,DispatchError> {
+    fn try_fetch(data: &mut SystemArgs) -> Result<Self::Data, DispatchError> {
         match data.components.get::<T>().read() {
             Ok(data) => Ok(data),
             Err(_) => Err(DispatchError::NotAvailabele),
         }
+    }
+
+    fn check_fetch_availability(data: &mut SystemArgs) -> bool {
+        data.components.get::<T>().can_read()
     }
 }
 
 impl<T: Component> Query<SystemArgs> for WriteC<T> {
     type Data = RwWriteState<ComponentMap<T>>;
 
-    fn try_fetch(data:&mut SystemArgs) -> Result<Self::Data,DispatchError> {
+    fn try_fetch(data: &mut SystemArgs) -> Result<Self::Data, DispatchError> {
         match data.components.get::<T>().write() {
             Ok(data) => Ok(data),
             Err(_) => Err(DispatchError::NotAvailabele),
         }
+    }
+    fn check_fetch_availability(data: &mut SystemArgs) -> bool {
+        data.components.get::<T>().can_write()
     }
 }
 
@@ -70,9 +77,13 @@ macro_rules! impl_query {
         impl<Args,$($t:Query<Args>,)+> Query<Args> for ($($t,)+) {
             type Data = ($($t::Data,)+);
 
-            fn try_fetch(_data:&mut Args) -> Result<Self::Data,DispatchError> {
-                todo!()
+            fn try_fetch(data:&mut Args) -> Result<Self::Data,DispatchError> {
+                Ok(($($t::try_fetch(data)?,)+))
             }
+            fn check_fetch_availability(data:&mut Args) -> bool {
+                ($($t::check_fetch_availability(data))&&+)
+            }
+
         }
     };
 }

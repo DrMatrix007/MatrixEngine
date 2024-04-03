@@ -1,18 +1,12 @@
-use matrix_engine::core::{
-    components::Component,
-    engine::Engine,
-    entity::Entity,
-    scene::{Scene, SceneBuilder},
-    window::Window,
-};
+use matrix_engine::core::{engine::Engine, entity::Entity, scene::SceneBuilder, window::Window};
 
 struct A;
 
 fn main() {
-    
-    let glfw = glfw::init(glfw::fail_on_errors).unwrap();
+    let mut glfw = glfw::init(glfw::fail_on_errors).unwrap();
 
-    let window = Window::new(glfw,(1000, 500), "nice");
+    let window = Window::new(&mut glfw, (1000, 500), "nice").unwrap();
+    
 
     let scene = SceneBuilder::new(|reg| {
         for _ in 0..100 {
@@ -22,7 +16,9 @@ fn main() {
     })
     .build();
 
-    let engine = Engine::new(scene);
+    let mut engine = Engine::new(scene);
 
-    engine.run();
+    engine.add_window(window);
+
+    engine.run(glfw);
 }

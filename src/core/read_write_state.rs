@@ -1,4 +1,7 @@
-use std::{cell::UnsafeCell, ops::{Deref, DerefMut}, sync::Mutex};
+use std::{
+    cell::UnsafeCell,
+    ops::{Deref, DerefMut},
+};
 
 pub struct RwState<T> {
     data: Box<UnsafeCell<T>>,
@@ -46,6 +49,21 @@ impl<T> RwState<T> {
                 Ok(RwWriteState::new(self.data.get()))
             }
             State::Read(_) | State::Write => Err(RwStateAccessError::NotAvailable),
+        }
+    }
+
+    pub fn can_read(&self) -> bool {
+        if let State::Ready | State::Read(_) = self.state {
+            true
+        } else {
+            false
+        }
+    }
+    pub fn can_write(&self) -> bool {
+        if let State::Ready = self.state {
+            true
+        } else {
+            false
         }
     }
 
@@ -156,13 +174,13 @@ mod tests {
 
         data.consume_read(a1).unwrap();
         data.consume_read(a2).unwrap();
-        
+
         let a3 = data.write().unwrap();
 
         data.read().unwrap_err();
 
         data.consume_write(a3).unwrap();
-        
+
         let a4 = data.read().unwrap();
         data.consume_read(a4).unwrap();
     }
