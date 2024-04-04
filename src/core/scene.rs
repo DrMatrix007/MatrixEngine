@@ -1,4 +1,4 @@
-use super::{components::ComponentRegistry, read_write_state::RwState, systems::SystemRegistry, window::WindowRegistry};
+use super::{components::ComponentRegistry, read_write_state::RwState, systems::{SystemArgs, SystemRegistry}, window::WindowRegistry};
 
 pub struct Scene {
     components: RwState<ComponentRegistry>,
@@ -19,7 +19,21 @@ impl Scene {
     }
 
     pub(crate) fn update(&mut self)  {
-        
+        let components= self.components.write().unwrap();
+        let args = SystemArgs {
+            components
+        };
+
+        for system in self.systems.iter_mut() {
+            let s = system.read().unwrap();
+            
+            s.prepare_args(args)
+
+            system.consume_read(s).unwrap();
+        }
+
+
+        self.components.consume_write(args.components).unwrap();
     }
 }
 

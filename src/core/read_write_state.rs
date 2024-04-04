@@ -3,7 +3,7 @@ use std::{
 };
 
 pub struct RwState<T:?Sized> {
-    data: Box<UnsafeCell<T>>,
+    data: UnsafeCell<Box<T>>,
     state: State,
 }
 
@@ -18,10 +18,10 @@ pub enum RwStateConsumeError {
     WrongState,
 }
 
-impl<T> RwState<T> {
-    pub fn new(data: T) -> Self {
+impl<T:?Sized> RwState<T> {
+    pub fn new(data: T) -> Self where T:Sized {
         Self {
-            data: Box::new(UnsafeCell::new(data)),
+            data: UnsafeCell::new(Box::new(data)),
             state: State::default(),
         }
     }
@@ -31,11 +31,12 @@ impl<T> RwState<T> {
         match &mut *state {
             State::Read(i) => {
                 *i += 1;
-                Ok(RwReadState::new(self.data.get()))
+                Ok(RwReadState::new(self.data.get_mut().as_mut()))
             }
             state @ State::Ready => {
                 *state = State::Read(1);
-                Ok(RwReadState::new(self.data.get()))
+                Ok(RwReadState::new(self.data.get_mut().as_mut()))
+
             }
             State::Write => Err(RwStateAccessError::NotAvailable),
         }
@@ -45,7 +46,7 @@ impl<T> RwState<T> {
         match &mut *state {
             state @ State::Ready => {
                 *state = State::Write;
-                Ok(RwWriteState::new(self.data.get()))
+                Ok(RwWriteState::new(&mut **self.data.get_mut()))
             }
             State::Read(_) | State::Write => Err(RwStateAccessError::NotAvailable),
         }
@@ -67,7 +68,7 @@ impl<T> RwState<T> {
     }
 
     pub fn consume_read(&mut self, read: RwReadState<T>) -> Result<(), RwStateConsumeError> {
-        if read.ptr != self.data.get() {
+        if read.ptr != self.data.get_mut().as_ref() {
             return Err(RwStateConsumeError::WrongValue);
         }
 
@@ -81,7 +82,7 @@ impl<T> RwState<T> {
         Ok(())
     }
     pub fn consume_write(&mut self, read: RwWriteState<T>) -> Result<(), RwStateConsumeError> {
-        if read.ptr != self.data.get() {
+        if read.ptr != self.data.get_mut().as_mut() {
             return Err(RwStateConsumeError::WrongValue);
         }
 
@@ -103,11 +104,21 @@ impl<T> From<T> for RwState<T> {
 impl<T:?Sized> From<Box<T>> for RwState<T> {
     fn from(value:Box<T>) -> Self {
         RwState {
-            data:  unsafe { core::mem::transmute(value) },
+            data: UnsafeCell::new(value),
             state: State::default()
         }
     }
 }
+
+// impl<T:?Sized,F> From<F> for RwState<T> where Box<UnsafeCell<T>>:From<Box<UnsafeCell<F>>> { 
+//     fn from(value: F) -> Self {
+//         RwState {
+//             data: Box::new(UnsafeCell::new(value)).into(),
+//             state: State::default()
+//         }
+//     }
+// }
+
 
 #[derive(Debug)]
 enum State {
@@ -123,17 +134,17 @@ impl Default for State {
 
 #[derive(Debug)]
 #[must_use]
-pub struct RwReadState<T> {
+pub struct RwReadState<T:?Sized> {
     ptr: *const T,
 }
 
-impl<T> RwReadState<T> {
+impl<T:?Sized> RwReadState<T> {
     pub fn new(ptr: *const T) -> Self {
         Self { ptr }
     }
 }
 
-impl<T> Deref for RwReadState<T> {
+impl<T:?Sized> Deref for RwReadState<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -143,16 +154,16 @@ impl<T> Deref for RwReadState<T> {
 
 #[derive(Debug)]
 #[must_use]
-pub struct RwWriteState<T> {
+pub struct RwWriteState<T:?Sized> {
     ptr: *mut T,
 }
 
-impl<T> RwWriteState<T> {
+impl<T:?Sized> RwWriteState<T> {
     pub fn new(ptr: *mut T) -> Self {
         Self { ptr }
     }
 }
-impl<T> Deref for RwWriteState<T> {
+impl<T:?Sized> Deref for RwWriteState<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -160,7 +171,7 @@ impl<T> Deref for RwWriteState<T> {
     }
 }
 
-impl<T> DerefMut for RwWriteState<T> {
+impl<T:?Sized> DerefMut for RwWriteState<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.ptr }
     }

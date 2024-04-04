@@ -1,12 +1,15 @@
-use std::{any::Any, collections::HashMap, marker::PhantomData};
+use std::{any::Any, cell::UnsafeCell, collections::HashMap, marker::PhantomData};
 
 use crate::impl_all;
 
 use super::{
-    components::{Component, ComponentMap, ComponentRegistry}, entity::Entity, read_write_state::{RwReadState, RwState, RwWriteState}, window::WindowRegistry
+    components::{Component, ComponentMap, ComponentRegistry},
+    entity::Entity,
+    read_write_state::{RwReadState, RwState, RwWriteState},
+    window::WindowRegistry,
 };
 
-pub trait System {
+pub trait System: 'static {
     type Args;
     type DispatcherArgs;
     fn prepare_args(
@@ -16,17 +19,17 @@ pub trait System {
     fn update(&mut self, args: Self::Args);
 }
 
-#[derive(Clone, Copy,Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum DispatchError {
     NotAvailabele,
 }
 
 pub struct SystemArgs {
     pub components: RwWriteState<ComponentRegistry>,
-    pub windows: RwState<WindowRegistry>,
+    // pub windows: RwState<WindowRegistry>,
 }
 
-pub trait QuerySystem {
+pub trait QuerySystem: 'static {
     type Query: Query<SystemArgs>;
 
     fn try_dispatch(&mut self, args: Self::Query) -> Result<Box<dyn Any>, DispatchError>;
@@ -34,7 +37,7 @@ pub trait QuerySystem {
 }
 
 pub trait Query<Args> {
-    type Data:'static;
+    type Data: 'static;
     fn check_fetch_availability(data: &mut Args) -> bool;
     fn try_fetch(data: &mut Args) -> Result<Self::Data, DispatchError>;
 }
@@ -58,7 +61,6 @@ impl<S: QuerySystem> System for S {
     fn update(&mut self, args: Self::Args) {
         QuerySystem::update(self, *args.downcast().unwrap());
     }
-
 }
 
 pub struct ReadC<T>(PhantomData<T>);
@@ -113,27 +115,38 @@ macro_rules! impl_query {
 impl_all!(impl_query);
 
 pub struct SystemRegistry {
-    send_systems: Vec<RwState<dyn System<Args = SystemArgs,DispatcherArgs = Box<dyn Any>>>>,
+    send_systems: Vec<RwState<dyn System<Args = SystemArgs, DispatcherArgs = Box<dyn Any>>>>,
 }
 impl SystemRegistry {
     pub fn new() -> Self {
         Self {
-            send_systems: Vec::new()
+            send_systems: Vec::new(),
         }
     }
 
-    pub fn add_system<S: System<Args = SystemArgs,DispatcherArgs = Box<dyn Any>>>(&mut self, sys: S) {
-        self.send_systems.push(RwState::<_>::from(Box::new(sys)));
+    pub fn add_system<S: System<Args = SystemArgs, DispatcherArgs = Box<dyn Any>> + 'static>(
+        &mut self,
+        sys: S,
+    ) {
+        let sys: Box<dyn System<Args = SystemArgs, DispatcherArgs = Box<dyn Any>>> = Box::new(sys);
+        self.send_systems.push(RwState::<
+            dyn System<Args = SystemArgs, DispatcherArgs = Box<dyn Any>>,
+        >::from(sys));
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item=&'_ RwState<dyn System<Args=SystemArgs,DispatcherArgs=Box<dyn Any>>>> {
+        self.send_systems.iter()
+    }
+    pub fn iter_mut(&mut self) -> impl Iterator<Item=&'_ mut RwState<dyn System<Args=SystemArgs,DispatcherArgs=Box<dyn Any>>>> {
+        self.send_systems.iter_mut()
     }
 }
 
 impl Default for SystemRegistry {
     fn default() -> Self {
-
         Self::new()
     }
 }
-
 
 pub mod tests {
     #[test]
