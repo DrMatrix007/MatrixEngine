@@ -1,8 +1,8 @@
-use super::{components::ComponentRegistry, read_write_state::RwState, window::WindowRegistry};
+use super::{components::ComponentRegistry, read_write_state::RwState, systems::SystemRegistry, window::WindowRegistry};
 
 pub struct Scene {
     components: RwState<ComponentRegistry>,
-    // systems: SystemRegistry
+    systems: SystemRegistry
     //scenes: SceneRegistry,
 }
 
@@ -10,6 +10,7 @@ impl Scene {
     pub fn new(components:ComponentRegistry) -> Self {
         Self {
             components: components.into(),
+            systems: SystemRegistry::new(),
             //      scenes,
         }
     }
@@ -17,7 +18,7 @@ impl Scene {
         &mut self.components
     }
 
-    pub(crate) fn update(&mut self,windows: &mut WindowRegistry)  {
+    pub(crate) fn update(&mut self)  {
         
     }
 }

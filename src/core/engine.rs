@@ -25,7 +25,7 @@ impl Engine {
 
             glfw.poll_events();
             
-            self.scene.update(&mut self.windows);
+            self.scene.update();
 
             for window in self.windows.values_mut() {
                 for (_, event) in window.flush_events_iter() {

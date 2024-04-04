@@ -1,9 +1,8 @@
 use std::{
-    cell::UnsafeCell,
-    ops::{Deref, DerefMut},
+    any::Any, cell::UnsafeCell, ops::{Deref, DerefMut}
 };
 
-pub struct RwState<T> {
+pub struct RwState<T:?Sized> {
     data: Box<UnsafeCell<T>>,
     state: State,
 }
@@ -52,7 +51,7 @@ impl<T> RwState<T> {
         }
     }
 
-    pub fn can_read(&self) -> bool {
+    pub fn can_read(&mut self) -> bool {
         if let State::Ready | State::Read(_) = self.state {
             true
         } else {
@@ -99,6 +98,14 @@ impl<T> RwState<T> {
 impl<T> From<T> for RwState<T> {
     fn from(value: T) -> Self {
         RwState::new(value)
+    }
+}
+impl<T:?Sized> From<Box<T>> for RwState<T> {
+    fn from(value:Box<T>) -> Self {
+        RwState {
+            data:  unsafe { core::mem::transmute(value) },
+            state: State::default()
+        }
     }
 }
 
