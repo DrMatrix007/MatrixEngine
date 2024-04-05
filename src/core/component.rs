@@ -62,6 +62,10 @@ impl ComponentRegistry {
             .get(&TypeId::of::<T>())
             .map(|x| unsafe { x.downcast_ref_unchecked() })
     }
+    pub fn set<C: Component>(&mut self, e: Entity, comp: C) {
+        let mut a = self.get_or_insert::<C>().blocking_write();
+        a.push(e, comp);
+    }
 }
 
 impl Default for ComponentRegistry {
