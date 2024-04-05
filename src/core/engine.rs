@@ -1,6 +1,7 @@
-use std::collections::HashMap;
-
-use super::{entity::Entity, scene::Scene, window::{Window, WindowRegistry}};
+use super::{
+    scene::Scene,
+    window::{Window, WindowRegistry},
+};
 
 pub struct Engine {
     scene: Scene,
@@ -24,7 +25,7 @@ impl Engine {
             }
 
             glfw.poll_events();
-            
+
             self.scene.update();
 
             for window in self.windows.values_mut() {

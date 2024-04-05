@@ -1,8 +1,11 @@
-use super::{components::ComponentRegistry, read_write_state::RwState, systems::{SystemArgs, SystemRegistry}, window::WindowRegistry};
+use std::sync::RwLock;
+
+use super::component::ComponentRegistry;
+
 
 pub struct Scene {
-    components: RwState<ComponentRegistry>,
-    systems: SystemRegistry
+    components: RwLock<ComponentRegistry>,
+    // systems: SystemRegistry
     //scenes: SceneRegistry,
 }
 
@@ -10,30 +13,18 @@ impl Scene {
     pub fn new(components:ComponentRegistry) -> Self {
         Self {
             components: components.into(),
-            systems: SystemRegistry::new(),
+            // systems: SystemRegistry::new(),
             //      scenes,
         }
     }
-    pub fn components(&mut self) -> &mut RwState<ComponentRegistry> {
+    pub fn components(&mut self) -> &mut RwLock<ComponentRegistry> {
         &mut self.components
     }
 
     pub(crate) fn update(&mut self)  {
-        let components= self.components.write().unwrap();
-        let args = SystemArgs {
-            components
-        };
-
-        for system in self.systems.iter_mut() {
-            let s = system.read().unwrap();
-            
-            s.prepare_args(args)
-
-            system.consume_read(s).unwrap();
-        }
 
 
-        self.components.consume_write(args.components).unwrap();
+
     }
 }
 
@@ -47,7 +38,7 @@ impl SceneBuilder {
     }
 
     pub fn build(&mut self) -> Scene {
-        let mut components = ComponentRegistry::default();
+        let mut components = ComponentRegistry::new();
         (self.build_components)(&mut components);
         Scene::new(components)
     }
