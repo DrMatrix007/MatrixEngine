@@ -4,10 +4,7 @@ use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::impl_all;
 
-use super::{
-    component::{Component, ComponentMap, ComponentRegistry},
-    scene::SceneRegistry,
-};
+use super::component::{Component, ComponentMap, ComponentRegistry};
 
 #[derive(Debug, Clone, Copy)]
 pub enum QueryError {
@@ -165,7 +162,7 @@ impl<Q: Queryable> SystemRegistry<Q> {
     pub fn non_send_systems_mut(&mut self) -> impl Iterator<Item = &'_ mut Box<dyn System<Q>>> {
         self.non_send_systems.iter_mut()
     }
-    pub fn add(&mut self, system: impl System<Q>) {
+    pub(crate) fn add(&mut self, system: impl System<Q>) {
         if system.is_send() {
             self.send_systems.push(Box::new(system));
         } else {

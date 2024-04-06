@@ -27,15 +27,15 @@ impl QuerySystem for B {
             print!("{:?} ", i);
         }
         let now = Instant::now();
-        println!("{:?}",now-self.0);
+        print!("{:?}             \r",now-self.0);
         self.0 = now;
     }
 }
 
 fn main() {
-    //let mut glfw = glfw::init(glfw::fail_on_errors).unwrap();
+    let mut glfw = glfw::init(glfw::fail_on_errors).unwrap();
 
-    // let window = Window::new(&mut glfw, (1000, 500), "nice").unwrap();
+    let _window = Window::new(&mut glfw, (1000, 500), "nice").unwrap();
 
     let mut scene = SceneBuilder::new(|reg| {
         for _ in 0..2 {
@@ -45,8 +45,8 @@ fn main() {
     })
     .build(SingleThreaded);
 
-    scene.systems().add(B::default());
-
+    scene.add_system(B::default());
+    
     let engine = Engine::new(scene);
 
     engine.run();

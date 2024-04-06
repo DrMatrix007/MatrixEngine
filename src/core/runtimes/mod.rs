@@ -1,4 +1,4 @@
-use super::{component::ComponentRegistry, systems::{Queryable, SystemRegistry}};
+use super::systems::{Queryable, SystemRegistry};
 
 pub mod single_threaded;
 
