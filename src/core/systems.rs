@@ -4,7 +4,10 @@ use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::impl_all;
 
-use super::component::{Component, ComponentMap, ComponentRegistry};
+use super::{
+    component::{Component, ComponentMap, ComponentRegistry},
+    scene::SceneRegistry,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum QueryError {
@@ -12,9 +15,9 @@ pub enum QueryError {
     DoesntExist,
 }
 
-pub trait System: Send+Sync+'static {
-    fn ensure_installed(&self, queryable: &mut impl Queryable);
-    fn run(&mut self, queryable: &impl Queryable) -> Result<(), QueryError>;
+pub trait System<Q: Queryable>: Send + Sync + 'static {
+    fn ensure_installed(&self, queryable: &mut Q);
+    fn run(&mut self, queryable: &Q) -> Result<(), QueryError>;
     fn is_send(&self) -> bool;
 }
 
@@ -33,7 +36,7 @@ impl Queryable for ComponentRegistry {
     }
 }
 
-pub trait QuerySystem: Send+Sync+'static {
+pub trait QuerySystem: Send + Sync + 'static {
     type Query: Query;
 
     fn run(&mut self, args: <Self::Query as Query>::Data<'_>);
@@ -51,8 +54,8 @@ where
 {
 }
 
-impl<S: QuerySystem> System for S {
-    fn run(&mut self, queryable: &impl Queryable) -> Result<(), QueryError> {
+impl<S: QuerySystem, Q: Queryable> System<Q> for S {
+    fn run(&mut self, queryable: &Q) -> Result<(), QueryError> {
         let res = S::Query::try_query(queryable);
         match res {
             Ok(data) => {
@@ -63,7 +66,7 @@ impl<S: QuerySystem> System for S {
         }
     }
 
-    fn ensure_installed(&self, queryable: &mut impl Queryable) {
+    fn ensure_installed(&self, queryable: &mut Q) {
         S::Query::ensure_installed(queryable);
     }
     fn is_send(&self) -> bool {
@@ -138,4 +141,41 @@ macro_rules! impl_query {
 // impl_query!(A, B, C);
 impl_all!(impl_query);
 
-pub struct SystemRegistry {}
+pub struct SystemRegistry<Q: Queryable> {
+    send_systems: Vec<Box<dyn System<Q>>>,
+    non_send_systems: Vec<Box<dyn System<Q>>>,
+}
+impl<Q: Queryable> SystemRegistry<Q> {
+    pub fn new() -> Self {
+        Self {
+            send_systems: Vec::new(),
+            non_send_systems: Vec::new(),
+        }
+    }
+    pub fn send_systems(&self) -> impl Iterator<Item = &'_ Box<dyn System<Q>>> {
+        self.send_systems.iter()
+    }
+    pub fn send_systems_mut(&mut self) -> impl Iterator<Item = &'_ mut Box<dyn System<Q>>> {
+        self.send_systems.iter_mut()
+    }
+
+    pub fn non_send_systems(&self) -> impl Iterator<Item = &'_ Box<dyn System<Q>>> {
+        self.non_send_systems.iter()
+    }
+    pub fn non_send_systems_mut(&mut self) -> impl Iterator<Item = &'_ mut Box<dyn System<Q>>> {
+        self.non_send_systems.iter_mut()
+    }
+    pub fn add(&mut self, system: impl System<Q>) {
+        if system.is_send() {
+            self.send_systems.push(Box::new(system));
+        } else {
+            self.non_send_systems.push(Box::new(system))
+        }
+    }
+}
+
+impl<Q: Queryable> Default for SystemRegistry<Q> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
