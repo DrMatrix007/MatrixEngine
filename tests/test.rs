@@ -5,7 +5,7 @@ use matrix_engine::core::{
     entity::Entity,
     runtimes::single_threaded::SingleThreaded,
     scene::SceneBuilder,
-    systems::{QuerySystem, ReadC},
+    systems::{QueryData, QuerySystem, ReadC},
     window::Window,
 };
 
@@ -32,12 +32,16 @@ impl QuerySystem for B {
     }
 }
 
+fn c(_args:QueryData<ReadC<A>>) {
+
+}
+
 fn main() {
     let mut glfw = glfw::init(glfw::fail_on_errors).unwrap();
 
     let _window = Window::new(&mut glfw, (1000, 500), "nice").unwrap();
 
-    let mut scene = SceneBuilder::new(|reg| {
+    let mut scene = SceneBuilder::new(|reg,_res| {
         for _ in 0..2 {
             let e = Entity::new();
             reg.set(e, A);
@@ -46,7 +50,7 @@ fn main() {
     .build(SingleThreaded);
 
     scene.add_system(B::default());
-    
+    scene.add_system(c);
     let engine = Engine::new(scene);
 
     engine.run();
