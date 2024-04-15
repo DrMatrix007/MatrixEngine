@@ -12,6 +12,7 @@ pub trait Component: Send + Sync + 'static {}
 
 impl<T: Send + Sync + 'static> Component for T {}
 
+#[derive(Debug)]
 pub struct ComponentMap<T: Component> {
     map: BTreeMap<Entity, T>,
 }
@@ -39,6 +40,7 @@ impl<T: Component> Default for ComponentMap<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct ComponentRegistry {
     map: BTreeMap<TypeId, Box<dyn Any>>,
 }

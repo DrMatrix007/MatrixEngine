@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use glfw::{Context, WindowEvent};
 
-use super::entity::Entity;
+use crate::core::entity::Entity;
+
 
 pub struct Window {
     window: glfw::PWindow,

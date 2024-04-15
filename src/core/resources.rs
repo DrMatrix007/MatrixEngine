@@ -1,15 +1,28 @@
 use std::{
-    any::{Any, TypeId},
-    collections::HashMap,
-    marker::PhantomData,
-    sync::Arc,
+    any::{Any, TypeId}, collections::HashMap, ops::{Deref, DerefMut}, sync::Arc
 };
 
 use tokio::sync::RwLock;
 
 pub trait Resource: 'static {}
 
+impl<T:'static> Resource for T{}
+
 pub struct ResourceHolder<R: Resource>(Option<R>);
+
+impl<R:Resource> Deref for ResourceHolder<R> {
+    type Target = Option<R>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<R:Resource> DerefMut for ResourceHolder<R> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 unsafe impl<R: Resource> Send for ResourceHolder<R> {}
 

@@ -1,13 +1,12 @@
 use std::time::Instant;
 
-use matrix_engine::core::{
+use matrix_engine::{core::{
     engine::Engine,
     entity::Entity,
     runtimes::single_threaded::SingleThreaded,
     scene::SceneBuilder,
     systems::{QueryData, QuerySystem, ReadC},
-    window::Window,
-};
+}, window::{plugin::GlfwWindowPlugin, window::Window}};
 
 #[derive(Debug)]
 struct A;
@@ -37,20 +36,19 @@ fn c(_args:QueryData<ReadC<A>>) {
 }
 
 fn main() {
-    let mut glfw = glfw::init(glfw::fail_on_errors).unwrap();
-
-    let _window = Window::new(&mut glfw, (1000, 500), "nice").unwrap();
-
-    let mut scene = SceneBuilder::new(|reg,_res| {
+    let mut scene = SceneBuilder::new(move |reg,res| {
         for _ in 0..2 {
             let e = Entity::new();
             reg.set(e, A);
         }
     })
     .build(SingleThreaded);
+    
+    scene.build_plugin(GlfwWindowPlugin::new("test".into(),(1000,500)));
 
     scene.add_system(B::default());
     scene.add_system(c);
+    // scene.add_system(|arg:QueryData<ReadC<A>>|{println!("{:?}",arg)});
     let engine = Engine::new(scene);
 
     engine.run();

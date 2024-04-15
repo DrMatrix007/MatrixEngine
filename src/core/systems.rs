@@ -66,7 +66,9 @@ impl<S: QuerySystem, Q: Queryable> System<Q> for QuerySystemWrapper<S> {
     }
 }
 
+#[derive(Debug)]
 pub struct ReadC<T>(PhantomData<T>);
+#[derive(Debug)]
 pub struct WriteC<T>(PhantomData<T>);
 
 impl<C: Component> Query for ReadC<C> {
@@ -112,10 +114,14 @@ impl<C: Component> Query for WriteC<C> {
     }
 }
 
+#[derive(Debug)]
 pub struct ReadR<R: Resource + Send>(PhantomData<R>);
+#[derive(Debug)]
 pub struct WriteR<R: Resource + Send>(PhantomData<R>);
 
+#[derive(Debug)]
 pub struct ReadNonSendR<R: Resource>(PhantomData<R>);
+#[derive(Debug)]
 pub struct WriteNonSendR<R: Resource>(PhantomData<R>);
 
 impl<R: Resource + Send> Query for ReadR<R> {
@@ -243,6 +249,8 @@ macro_rules! impl_query {
     };
 }
 
+
+#[derive(Debug)]
 pub struct QueryData<'a, Q: Query>(Q::Data<'a>);
 
 impl<'a, Q: Query> DerefMut for QueryData<'a, Q> {
@@ -259,9 +267,11 @@ impl<'a, Q: Query> Deref for QueryData<'a, Q> {
     }
 }
 
-pub struct FnWrapper<Q: Query+Send+Sync,F:Fn(QueryData<'_,Q>)+Send+Sync>(F,PhantomData<Q>);
+pub struct FnWrapper<Q: Query,F:Fn(QueryData<'_,Q>)+Send+Sync>(F,PhantomData<Q>);
+unsafe impl<Q: Query,F:Fn(QueryData<'_,Q>)+Send+Sync> Send for FnWrapper<Q,F> where F:Send{}
+unsafe impl<Q: Query,F:Fn(QueryData<'_,Q>)+Send+Sync> Sync for FnWrapper<Q,F> where F:Send{}
 
-impl<Q: Query+Send+Sync,F:Fn(QueryData<'_,Q>)+Send+Sync+'static> QuerySystem for FnWrapper<Q,F> {
+impl<Q: Query,F:Fn(QueryData<'_,Q>)+Send+Sync+'static> QuerySystem for FnWrapper<Q,F>  {
     type Query = Q;
 
     fn run(&mut self, args: <Self::Query as Query>::Data<'_>) {
@@ -323,7 +333,7 @@ impl<S: QuerySystem, Q: Queryable> IntoSystem<QuerySystemMarker,Q,S::Query> for 
         QuerySystemWrapper(self)
     }
 }
-impl<Q: Queryable, Qu: Query+Send+Sync,F:Fn(QueryData<'_,Qu>)+Send+Sync+'static> IntoSystem<FunctionSystemMarker,Q,Qu> for F {
+impl<Q: Queryable, Qu: Query,F:Fn(QueryData<'_,Qu>)+Send+Sync+'static> IntoSystem<FunctionSystemMarker,Q,Qu> for F {
     fn into_system(self) -> impl System<Q> {
         FnWrapper(self,PhantomData).into_system()
     }
@@ -336,10 +346,10 @@ mod tests {
         scene::{SceneBuilder, SceneRegistry},
     };
 
-    use super::{IntoSystem, QueryData, ReadC, SystemRegistry};
+    use super::{IntoSystem, QueryData, ReadC, ReadNonSendR, SystemRegistry};
 
-    struct A;
-    fn systeme_a(_args: QueryData<'_, ReadC<A>>) {}
+    struct A(*const u8);
+    fn systeme_a(_args: QueryData<'_, ReadNonSendR<A>>) {}
 
     #[test]
     fn a1() {

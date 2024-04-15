@@ -14,6 +14,7 @@ impl Engine {
     }
 
     pub fn run(mut self) {
+
         while self.running {
             self.scene.update();
         }
