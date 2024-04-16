@@ -1,12 +1,12 @@
 use std::time::Instant;
 
-use matrix_engine::{core::{
+use matrix_engine::core::{
     engine::Engine,
     entity::Entity,
     runtimes::single_threaded::SingleThreaded,
     scene::SceneBuilder,
     systems::{QueryData, QuerySystem, ReadC},
-}, window::{plugin::GlfwWindowPlugin, window::Window}};
+};
 
 #[derive(Debug)]
 struct A;
@@ -26,28 +26,24 @@ impl QuerySystem for B {
             print!("{:?} ", i);
         }
         let now = Instant::now();
-        print!("{:?}             \r",now-self.0);
+        print!("{:?}             \r", now - self.0);
         self.0 = now;
     }
 }
 
-fn c(_args:QueryData<ReadC<A>>) {
-
-}
+fn c(_args: QueryData<ReadC<A>>) {}
 
 fn main() {
-    let mut scene = SceneBuilder::new(move |reg,res| {
+    let mut scene = SceneBuilder::new(move |reg, _res| {
         for _ in 0..2 {
             let e = Entity::new();
             reg.set(e, A);
         }
     })
     .build(SingleThreaded);
-    
-    scene.build_plugin(GlfwWindowPlugin::new("test".into(),(1000,500)));
 
-    scene.add_system(B::default());
-    scene.add_system(c);
+    scene.add_logic_system(B::default());
+    scene.add_logic_system(c);
     // scene.add_system(|arg:QueryData<ReadC<A>>|{println!("{:?}",arg)});
     let engine = Engine::new(scene);
 

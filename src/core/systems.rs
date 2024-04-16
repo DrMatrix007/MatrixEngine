@@ -313,6 +313,11 @@ impl<Q: Queryable> SystemRegistry<Q> {
             self.non_send_systems.push(Box::new(system))
         }
     }
+
+    pub fn clear(&mut self) {
+        self.non_send_systems.clear();
+        self.send_systems.clear();
+    }
 }
 
 impl<Q: Queryable> Default for SystemRegistry<Q> {
@@ -354,6 +359,6 @@ mod tests {
     #[test]
     fn a1() {
         let mut scene = SceneBuilder::new(|_, _| {}).build(SingleThreaded);
-        scene.add_system(systeme_a);
+        scene.add_logic_system(systeme_a);
     }
 }

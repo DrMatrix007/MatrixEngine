@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, VecDeque};
 
 use super::{
     component::ComponentRegistry,
@@ -43,11 +43,18 @@ impl SceneRegistry {
         }
     }
 }
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SystemOrdering {
+    Events = 0,
+    Logic = 1,
+    Last = 2,
+}
 
 pub struct Scene {
     registry: SceneRegistry,
-    systems: SystemRegistry<SceneRegistry>,
+    ordered_systems: BTreeMap<SystemOrdering, SystemRegistry<SceneRegistry>>,
     runtime: Box<dyn Runtime<SceneRegistry>>,
+    startup_systems: SystemRegistry<SceneRegistry>,
     plugins: VecDeque<Box<dyn Plugin>>,
 }
 
@@ -59,7 +66,8 @@ impl Scene {
     ) -> Self {
         Self {
             // components: components.into(),
-            systems: SystemRegistry::new(),
+            ordered_systems: BTreeMap::new(),
+            startup_systems: SystemRegistry::new(),
             registry: SceneRegistry::new(components, resources),
             runtime: Box::new(runtime),
             plugins: VecDeque::new(),
@@ -67,14 +75,29 @@ impl Scene {
     }
 
     pub(crate) fn update(&mut self) {
-
-
-        self.runtime.run(&mut self.systems, &mut self.registry);
+        for (_, systems) in &mut self.ordered_systems {
+            self.runtime.run(systems, &mut self.registry);
+        }
     }
-    pub fn add_system<Q: Query, Marker>(&mut self, sys: impl IntoSystem<Marker, SceneRegistry, Q>) {
+    pub fn add_logic_system<Q: Query, Marker>(&mut self, sys: impl IntoSystem<Marker, SceneRegistry, Q>) {
+        self.add_system(SystemOrdering::Logic, sys);
+    }
+    pub fn add_system<Q:Query,Marker>(&mut self,order: SystemOrdering,sys :impl IntoSystem<Marker,SceneRegistry,Q>) {
+        
         let sys = sys.into_system();
         sys.ensure_installed(&mut self.registry);
-        self.systems.add(sys);
+        self.ordered_systems
+            .entry(order)
+            .or_insert_with(Default::default)
+            .add(sys);
+    }
+    pub fn add_startup_system<Q: Query, Marker>(
+        &mut self,
+        sys: impl IntoSystem<Marker, SceneRegistry, Q>,
+    ) {
+        let sys = sys.into_system();
+        sys.ensure_installed(&mut self.registry);
+        self.startup_systems.add(sys);
     }
 
     pub(crate) fn registry(&self) -> &SceneRegistry {
