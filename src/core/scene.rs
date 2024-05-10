@@ -75,21 +75,24 @@ impl Scene {
     }
 
     pub(crate) fn update(&mut self) {
-        for (_, systems) in &mut self.ordered_systems {
+        for systems in &mut self.ordered_systems.values_mut() {
             self.runtime.run(systems, &mut self.registry);
         }
     }
-    pub fn add_logic_system<Q: Query, Marker>(&mut self, sys: impl IntoSystem<Marker, SceneRegistry, Q>) {
+    pub fn add_logic_system<Q: Query, Marker>(
+        &mut self,
+        sys: impl IntoSystem<Marker, SceneRegistry, Q>,
+    ) {
         self.add_system(SystemOrdering::Logic, sys);
     }
-    pub fn add_system<Q:Query,Marker>(&mut self,order: SystemOrdering,sys :impl IntoSystem<Marker,SceneRegistry,Q>) {
-        
+    pub fn add_system<Q: Query, Marker>(
+        &mut self,
+        order: SystemOrdering,
+        sys: impl IntoSystem<Marker, SceneRegistry, Q>,
+    ) {
         let sys = sys.into_system();
         sys.ensure_installed(&mut self.registry);
-        self.ordered_systems
-            .entry(order)
-            .or_insert_with(Default::default)
-            .add(sys);
+        self.ordered_systems.entry(order).or_default().add(sys);
     }
     pub fn add_startup_system<Q: Query, Marker>(
         &mut self,

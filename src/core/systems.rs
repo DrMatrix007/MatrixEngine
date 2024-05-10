@@ -9,7 +9,7 @@ use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use crate::impl_all;
 
 use super::{
-    component::{Component, ComponentMap, ComponentRegistry},
+    component::{Component, ComponentMap},
     resources::{Resource, ResourceHolder},
 };
 
@@ -45,7 +45,7 @@ pub trait Query: 'static {
     fn is_send() -> bool;
 }
 
-pub struct QuerySystemWrapper<Q:QuerySystem>(Q);
+pub struct QuerySystemWrapper<Q: QuerySystem>(Q);
 impl<S: QuerySystem, Q: Queryable> System<Q> for QuerySystemWrapper<S> {
     fn run(&mut self, queryable: &Q) -> Result<(), QueryError> {
         let res = S::Query::try_query(queryable);
@@ -219,8 +219,7 @@ impl<R: Resource> Query for WriteNonSendR<R> {
 impl Query for () {
     type Data<'a> = ();
 
-    fn ensure_installed(_queryable: &mut impl Queryable) {
-    }
+    fn ensure_installed(_queryable: &mut impl Queryable) {}
 
     fn try_query(_queryable: &impl Queryable) -> Result<Self::Data<'_>, QueryError> {
         Ok(())
@@ -249,7 +248,6 @@ macro_rules! impl_query {
     };
 }
 
-
 #[derive(Debug)]
 pub struct QueryData<'a, Q: Query>(Q::Data<'a>);
 
@@ -267,11 +265,11 @@ impl<'a, Q: Query> Deref for QueryData<'a, Q> {
     }
 }
 
-pub struct FnWrapper<Q: Query,F:Fn(QueryData<'_,Q>)+Send+Sync>(F,PhantomData<Q>);
-unsafe impl<Q: Query,F:Fn(QueryData<'_,Q>)+Send+Sync> Send for FnWrapper<Q,F> where F:Send{}
-unsafe impl<Q: Query,F:Fn(QueryData<'_,Q>)+Send+Sync> Sync for FnWrapper<Q,F> where F:Send{}
+pub struct FnWrapper<Q: Query, F: Fn(QueryData<'_, Q>) + Send + Sync>(F, PhantomData<Q>);
+unsafe impl<Q: Query, F: Fn(QueryData<'_, Q>) + Send + Sync> Send for FnWrapper<Q, F> where F: Send {}
+unsafe impl<Q: Query, F: Fn(QueryData<'_, Q>) + Send + Sync> Sync for FnWrapper<Q, F> where F: Send {}
 
-impl<Q: Query,F:Fn(QueryData<'_,Q>)+Send+Sync+'static> QuerySystem for FnWrapper<Q,F>  {
+impl<Q: Query, F: Fn(QueryData<'_, Q>) + Send + Sync + 'static> QuerySystem for FnWrapper<Q, F> {
     type Query = Q;
 
     fn run(&mut self, args: <Self::Query as Query>::Data<'_>) {
@@ -329,29 +327,28 @@ impl<Q: Queryable> Default for SystemRegistry<Q> {
 pub struct QuerySystemMarker;
 pub struct FunctionSystemMarker;
 
-pub trait IntoSystem<Marker,Q: Queryable,Qu:Query> {
+pub trait IntoSystem<Marker, Q: Queryable, Qu: Query> {
     fn into_system(self) -> impl System<Q>;
 }
 
-impl<S: QuerySystem, Q: Queryable> IntoSystem<QuerySystemMarker,Q,S::Query> for S {
+impl<S: QuerySystem, Q: Queryable> IntoSystem<QuerySystemMarker, Q, S::Query> for S {
     fn into_system(self) -> impl System<Q> {
         QuerySystemWrapper(self)
     }
 }
-impl<Q: Queryable, Qu: Query,F:Fn(QueryData<'_,Qu>)+Send+Sync+'static> IntoSystem<FunctionSystemMarker,Q,Qu> for F {
+impl<Q: Queryable, Qu: Query, F: Fn(QueryData<'_, Qu>) + Send + Sync + 'static>
+    IntoSystem<FunctionSystemMarker, Q, Qu> for F
+{
     fn into_system(self) -> impl System<Q> {
-        FnWrapper(self,PhantomData).into_system()
+        FnWrapper(self, PhantomData).into_system()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::core::{
-        runtimes::single_threaded::SingleThreaded,
-        scene::{SceneBuilder, SceneRegistry},
-    };
+    use crate::core::{runtimes::single_threaded::SingleThreaded, scene::SceneBuilder};
 
-    use super::{IntoSystem, QueryData, ReadC, ReadNonSendR, SystemRegistry};
+    use super::{QueryData, ReadNonSendR};
 
     struct A(*const u8);
     fn systeme_a(_args: QueryData<'_, ReadNonSendR<A>>) {}

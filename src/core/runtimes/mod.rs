@@ -1,6 +1,5 @@
-use std::collections::vec_deque;
 
-use super::{plugins::Plugin, scene::Scene, systems::{Queryable, SystemRegistry}};
+use super::{systems::{Queryable, SystemRegistry}};
 
 pub mod single_threaded;
 

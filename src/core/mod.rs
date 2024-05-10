@@ -6,3 +6,4 @@ pub mod systems;
 pub mod resources;
 pub mod runtimes;
 pub mod plugins;
+pub mod archtypes;
