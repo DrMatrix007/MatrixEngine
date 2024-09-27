@@ -1,10 +1,7 @@
-use matrix_engine::engine::Engine;
-
-
+use matrix_engine::engine::{scene::Scene, Engine};
 
 fn main() {
-    let engine = Engine<CustomEvents>::with_scene(Scene::new());
+    let engine = <Engine>::with_scene(Scene::new());
 
     engine.run().unwrap();
-
 }

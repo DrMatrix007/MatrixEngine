@@ -271,7 +271,18 @@ impl ComponentRegistry {
             .and_then(|data| data.consume_write(write))
     }
 
-    // pub fn check_read<C: Component>(&self) -> bool {}
+    pub fn check_read<C: Component>(&self) -> bool {
+        self.data
+            .get(&TypeId::of::<C>())
+            .map(|x| x.downcast_ref::<ComponentState<C>>().unwrap().can_read())
+            .unwrap_or(true) // the unwrap_or(true) is if the comp list does not exist, and thus it will be default and can be read of
+    }
+    pub fn check_write<C: Component>(&self) -> bool {
+        self.data
+            .get(&TypeId::of::<C>())
+            .map(|x| x.downcast_ref::<ComponentState<C>>().unwrap().can_write())
+            .unwrap_or(true) // the unwrap_or(true) is if the comp list does not exist, and thus it will be default and can be read of
+    }
 
     pub fn try_insert<C: Component>(
         &mut self,
