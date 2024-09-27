@@ -49,7 +49,8 @@ impl<Custom: 'static> ApplicationHandler<MatrixEvent<Custom>> for SceneManager<C
         &mut self,
         _event_loop: &winit::event_loop::ActiveEventLoop,
         _window_id: winit::window::WindowId,
-        _event: winit::event::WindowEvent,
+        event: winit::event::WindowEvent,
     ) {
+        println!("event: {:?}",event);
     }
 }

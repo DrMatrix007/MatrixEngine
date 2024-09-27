@@ -4,7 +4,9 @@ use std::{
 };
 
 use super::{
-    components::{Component, Components, ReadComponentState, WriteComponentState},
+    components::{
+        Component, ComponentAccessError, Components, ReadComponentState, WriteComponentState,
+    },
     scene::SceneRegistry,
 };
 
@@ -14,13 +16,17 @@ pub enum QueryError {
 }
 
 pub trait Query<Queryable>: Any {
-    fn check(queryable: &mut Queryable) -> bool;
+    fn check(queryable: &mut Queryable) -> bool
+    where
+        Self: Sized;
 
-    fn query_unchecked(queryable: &mut Queryable) -> Self;
+    fn query_unchecked(queryable: &mut Queryable) -> Self
+    where
+        Self: Sized;
 
     fn query(queryable: &mut Queryable) -> Result<Self, QueryError>
     where
-        Self: std::marker::Sized,
+        Self: Sized,
     {
         if Self::check(queryable) {
             Ok(Self::query_unchecked(queryable))
@@ -29,7 +35,7 @@ pub trait Query<Queryable>: Any {
         }
     }
 
-    fn consume(self, queryable: &mut Queryable);
+    fn consume(self, queryable: &mut Queryable) -> Result<(), ComponentAccessError>;
 }
 
 #[derive(Debug)]
@@ -60,8 +66,8 @@ impl<C: Component> Query<SceneRegistry> for ReadC<C> {
         Self::new(queryable.components.read::<C>().unwrap())
     }
 
-    fn consume(self, queryable: &mut SceneRegistry) {
-        queryable.components.consume_read(self.data).unwrap();
+    fn consume(self, queryable: &mut SceneRegistry) -> Result<(), ComponentAccessError> {
+        queryable.components.consume_read(self.data)
     }
 }
 
@@ -98,8 +104,8 @@ impl<C: Component> Query<SceneRegistry> for WriteC<C> {
         Self::new(queryable.components.write::<C>().unwrap())
     }
 
-    fn consume(self, queryable: &mut SceneRegistry) {
-        queryable.components.consume_write(self.data).unwrap();
+    fn consume(self, queryable: &mut SceneRegistry) -> Result<(), ComponentAccessError> {
+        queryable.components.consume_write(self.data)
     }
 }
 

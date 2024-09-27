@@ -2,6 +2,7 @@ pub mod components;
 pub mod entity;
 pub mod scene;
 pub mod query;
+pub mod systems;
 
 use scene::{Scene, SceneManager};
 use winit::{error::EventLoopError, event_loop::EventLoop};
@@ -28,6 +29,10 @@ impl<CustomEvents: 'static> Engine<CustomEvents> {
 
     pub fn run(mut self) -> Result<(), EventLoopError> {
         self.event_loop.run_app(&mut self.scene)
+    }
+    
+    pub fn event_loop(&self) -> &EventLoop<MatrixEvent<CustomEvents>> {
+        &self.event_loop
     }
 }
 
