@@ -42,7 +42,7 @@ pub trait Query<Queryable>: Any {
 pub struct ReadC<C: Component> {
     data: ReadComponentState<C>,
 }
-unsafe impl<C:Component+Send> Send for ReadC<C>{}
+unsafe impl<C: Component + Send> Send for ReadC<C> {}
 
 impl<C: Component> Deref for ReadC<C> {
     type Target = Components<C>;
@@ -76,7 +76,7 @@ impl<C: Component> Query<SceneRegistry> for ReadC<C> {
 pub struct WriteC<C: Component> {
     data: WriteComponentState<C>,
 }
-unsafe impl<C:Component+Send> Send for WriteC<C>{}
+unsafe impl<C: Component + Send> Send for WriteC<C> {}
 
 impl<C: Component> Deref for WriteC<C> {
     type Target = Components<C>;
@@ -114,7 +114,10 @@ impl<C: Component> Query<SceneRegistry> for WriteC<C> {
 #[cfg(test)]
 mod tests {
 
-    use crate::engine::{components::ComponentRegistry, entity::Entity, scene::SceneRegistry};
+    use crate::engine::{
+        components::ComponentRegistry, entity::Entity, event_registry::EventRegistry,
+        scene::SceneRegistry,
+    };
 
     use super::{Query, ReadC, WriteC};
 
@@ -123,7 +126,10 @@ mod tests {
         let mut reg = ComponentRegistry::new();
 
         reg.try_insert(Entity::new(), 10).unwrap();
-        let mut reg = SceneRegistry { components: reg };
+        let mut reg = SceneRegistry {
+            components: reg,
+            events: EventRegistry::new(),
+        };
         let q1 = ReadC::<i32>::query(&mut reg).unwrap();
         let q2 = ReadC::<i32>::query(&mut reg).unwrap();
         q1.consume(&mut reg).unwrap();

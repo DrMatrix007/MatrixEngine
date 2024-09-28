@@ -1,3 +1,5 @@
+pub mod window_plugin;
+
 use super::scene::Scene;
 
 pub trait Plugin<CustomEvents> {

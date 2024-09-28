@@ -2,7 +2,7 @@ use super::Runtime;
 
 pub struct SingleThreaded;
 
-impl<Q,S,N> Runtime<Q,S,N> for SingleThreaded {
+impl<Q,S:Send,N> Runtime<Q,S,N> for SingleThreaded {
     fn run(
         &mut self,
         systems: &mut crate::engine::systems::SystemRegistry<Q, S, N>,

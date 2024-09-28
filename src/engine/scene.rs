@@ -1,9 +1,11 @@
-use std::{marker::PhantomData, ops::Deref};
+use std::{collections::VecDeque, marker::PhantomData, ops::Deref};
 
 use winit::{application::ApplicationHandler, event_loop::ActiveEventLoop};
 
 use super::{
     components::ComponentRegistry,
+    event_registry::EventRegistry,
+    plugins::Plugin,
     runtimes::Runtime,
     systems::{IntoNonSendSystem, IntoSendSystem, SystemRegistry},
     MatrixEvent,
@@ -11,6 +13,7 @@ use super::{
 
 pub struct SceneRegistry {
     pub components: ComponentRegistry,
+    pub events: EventRegistry,
 }
 
 pub struct ActiveEventLoopRef {
@@ -42,6 +45,7 @@ pub struct Scene<CustomEvents> {
     registry: SceneRegistry,
     systems: SystemRegistry<SceneRegistry, SendEngineArgs, NonSendEngineArgs>,
     startup_systems: SystemRegistry<SceneRegistry, SendEngineStartupArgs, NonSendEngineStartupArgs>,
+    plugins: VecDeque<Box<dyn Plugin<CustomEvents>>>,
 }
 
 impl<T> Scene<T> {
@@ -50,9 +54,11 @@ impl<T> Scene<T> {
             marker: PhantomData,
             registry: SceneRegistry {
                 components: ComponentRegistry::new(),
+                events: EventRegistry::new(),
             },
             systems: SystemRegistry::new(),
             startup_systems: SystemRegistry::new(),
+            plugins: VecDeque::new(),
         }
     }
 
@@ -115,18 +121,25 @@ impl<T> SceneManager<T> {
         startup_runtime: Box<
             dyn Runtime<SceneRegistry, SendEngineStartupArgs, NonSendEngineStartupArgs>,
         >,
-        scene: Scene<T>,
     ) -> Self {
         Self {
-            current_scene: scene,
+            current_scene: Scene::new(),
             runtime,
             startup_runtime,
             marker: PhantomData,
         }
     }
+
+    pub(crate) fn add_plugin(&mut self, new: impl Plugin<T> + 'static) {
+        self.current_scene.plugins.push_back(Box::new(new));
+    }
 }
 impl<Custom: 'static> ApplicationHandler<MatrixEvent<Custom>> for SceneManager<Custom> {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        while let Some(plugin) = self.current_scene.plugins.pop_back() {
+            plugin.build(&mut self.current_scene);
+        }
+
         self.startup_runtime.run(
             &mut self.current_scene.startup_systems,
             &mut self.current_scene.registry,

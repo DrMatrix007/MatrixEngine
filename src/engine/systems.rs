@@ -2,7 +2,9 @@ use std::marker::PhantomData;
 
 use super::{
     components::ComponentAccessError,
+    entity::Entity,
     query::{Query, QueryError},
+    EngineArgs,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -11,7 +13,11 @@ pub enum SystemError {
 }
 
 pub trait System<Queryable, EngineArgs> {
-    fn prepare_args(&mut self, queryable: &mut Queryable) -> Result<(), QueryError>;
+    fn prepare_args(
+        &mut self,
+        queryable: &mut Queryable,
+        system_id: Entity,
+    ) -> Result<(), QueryError>;
 
     fn run(&mut self, run_args: &mut EngineArgs) -> Result<(), SystemError>;
 
@@ -56,7 +62,11 @@ impl<
         QS: QuerySystem<Queryable, EngineArgs, Query = Q>,
     > System<Queryable, EngineArgs> for QuerySystemWrapper<Q, Queryable, EngineArgs, QS>
 {
-    fn prepare_args(&mut self, queryable: &mut Queryable) -> Result<(), QueryError> {
+    fn prepare_args(
+        &mut self,
+        queryable: &mut Queryable,
+        system_id: Entity,
+    ) -> Result<(), QueryError> {
         assert!(self.args.is_none());
         self.args = Some(Q::query(queryable)?);
         Ok(())
@@ -146,11 +156,13 @@ impl<
         QuerySystemWrapper::new(self)
     }
 }
-pub trait IntoSendSystem<Queryable, EngineArgs, Placeholder> {
+pub trait IntoSendSystem<Queryable, EngineArgs:Send, Placeholder> {
     fn into_system(self) -> impl System<Queryable, EngineArgs> + Send;
 }
 
-pub struct FnSendPlaceHolder<Q: Query<Queryable> + Send, Queryable: Send>(PhantomData<(Q, Queryable)>);
+pub struct FnSendPlaceHolder<Q: Query<Queryable> + Send, Queryable: Send>(
+    PhantomData<(Q, Queryable)>,
+);
 impl<Q: Query<Queryable> + Send, Queryable: Send, EngineArgs: Send, F: FnMut(&mut Q) + Send>
     IntoSendSystem<Queryable, EngineArgs, FnPlaceHolderNonSend<Q, Queryable>> for F
 {
@@ -173,7 +185,9 @@ impl<
     }
 }
 
-pub struct FnNonSendPlaceHolderWithArgs<Q: Query<Queryable>, Queryable>(PhantomData<(Q, Queryable)>);
+pub struct FnNonSendPlaceHolderWithArgs<Q: Query<Queryable>, Queryable>(
+    PhantomData<(Q, Queryable)>,
+);
 impl<Q: Query<Queryable>, Queryable, EngineArgs, F: FnMut(&mut EngineArgs, &mut Q)>
     IntoNonSendSystem<Queryable, EngineArgs, FnNonSendPlaceHolderWithArgs<Q, Queryable>> for F
 {
@@ -181,7 +195,9 @@ impl<Q: Query<Queryable>, Queryable, EngineArgs, F: FnMut(&mut EngineArgs, &mut 
         QuerySystemWrapper::new(QuerySystemFnWithArgs::new(self))
     }
 }
-pub struct QsSendPlaceHolder<Q: Query<Queryable> + Send, Queryable: Send>(PhantomData<(Q, Queryable)>);
+pub struct QsSendPlaceHolder<Q: Query<Queryable> + Send, Queryable: Send>(
+    PhantomData<(Q, Queryable)>,
+);
 impl<
         Q: Query<Queryable> + Send,
         Queryable: Send,
@@ -194,12 +210,12 @@ impl<
     }
 }
 
-pub struct SystemRegistry<Queryable, SendEngineArgs, NonSendEngineArgs> {
-    send_systems: Vec<Box<dyn System<Queryable, SendEngineArgs> + Send>>,
-    non_send_systems: Vec<Box<dyn System<Queryable, NonSendEngineArgs>>>,
+pub struct SystemRegistry<Queryable, SendEngineArgs: Send, NonSendEngineArgs> {
+    send_systems: Vec<BoxedSendSystem<Queryable, SendEngineArgs>>,
+    non_send_systems: Vec<BoxedNonSendSystem<Queryable, NonSendEngineArgs>>,
 }
 
-impl<Queryable, SendEngineArgs, NonSendEngineArgs>
+impl<Queryable, SendEngineArgs: Send, NonSendEngineArgs>
     SystemRegistry<Queryable, SendEngineArgs, NonSendEngineArgs>
 {
     pub fn new() -> Self {
@@ -209,35 +225,33 @@ impl<Queryable, SendEngineArgs, NonSendEngineArgs>
         }
     }
     pub fn add_send_system(&mut self, system: Box<dyn System<Queryable, SendEngineArgs> + Send>) {
-        self.send_systems.push(system);
+        self.send_systems.push(BoxedSendSystem::new(system));
     }
 
     pub fn add_non_send_system(&mut self, system: Box<dyn System<Queryable, NonSendEngineArgs>>) {
-        self.non_send_systems.push(system);
+        self.non_send_systems.push(BoxedNonSendSystem::new(system));
     }
 
-    pub fn send_systems(&self) -> &Vec<Box<dyn System<Queryable, SendEngineArgs> + Send>> {
+    pub fn send_systems(&self) -> &Vec<BoxedSendSystem<Queryable, SendEngineArgs>> {
         &self.send_systems
     }
 
-    pub fn send_systems_mut(
-        &mut self,
-    ) -> &mut Vec<Box<dyn System<Queryable, SendEngineArgs> + Send>> {
+    pub fn send_systems_mut(&mut self) -> &mut Vec<BoxedSendSystem<Queryable, SendEngineArgs>> {
         &mut self.send_systems
     }
 
-    pub fn non_send_systems(&self) -> &Vec<Box<dyn System<Queryable, NonSendEngineArgs>>> {
+    pub fn non_send_systems(&self) -> &Vec<BoxedNonSendSystem<Queryable, NonSendEngineArgs>> {
         &self.non_send_systems
     }
 
     pub fn non_send_systems_mut(
         &mut self,
-    ) -> &mut Vec<Box<dyn System<Queryable, NonSendEngineArgs>>> {
+    ) -> &mut Vec<BoxedNonSendSystem<Queryable, NonSendEngineArgs>> {
         &mut self.non_send_systems
     }
 }
 
-impl<Queryable, SendEngineArgs, NonSendEngineArgs> Default
+impl<Queryable, SendEngineArgs: Send, NonSendEngineArgs> Default
     for SystemRegistry<Queryable, SendEngineArgs, NonSendEngineArgs>
 {
     fn default() -> Self {
@@ -245,12 +259,75 @@ impl<Queryable, SendEngineArgs, NonSendEngineArgs> Default
     }
 }
 
+pub struct BoxedSendSystem<Queryable, Args: Send> {
+    id: Entity,
+    system: Box<dyn System<Queryable, Args> + Send>,
+}
+
+impl<Queryable, Args: Send> BoxedSendSystem<Queryable, Args> {
+    pub fn new(system: Box<dyn System<Queryable, Args> + Send>) -> Self {
+        Self {
+            id: Entity::new(),
+            system,
+        }
+    }
+    pub fn system(&self) -> &dyn System<Queryable, Args> {
+        &*self.system
+    }
+    pub fn system_mut(&mut self) -> &mut dyn System<Queryable, Args> {
+        &mut *self.system
+    }
+    pub fn id(&self) -> &Entity {
+        &self.id
+    }
+
+    pub fn prepare_args(&mut self, queryable: &mut Queryable) -> Result<(), QueryError> {
+        self.system.prepare_args(queryable, self.id)
+    }
+    pub fn run(&mut self, args: &mut Args) -> Result<(), SystemError> {
+        self.system.run(args)
+    }
+    pub fn consume(&mut self, queryable: &mut Queryable) -> Result<(), ComponentAccessError> {
+        self.system.consume(queryable)
+    }
+}
+
+pub struct BoxedNonSendSystem<Queryable, Args> {
+    id: Entity,
+    system: Box<dyn System<Queryable, Args>>,
+}
+
+impl<Queryable, Args> BoxedNonSendSystem<Queryable, Args> {
+    pub fn new(system: Box<dyn System<Queryable, Args>>) -> Self {
+        Self {
+            id: Entity::new(),
+            system,
+        }
+    }
+    pub fn system(&self) -> &dyn System<Queryable, Args> {
+        &*self.system
+    }
+    pub fn system_mut(&mut self) -> &mut dyn System<Queryable, Args> {
+        &mut *self.system
+    }
+    pub fn id(&self) -> &Entity {
+        &self.id
+    }
+
+    pub fn prepare_args(&mut self, queryable: &mut Queryable) -> Result<(), QueryError> {
+        self.system.prepare_args(queryable, self.id)
+    }
+    pub fn run(&mut self, args: &mut Args) -> Result<(), SystemError> {
+        self.system.run(args)
+    }
+    pub fn consume(&mut self, queryable: &mut Queryable) -> Result<(), ComponentAccessError> {
+        self.system.consume(queryable)
+    }
+}
 #[cfg(test)]
 mod test {
     use crate::engine::{
-        components::ComponentRegistry,
-        query::{ReadC, WriteC},
-        scene::SceneRegistry,
+        components::ComponentRegistry, entity::Entity, event_registry::EventRegistry, query::{ReadC, WriteC}, scene::SceneRegistry
     };
 
     use super::{IntoSendSystem, QuerySystem, System};
@@ -276,7 +353,7 @@ mod test {
     fn test_systems() {
         let reg = ComponentRegistry::new();
 
-        let reg = &mut SceneRegistry { components: reg };
+        let reg = &mut SceneRegistry { components: reg,events: EventRegistry::new() };
 
         let mut b: Box<dyn System<SceneRegistry, ()>> = system_boxed(system_a);
         let mut c: Box<dyn System<SceneRegistry, ()>> = system_boxed(system_b);
@@ -284,9 +361,9 @@ mod test {
         let mut d: Box<dyn System<SceneRegistry, ()>> = system_boxed(A);
         let mut e: Box<dyn System<SceneRegistry, ()>> = system_boxed(A);
 
-        b.prepare_args(reg).unwrap();
-        c.prepare_args(reg).unwrap();
-        d.prepare_args(reg).unwrap_err();
+        b.prepare_args(reg, Entity::new()).unwrap();
+        c.prepare_args(reg, Entity::new()).unwrap();
+        d.prepare_args(reg, Entity::new()).unwrap_err();
 
         b.run(&mut ()).unwrap();
         c.run(&mut ()).unwrap();
@@ -294,8 +371,8 @@ mod test {
         b.consume(reg).unwrap();
         c.consume(reg).unwrap();
 
-        d.prepare_args(reg).unwrap();
-        e.prepare_args(reg).unwrap_err();
+        d.prepare_args(reg, Entity::new()).unwrap();
+        e.prepare_args(reg, Entity::new()).unwrap_err();
 
         d.run(&mut ()).unwrap();
 
