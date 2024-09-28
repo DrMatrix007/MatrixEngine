@@ -7,7 +7,5 @@ edition = "2021"
 [dependencies]
 winit = "0.30.5"
 
-[[test]]
-name = "main_test"
-path = "tests/test.rs"
-harness = false
+[[example]]
+name="run"

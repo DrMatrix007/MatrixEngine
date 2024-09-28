@@ -42,6 +42,7 @@ pub trait Query<Queryable>: Any {
 pub struct ReadC<C: Component> {
     data: ReadComponentState<C>,
 }
+unsafe impl<C:Component+Send> Send for ReadC<C>{}
 
 impl<C: Component> Deref for ReadC<C> {
     type Target = Components<C>;
@@ -75,6 +76,7 @@ impl<C: Component> Query<SceneRegistry> for ReadC<C> {
 pub struct WriteC<C: Component> {
     data: WriteComponentState<C>,
 }
+unsafe impl<C:Component+Send> Send for WriteC<C>{}
 
 impl<C: Component> Deref for WriteC<C> {
     type Target = Components<C>;

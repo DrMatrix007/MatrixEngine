@@ -222,7 +222,7 @@ impl<C: Component> Default for ComponentState<C> {
 }
 
 pub struct ComponentRegistry {
-    data: HashMap<TypeId, Box<dyn Any>>,
+    data: HashMap<TypeId, Box<dyn Any + Send>>,
 }
 
 impl ComponentRegistry {

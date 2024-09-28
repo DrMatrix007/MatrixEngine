@@ -81,6 +81,20 @@ pub struct QuerySystemFn<Q: Query<Queryable>, Queryable, Fn: FnMut(&mut Q)>(
     Fn,
     PhantomData<(Q, Queryable)>,
 );
+pub struct QuerySystemFnWithArgs<
+    Q: Query<Queryable>,
+    Queryable,
+    EngineArgs,
+    Fn: FnMut(&mut EngineArgs, &mut Q),
+>(Fn, PhantomData<(Q, Queryable, EngineArgs)>);
+
+impl<Q: Query<Queryable>, Queryable, EngineArgs, Fn: FnMut(&mut EngineArgs, &mut Q)>
+    QuerySystemFnWithArgs<Q, Queryable, EngineArgs, Fn>
+{
+    pub fn new(f: Fn) -> Self {
+        Self(f, PhantomData)
+    }
+}
 
 impl<Q: Query<Queryable>, Queryable, Fn: FnMut(&mut Q)> QuerySystemFn<Q, Queryable, Fn> {
     pub fn new(f: Fn) -> Self {
@@ -97,29 +111,85 @@ impl<Q: Query<Queryable>, Queryable, Fn: FnMut(&mut Q), EngineArgs>
         (self.0)(args);
     }
 }
+impl<Q: Query<Queryable>, Queryable, Fn: FnMut(&mut EngineArgs, &mut Q), EngineArgs>
+    QuerySystem<Queryable, EngineArgs> for QuerySystemFnWithArgs<Q, Queryable, EngineArgs, Fn>
+{
+    type Query = Q;
 
-trait IntoSystem<Queryable, EngineArgs, Placeholder> {
+    fn run(&mut self, engine_args: &mut EngineArgs, args: &mut Self::Query) {
+        (self.0)(engine_args, args);
+    }
+}
+
+pub trait IntoNonSendSystem<Queryable, EngineArgs, Placeholder> {
     fn into_system(self) -> impl System<Queryable, EngineArgs>;
 }
 
-struct FnPlaceHolder<Q: Query<Queryable>, Queryable>(PhantomData<(Q, Queryable)>);
+pub struct FnPlaceHolderNonSend<Q: Query<Queryable>, Queryable>(PhantomData<(Q, Queryable)>);
 
 impl<Q: Query<Queryable>, Queryable, EngineArgs, F: FnMut(&mut Q)>
-    IntoSystem<Queryable, EngineArgs, FnPlaceHolder<Q, Queryable>> for F
+    IntoNonSendSystem<Queryable, EngineArgs, FnPlaceHolderNonSend<Q, Queryable>> for F
 {
     fn into_system(self) -> impl System<Queryable, EngineArgs> {
         QuerySystemWrapper::new(QuerySystemFn::new(self))
     }
 }
-struct QsPlaceHolder<Q: Query<Queryable>, Queryable>(PhantomData<(Q, Queryable)>);
+pub struct QsNonSendPlaceHolder<Q: Query<Queryable>, Queryable>(PhantomData<(Q, Queryable)>);
 impl<
         Q: Query<Queryable>,
         Queryable,
         EngineArgs,
         QS: QuerySystem<Queryable, EngineArgs, Query = Q>,
-    > IntoSystem<Queryable, EngineArgs, QsPlaceHolder<Q, Queryable>> for QS
+    > IntoNonSendSystem<Queryable, EngineArgs, QsNonSendPlaceHolder<Q, Queryable>> for QS
 {
     fn into_system(self) -> impl System<Queryable, EngineArgs> {
+        QuerySystemWrapper::new(self)
+    }
+}
+pub trait IntoSendSystem<Queryable, EngineArgs, Placeholder> {
+    fn into_system(self) -> impl System<Queryable, EngineArgs> + Send;
+}
+
+pub struct FnSendPlaceHolder<Q: Query<Queryable> + Send, Queryable: Send>(PhantomData<(Q, Queryable)>);
+impl<Q: Query<Queryable> + Send, Queryable: Send, EngineArgs: Send, F: FnMut(&mut Q) + Send>
+    IntoSendSystem<Queryable, EngineArgs, FnPlaceHolderNonSend<Q, Queryable>> for F
+{
+    fn into_system(self) -> impl System<Queryable, EngineArgs> + Send {
+        QuerySystemWrapper::new(QuerySystemFn::new(self))
+    }
+}
+pub struct FnSendPlaceHolderWithArgs<Q: Query<Queryable> + Send, Queryable: Send>(
+    PhantomData<(Q, Queryable)>,
+);
+impl<
+        Q: Query<Queryable> + Send,
+        Queryable: Send,
+        EngineArgs: Send,
+        F: FnMut(&mut EngineArgs, &mut Q) + Send,
+    > IntoSendSystem<Queryable, EngineArgs, FnSendPlaceHolderWithArgs<Q, Queryable>> for F
+{
+    fn into_system(self) -> impl System<Queryable, EngineArgs> + Send {
+        QuerySystemWrapper::new(QuerySystemFnWithArgs::new(self))
+    }
+}
+
+pub struct FnNonSendPlaceHolderWithArgs<Q: Query<Queryable>, Queryable>(PhantomData<(Q, Queryable)>);
+impl<Q: Query<Queryable>, Queryable, EngineArgs, F: FnMut(&mut EngineArgs, &mut Q)>
+    IntoNonSendSystem<Queryable, EngineArgs, FnNonSendPlaceHolderWithArgs<Q, Queryable>> for F
+{
+    fn into_system(self) -> impl System<Queryable, EngineArgs> {
+        QuerySystemWrapper::new(QuerySystemFnWithArgs::new(self))
+    }
+}
+pub struct QsSendPlaceHolder<Q: Query<Queryable> + Send, Queryable: Send>(PhantomData<(Q, Queryable)>);
+impl<
+        Q: Query<Queryable> + Send,
+        Queryable: Send,
+        EngineArgs: Send,
+        QS: QuerySystem<Queryable, EngineArgs, Query = Q> + Send,
+    > IntoSendSystem<Queryable, EngineArgs, QsSendPlaceHolder<Q, Queryable>> for QS
+{
+    fn into_system(self) -> impl System<Queryable, EngineArgs> + Send {
         QuerySystemWrapper::new(self)
     }
 }
@@ -183,7 +253,7 @@ mod test {
         scene::SceneRegistry,
     };
 
-    use super::{IntoSystem, QuerySystem, System};
+    use super::{IntoSendSystem, QuerySystem, System};
 
     fn system_a(_data: &mut ReadC<()>) {}
 
@@ -194,8 +264,10 @@ mod test {
         fn run(&mut self, _engine_args: &mut (), _args: &mut Self::Query) {}
     }
 
+    fn system_b(_args: &mut (), _data: &mut ReadC<()>) {}
+
     fn system_boxed<T: 'static>(
-        a: impl IntoSystem<SceneRegistry, (), T> + 'static,
+        a: impl IntoSendSystem<SceneRegistry, (), T> + 'static,
     ) -> Box<dyn System<SceneRegistry, ()>> {
         Box::new(a.into_system())
     }
@@ -207,7 +279,7 @@ mod test {
         let reg = &mut SceneRegistry { components: reg };
 
         let mut b: Box<dyn System<SceneRegistry, ()>> = system_boxed(system_a);
-        let mut c: Box<dyn System<SceneRegistry, ()>> = system_boxed(system_a);
+        let mut c: Box<dyn System<SceneRegistry, ()>> = system_boxed(system_b);
 
         let mut d: Box<dyn System<SceneRegistry, ()>> = system_boxed(A);
         let mut e: Box<dyn System<SceneRegistry, ()>> = system_boxed(A);
