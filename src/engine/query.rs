@@ -111,6 +111,7 @@ impl<C: Component> Query<SceneRegistry> for WriteC<C> {
 
 #[cfg(test)]
 mod tests {
+
     use crate::engine::{components::ComponentRegistry, entity::Entity, scene::SceneRegistry};
 
     use super::{Query, ReadC, WriteC};
@@ -123,12 +124,12 @@ mod tests {
         let mut reg = SceneRegistry { components: reg };
         let q1 = ReadC::<i32>::query(&mut reg).unwrap();
         let q2 = ReadC::<i32>::query(&mut reg).unwrap();
-        q1.consume(&mut reg);
-        q2.consume(&mut reg);
+        q1.consume(&mut reg).unwrap();
+        q2.consume(&mut reg).unwrap();
 
         let q1 = WriteC::<i32>::query(&mut reg).unwrap();
         WriteC::<i32>::query(&mut reg).unwrap_err();
 
-        q1.consume(&mut reg);
+        q1.consume(&mut reg).unwrap();
     }
 }

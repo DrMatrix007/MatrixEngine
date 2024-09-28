@@ -1,9 +1,8 @@
-use std::{any::Any, marker::PhantomData};
+use std::marker::PhantomData;
 
 use super::{
     components::ComponentAccessError,
     query::{Query, QueryError},
-    scene::SceneRegistry,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -103,24 +102,74 @@ trait IntoSystem<Queryable, EngineArgs, Placeholder> {
     fn into_system(self) -> impl System<Queryable, EngineArgs>;
 }
 
+struct FnPlaceHolder<Q: Query<Queryable>, Queryable>(PhantomData<(Q, Queryable)>);
+
 impl<Q: Query<Queryable>, Queryable, EngineArgs, F: FnMut(&mut Q)>
-    IntoSystem<Queryable, EngineArgs, Q> for F
+    IntoSystem<Queryable, EngineArgs, FnPlaceHolder<Q, Queryable>> for F
 {
     fn into_system(self) -> impl System<Queryable, EngineArgs> {
         QuerySystemWrapper::new(QuerySystemFn::new(self))
     }
 }
+struct QsPlaceHolder<Q: Query<Queryable>, Queryable>(PhantomData<(Q, Queryable)>);
+impl<
+        Q: Query<Queryable>,
+        Queryable,
+        EngineArgs,
+        QS: QuerySystem<Queryable, EngineArgs, Query = Q>,
+    > IntoSystem<Queryable, EngineArgs, QsPlaceHolder<Q, Queryable>> for QS
+{
+    fn into_system(self) -> impl System<Queryable, EngineArgs> {
+        QuerySystemWrapper::new(self)
+    }
+}
 
 #[cfg(test)]
 mod test {
-    use crate::engine::{query::ReadC, scene::SceneRegistry};
+    use crate::engine::{
+        components::ComponentRegistry,
+        query::{ReadC, WriteC},
+        scene::SceneRegistry,
+    };
 
-    use super::{IntoSystem, QuerySystem, QuerySystemFn, QuerySystemWrapper, System};
+    use super::{IntoSystem, QuerySystem, System};
 
-    fn system_a(data: &mut ReadC<()>) {}
+    fn system_a(_data: &mut ReadC<()>) {}
+
+    struct A;
+    impl QuerySystem<SceneRegistry, ()> for A {
+        type Query = WriteC<()>;
+
+        fn run(&mut self, _engine_args: &mut (), _args: &mut Self::Query) {}
+    }
 
     #[test]
-    fn test_r() {
-        let b: Box<dyn System<SceneRegistry, ()>> = Box::new(system_a.into_system());
+    fn test_systems() {
+        let reg = ComponentRegistry::new();
+
+        let reg = &mut SceneRegistry { components: reg };
+
+        let mut b: Box<dyn System<SceneRegistry, ()>> = Box::new(system_a.into_system());
+        let mut c: Box<dyn System<SceneRegistry, ()>> = Box::new(system_a.into_system());
+
+        let mut d: Box<dyn System<SceneRegistry, ()>> = Box::new(A.into_system());
+        let mut e: Box<dyn System<SceneRegistry, ()>> = Box::new(A.into_system());
+
+        b.prepare_args(reg).unwrap();
+        c.prepare_args(reg).unwrap();
+        d.prepare_args(reg).unwrap_err();
+
+        b.run(&mut ()).unwrap();
+        c.run(&mut ()).unwrap();
+
+        b.consume(reg).unwrap();
+        c.consume(reg).unwrap();
+
+        d.prepare_args(reg).unwrap();
+        e.prepare_args(reg).unwrap_err();
+
+        d.run(&mut ()).unwrap();
+
+        d.consume(reg).unwrap();
     }
 }
