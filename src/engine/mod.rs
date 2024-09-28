@@ -4,6 +4,7 @@ pub mod query;
 pub mod runtimes;
 pub mod scene;
 pub mod systems;
+pub mod plugin;
 
 use runtimes::Runtime;
 use scene::{
