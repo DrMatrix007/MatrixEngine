@@ -78,21 +78,36 @@ impl<
     }
 }
 
-pub struct FnWrapper<Q: Query<SceneRegistry>, Fn: FnMut(&mut Q)>(Fn, PhantomData<Q>);
+pub struct QuerySystemFn<Q: Query<Queryable>, Queryable, Fn: FnMut(&mut Q)>(
+    Fn,
+    PhantomData<(Q, Queryable)>,
+);
 
-impl<Q: Query<SceneRegistry>, Fn: FnMut(&mut Q)> FnWrapper<Q, Fn> {
+impl<Q: Query<Queryable>, Queryable, Fn: FnMut(&mut Q)> QuerySystemFn<Q, Queryable, Fn> {
     pub fn new(f: Fn) -> Self {
         Self(f, PhantomData)
     }
 }
 
-impl<Q: Query<SceneRegistry>, Fn: FnMut(&mut Q)> QuerySystem<SceneRegistry, ()>
-    for FnWrapper<Q, Fn>
+impl<Q: Query<Queryable>, Queryable, Fn: FnMut(&mut Q), EngineArgs>
+    QuerySystem<Queryable, EngineArgs> for QuerySystemFn<Q, Queryable, Fn>
 {
     type Query = Q;
 
-    fn run(&mut self, _engine_args: &mut (), args: &mut Self::Query) {
+    fn run(&mut self, _engine_args: &mut EngineArgs, args: &mut Self::Query) {
         (self.0)(args);
+    }
+}
+
+trait IntoSystem<Queryable, EngineArgs, Placeholder> {
+    fn into_system(self) -> impl System<Queryable, EngineArgs>;
+}
+
+impl<Q: Query<Queryable>, Queryable, EngineArgs, F: FnMut(&mut Q)>
+    IntoSystem<Queryable, EngineArgs, Q> for F
+{
+    fn into_system(self) -> impl System<Queryable, EngineArgs> {
+        QuerySystemWrapper::new(QuerySystemFn::new(self))
     }
 }
 
@@ -100,17 +115,12 @@ impl<Q: Query<SceneRegistry>, Fn: FnMut(&mut Q)> QuerySystem<SceneRegistry, ()>
 mod test {
     use crate::engine::{query::ReadC, scene::SceneRegistry};
 
-    use super::{FnWrapper, QuerySystem, QuerySystemWrapper, System};
+    use super::{IntoSystem, QuerySystem, QuerySystemFn, QuerySystemWrapper, System};
 
     fn system_a(data: &mut ReadC<()>) {}
 
     #[test]
     fn test_r() {
-        
-
-        let b: Box<dyn System<SceneRegistry, ()>> =
-            Box::new(QuerySystemWrapper::new(FnWrapper::new(system_a)));
-
-        
+        let b: Box<dyn System<SceneRegistry, ()>> = Box::new(system_a.into_system());
     }
 }
