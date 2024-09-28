@@ -124,6 +124,57 @@ impl<
     }
 }
 
+pub struct SystemRegistry<Queryable, SendEngineArgs, NonSendEngineArgs> {
+    send_systems: Vec<Box<dyn System<Queryable, SendEngineArgs> + Send>>,
+    non_send_systems: Vec<Box<dyn System<Queryable, NonSendEngineArgs>>>,
+}
+
+impl<Queryable, SendEngineArgs, NonSendEngineArgs>
+    SystemRegistry<Queryable, SendEngineArgs, NonSendEngineArgs>
+{
+    pub fn new() -> Self {
+        Self {
+            send_systems: Vec::new(),
+            non_send_systems: Vec::new(),
+        }
+    }
+    pub fn add_send_system(&mut self, system: Box<dyn System<Queryable, SendEngineArgs> + Send>) {
+        self.send_systems.push(system);
+    }
+
+    pub fn add_non_send_system(&mut self, system: Box<dyn System<Queryable, NonSendEngineArgs>>) {
+        self.non_send_systems.push(system);
+    }
+
+    pub fn send_systems(&self) -> &Vec<Box<dyn System<Queryable, SendEngineArgs> + Send>> {
+        &self.send_systems
+    }
+
+    pub fn send_systems_mut(
+        &mut self,
+    ) -> &mut Vec<Box<dyn System<Queryable, SendEngineArgs> + Send>> {
+        &mut self.send_systems
+    }
+
+    pub fn non_send_systems(&self) -> &Vec<Box<dyn System<Queryable, NonSendEngineArgs>>> {
+        &self.non_send_systems
+    }
+
+    pub fn non_send_systems_mut(
+        &mut self,
+    ) -> &mut Vec<Box<dyn System<Queryable, NonSendEngineArgs>>> {
+        &mut self.non_send_systems
+    }
+}
+
+impl<Queryable, SendEngineArgs, NonSendEngineArgs> Default
+    for SystemRegistry<Queryable, SendEngineArgs, NonSendEngineArgs>
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::engine::{
@@ -143,17 +194,23 @@ mod test {
         fn run(&mut self, _engine_args: &mut (), _args: &mut Self::Query) {}
     }
 
+    fn system_boxed<T: 'static>(
+        a: impl IntoSystem<SceneRegistry, (), T> + 'static,
+    ) -> Box<dyn System<SceneRegistry, ()>> {
+        Box::new(a.into_system())
+    }
+
     #[test]
     fn test_systems() {
         let reg = ComponentRegistry::new();
 
         let reg = &mut SceneRegistry { components: reg };
 
-        let mut b: Box<dyn System<SceneRegistry, ()>> = Box::new(system_a.into_system());
-        let mut c: Box<dyn System<SceneRegistry, ()>> = Box::new(system_a.into_system());
+        let mut b: Box<dyn System<SceneRegistry, ()>> = system_boxed(system_a);
+        let mut c: Box<dyn System<SceneRegistry, ()>> = system_boxed(system_a);
 
-        let mut d: Box<dyn System<SceneRegistry, ()>> = Box::new(A.into_system());
-        let mut e: Box<dyn System<SceneRegistry, ()>> = Box::new(A.into_system());
+        let mut d: Box<dyn System<SceneRegistry, ()>> = system_boxed(A);
+        let mut e: Box<dyn System<SceneRegistry, ()>> = system_boxed(A);
 
         b.prepare_args(reg).unwrap();
         c.prepare_args(reg).unwrap();
