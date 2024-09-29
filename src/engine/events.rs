@@ -11,13 +11,13 @@ use winit::{
 
 use super::{
     data_state::{DataState, DataStateAccessError, ReadDataState},
-    entity::{Entity, EntitySystem},
+    entity::SystemEntity,
 };
 
 #[derive(Debug)]
 pub enum MatrixEvent<Custom: MatrixEventable> {
     Exit,
-    DestroySystem(Entity),
+    DestroySystem(SystemEntity),
     Custom(Custom),
 }
 
@@ -118,7 +118,7 @@ impl<CustomEvents: MatrixEventable> EventWriter<CustomEvents> {
 
 #[derive(Debug)]
 pub struct EventRegistry<CustomEvents: MatrixEventable> {
-    events: HashMap<EntitySystem, DataState<Events>>,
+    events: HashMap<SystemEntity, DataState<Events>>,
     event_loop_proxy: Option<DataState<EventWriter<CustomEvents>>>,
 }
 
@@ -136,15 +136,18 @@ impl<CustomEvents: MatrixEventable> EventRegistry<CustomEvents> {
         Self::new(None)
     }
 
-    pub fn get_reader(&mut self, e: EntitySystem) -> Result<ReadDataState<Events>, DataStateAccessError> {
+    pub fn get_reader(
+        &mut self,
+        e: SystemEntity,
+    ) -> Result<ReadDataState<Events>, DataStateAccessError> {
         self.events.entry(e).or_default().read()
     }
-    pub fn check_reader(&mut self, e: &EntitySystem) -> bool {
+    pub fn check_reader(&mut self, e: &SystemEntity) -> bool {
         self.events.get(e).map(|x| x.can_read()).unwrap_or(true) // the unwrap_or(true) is when the events will be created and thus available for fetching
     }
     pub fn consume_reader(
         &mut self,
-        e: &EntitySystem,
+        e: &SystemEntity,
         data: ReadDataState<Events>,
     ) -> Result<(), DataStateAccessError> {
         self.events
@@ -177,7 +180,7 @@ impl<CustomEvents: MatrixEventable> EventRegistry<CustomEvents> {
 
     pub(crate) fn iter_events(
         &mut self,
-    ) -> impl Iterator<Item = (&EntitySystem, &mut DataState<Events>)> {
+    ) -> impl Iterator<Item = (&SystemEntity, &mut DataState<Events>)> {
         self.events.iter_mut()
     }
 }

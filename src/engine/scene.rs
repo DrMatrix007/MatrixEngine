@@ -139,6 +139,13 @@ impl<CustomEvents: MatrixEventable> Scene<CustomEvents> {
     pub fn components_mut(&mut self) -> Result<&mut ComponentRegistry, DataStateAccessError> {
         self.components.get_mut()
     }
+    
+    fn destroy_system(&mut self, id: super::entity::SystemEntity) {
+        if !self.systems.destroy_system(id) {
+            self.startup_systems.destroy_system(id);   
+        }
+        
+    }
 }
 
 pub struct SceneManager<CustomEvents: MatrixEventable> {
@@ -277,9 +284,15 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: MatrixEvent<CustomEvents>) {
-        if let MatrixEvent::Exit = event {
-            println!("lets go");
-            event_loop.exit();
+        match event {
+            MatrixEvent::Exit => {
+                println!("lets go");
+                event_loop.exit();
+            },
+            MatrixEvent::DestroySystem(id) => {
+                self.current_scene.destroy_system(id);
+            }
+            _ => (),
         }
     }
 }

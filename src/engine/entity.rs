@@ -18,15 +18,15 @@ impl Default for Entity {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
-pub struct EntitySystem(u64);
+pub struct SystemEntity(u64);
 
-impl EntitySystem {
+impl SystemEntity {
     pub fn new() -> Self {
         Self(COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst))
     }
 }
 
-impl Default for EntitySystem {
+impl Default for SystemEntity {
     fn default() -> Self {
         Self::new()
     }

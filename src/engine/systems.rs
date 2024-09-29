@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use super::{
     data_state::DataStateAccessError,
-    entity::EntitySystem,
+    entity::SystemEntity,
     query::{Query, QueryError},
 };
 
@@ -15,7 +15,7 @@ pub trait System<Queryable, EngineArgs> {
     fn prepare_args(
         &mut self,
         queryable: &mut Queryable,
-        system_id: &EntitySystem,
+        system_id: &SystemEntity,
     ) -> Result<(), QueryError>;
 
     fn run(&mut self, run_args: &mut EngineArgs) -> Result<(), SystemError>;
@@ -23,7 +23,7 @@ pub trait System<Queryable, EngineArgs> {
     fn consume(
         &mut self,
         queryable: &mut Queryable,
-        system_id: &EntitySystem,
+        system_id: &SystemEntity,
     ) -> Result<(), DataStateAccessError>;
 }
 
@@ -68,7 +68,7 @@ impl<
     fn prepare_args(
         &mut self,
         queryable: &mut Queryable,
-        system_id: &EntitySystem,
+        system_id: &SystemEntity,
     ) -> Result<(), QueryError> {
         assert!(self.args.is_none());
         self.args = Some(Q::query(queryable, system_id)?);
@@ -88,7 +88,7 @@ impl<
     fn consume(
         &mut self,
         queryable: &mut Queryable,
-        system_id: &EntitySystem,
+        system_id: &SystemEntity,
     ) -> Result<(), DataStateAccessError> {
         self.args.take().unwrap().consume(queryable, system_id)
     }
@@ -256,6 +256,20 @@ impl<Queryable, SendEngineArgs: Send, NonSendEngineArgs>
     ) -> &mut Vec<BoxedNonSendSystem<Queryable, NonSendEngineArgs>> {
         &mut self.non_send_systems
     }
+
+    pub(crate) fn destroy_system(&mut self, id: SystemEntity) -> bool {
+        let i = self.send_systems.iter().position(|x| x.id == id);
+        if let Some(i) = i {
+            self.send_systems.remove(i);
+            return true;
+        }
+        let i = self.non_send_systems.iter().position(|x| x.id == id);
+        if let Some(i) = i {
+            self.non_send_systems.remove(i);
+            return true;
+        }
+        false
+    }
 }
 
 impl<Queryable, SendEngineArgs: Send, NonSendEngineArgs> Default
@@ -267,14 +281,14 @@ impl<Queryable, SendEngineArgs: Send, NonSendEngineArgs> Default
 }
 
 pub struct BoxedSendSystem<Queryable, Args: Send = ()> {
-    id: EntitySystem,
+    id: SystemEntity,
     system: Box<dyn System<Queryable, Args> + Send>,
 }
 
 impl<Queryable, Args: Send> BoxedSendSystem<Queryable, Args> {
     pub fn new(system: Box<dyn System<Queryable, Args> + Send>) -> Self {
         Self {
-            id: EntitySystem::new(),
+            id: SystemEntity::new(),
             system,
         }
     }
@@ -287,7 +301,7 @@ impl<Queryable, Args: Send> BoxedSendSystem<Queryable, Args> {
     pub fn system_mut(&mut self) -> &mut dyn System<Queryable, Args> {
         &mut *self.system
     }
-    pub fn id(&self) -> &EntitySystem {
+    pub fn id(&self) -> &SystemEntity {
         &self.id
     }
 
@@ -303,14 +317,14 @@ impl<Queryable, Args: Send> BoxedSendSystem<Queryable, Args> {
 }
 
 pub struct BoxedNonSendSystem<Queryable, Args = ()> {
-    id: EntitySystem,
+    id: SystemEntity,
     system: Box<dyn System<Queryable, Args>>,
 }
 
 impl<Queryable, Args> BoxedNonSendSystem<Queryable, Args> {
     pub fn new(system: Box<dyn System<Queryable, Args>>) -> Self {
         Self {
-            id: EntitySystem::new(),
+            id: SystemEntity::new(),
             system,
         }
     }
@@ -323,7 +337,7 @@ impl<Queryable, Args> BoxedNonSendSystem<Queryable, Args> {
     pub fn system_mut(&mut self) -> &mut dyn System<Queryable, Args> {
         &mut *self.system
     }
-    pub fn id(&self) -> &EntitySystem {
+    pub fn id(&self) -> &SystemEntity {
         &self.id
     }
 
@@ -340,7 +354,7 @@ impl<Queryable, Args> BoxedNonSendSystem<Queryable, Args> {
 #[cfg(test)]
 mod test {
     use crate::engine::{
-        entity::EntitySystem,
+        entity::SystemEntity,
         query::{ReadC, WriteC},
         scene::SceneRegistryRefs,
     };
@@ -375,21 +389,21 @@ mod test {
         let mut d: Box<dyn System<SceneRegistryRefs, ()>> = system_boxed(A);
         let mut e: Box<dyn System<SceneRegistryRefs, ()>> = system_boxed(A);
 
-        b.prepare_args(reg, &EntitySystem::new()).unwrap();
-        c.prepare_args(reg, &EntitySystem::new()).unwrap();
-        d.prepare_args(reg, &EntitySystem::new()).unwrap_err();
+        b.prepare_args(reg, &SystemEntity::new()).unwrap();
+        c.prepare_args(reg, &SystemEntity::new()).unwrap();
+        d.prepare_args(reg, &SystemEntity::new()).unwrap_err();
 
         b.run(&mut ()).unwrap();
         c.run(&mut ()).unwrap();
 
-        b.consume(reg, &EntitySystem::new()).unwrap();
-        c.consume(reg, &EntitySystem::new()).unwrap();
+        b.consume(reg, &SystemEntity::new()).unwrap();
+        c.consume(reg, &SystemEntity::new()).unwrap();
 
-        d.prepare_args(reg, &EntitySystem::new()).unwrap();
-        e.prepare_args(reg, &EntitySystem::new()).unwrap_err();
+        d.prepare_args(reg, &SystemEntity::new()).unwrap();
+        e.prepare_args(reg, &SystemEntity::new()).unwrap_err();
 
         d.run(&mut ()).unwrap();
 
-        d.consume(reg, &EntitySystem::new()).unwrap();
+        d.consume(reg, &SystemEntity::new()).unwrap();
     }
 }

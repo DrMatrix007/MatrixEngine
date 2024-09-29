@@ -6,7 +6,7 @@ use std::{
 use super::{
     components::{Component, Components},
     data_state::{DataStateAccessError, ReadDataState, WriteDataState},
-    entity::EntitySystem,
+    entity::SystemEntity,
     events::{EventWriter, Events, MatrixEventable},
     resources::{Resource, ResourceHolder},
     scene::SceneRegistryRefs,
@@ -18,15 +18,15 @@ pub enum QueryError {
 }
 
 pub trait Query<Queryable>: Any {
-    fn check(queryable: &mut Queryable, id: &EntitySystem) -> bool
+    fn check(queryable: &mut Queryable, id: &SystemEntity) -> bool
     where
         Self: Sized;
 
-    fn query_unchecked(queryable: &mut Queryable, id: &EntitySystem) -> Self
+    fn query_unchecked(queryable: &mut Queryable, id: &SystemEntity) -> Self
     where
         Self: Sized;
 
-    fn query(queryable: &mut Queryable, id: &EntitySystem) -> Result<Self, QueryError>
+    fn query(queryable: &mut Queryable, id: &SystemEntity) -> Result<Self, QueryError>
     where
         Self: Sized,
     {
@@ -40,7 +40,7 @@ pub trait Query<Queryable>: Any {
     fn consume(
         self,
         queryable: &mut Queryable,
-        id: &EntitySystem,
+        id: &SystemEntity,
     ) -> Result<(), DataStateAccessError>;
 }
 
@@ -67,13 +67,13 @@ impl<C: Component> ReadC<C> {
 impl<C: Component, CustomEvents: MatrixEventable> Query<SceneRegistryRefs<CustomEvents>>
     for ReadC<C>
 {
-    fn check(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &EntitySystem) -> bool {
+    fn check(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &SystemEntity) -> bool {
         queryable.components.check_read::<C>()
     }
 
     fn query_unchecked(
         queryable: &mut SceneRegistryRefs<CustomEvents>,
-        _id: &EntitySystem,
+        _id: &SystemEntity,
     ) -> Self {
         Self::new(queryable.components.read::<C>().unwrap())
     }
@@ -81,7 +81,7 @@ impl<C: Component, CustomEvents: MatrixEventable> Query<SceneRegistryRefs<Custom
     fn consume(
         self,
         queryable: &mut SceneRegistryRefs<CustomEvents>,
-        _id: &EntitySystem,
+        _id: &SystemEntity,
     ) -> Result<(), DataStateAccessError> {
         queryable.components.consume_read(self.data)
     }
@@ -115,13 +115,13 @@ impl<C: Component> WriteC<C> {
 impl<C: Component, CustomEvents: MatrixEventable> Query<SceneRegistryRefs<CustomEvents>>
     for WriteC<C>
 {
-    fn check(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &EntitySystem) -> bool {
+    fn check(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &SystemEntity) -> bool {
         queryable.components.check_write::<C>()
     }
 
     fn query_unchecked(
         queryable: &mut SceneRegistryRefs<CustomEvents>,
-        _id: &EntitySystem,
+        _id: &SystemEntity,
     ) -> Self {
         Self::new(queryable.components.write::<C>().unwrap())
     }
@@ -129,7 +129,7 @@ impl<C: Component, CustomEvents: MatrixEventable> Query<SceneRegistryRefs<Custom
     fn consume(
         self,
         queryable: &mut SceneRegistryRefs<CustomEvents>,
-        _id: &EntitySystem,
+        _id: &SystemEntity,
     ) -> Result<(), DataStateAccessError> {
         queryable.components.consume_write(self.data)
     }
@@ -154,14 +154,14 @@ impl Deref for ReadE {
 }
 
 impl<CustomEvents: MatrixEventable> Query<SceneRegistryRefs<CustomEvents>> for ReadE {
-    fn check(queryable: &mut SceneRegistryRefs<CustomEvents>, id: &EntitySystem) -> bool
+    fn check(queryable: &mut SceneRegistryRefs<CustomEvents>, id: &SystemEntity) -> bool
     where
         Self: Sized,
     {
         queryable.events.check_reader(id)
     }
 
-    fn query_unchecked(queryable: &mut SceneRegistryRefs<CustomEvents>, id: &EntitySystem) -> Self
+    fn query_unchecked(queryable: &mut SceneRegistryRefs<CustomEvents>, id: &SystemEntity) -> Self
     where
         Self: Sized,
     {
@@ -171,7 +171,7 @@ impl<CustomEvents: MatrixEventable> Query<SceneRegistryRefs<CustomEvents>> for R
     fn consume(
         self,
         queryable: &mut SceneRegistryRefs<CustomEvents>,
-        id: &EntitySystem,
+        id: &SystemEntity,
     ) -> Result<(), DataStateAccessError> {
         queryable.events.consume_reader(id, self.data)
     }
@@ -193,14 +193,14 @@ impl<CustomEvents: MatrixEventable> Deref for WriteE<CustomEvents> {
 impl<CustomEvents: MatrixEventable> Query<SceneRegistryRefs<CustomEvents>>
     for WriteE<CustomEvents>
 {
-    fn check(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &EntitySystem) -> bool
+    fn check(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &SystemEntity) -> bool
     where
         Self: Sized,
     {
         queryable.events.check_writer()
     }
 
-    fn query_unchecked(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &EntitySystem) -> Self
+    fn query_unchecked(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &SystemEntity) -> Self
     where
         Self: Sized,
     {
@@ -210,7 +210,7 @@ impl<CustomEvents: MatrixEventable> Query<SceneRegistryRefs<CustomEvents>>
     fn consume(
         self,
         queryable: &mut SceneRegistryRefs<CustomEvents>,
-        _id: &EntitySystem,
+        _id: &SystemEntity,
     ) -> Result<(), DataStateAccessError> {
         queryable.events.consume_writer(self.sender)
     }
@@ -243,14 +243,14 @@ impl<R: Resource> ReadR<R> {
 impl<R: Resource, CustomEvents: MatrixEventable> Query<SceneRegistryRefs<CustomEvents>>
     for ReadR<R>
 {
-    fn check(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &EntitySystem) -> bool
+    fn check(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &SystemEntity) -> bool
     where
         Self: Sized,
     {
         queryable.resources.check_read::<R>()
     }
 
-    fn query_unchecked(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &EntitySystem) -> Self
+    fn query_unchecked(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &SystemEntity) -> Self
     where
         Self: Sized,
     {
@@ -260,7 +260,7 @@ impl<R: Resource, CustomEvents: MatrixEventable> Query<SceneRegistryRefs<CustomE
     fn consume(
         self,
         queryable: &mut SceneRegistryRefs<CustomEvents>,
-        _id: &EntitySystem,
+        _id: &SystemEntity,
     ) -> Result<(), DataStateAccessError> {
         queryable.resources.consume_read(self.data)
     }
@@ -293,14 +293,14 @@ impl<R: Resource> WriteR<R> {
 impl<R: Resource, CustomEvents: MatrixEventable> Query<SceneRegistryRefs<CustomEvents>>
     for WriteR<R>
 {
-    fn check(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &EntitySystem) -> bool
+    fn check(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &SystemEntity) -> bool
     where
         Self: Sized,
     {
         queryable.resources.check_write::<R>()
     }
 
-    fn query_unchecked(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &EntitySystem) -> Self
+    fn query_unchecked(queryable: &mut SceneRegistryRefs<CustomEvents>, _id: &SystemEntity) -> Self
     where
         Self: Sized,
     {
@@ -310,18 +310,18 @@ impl<R: Resource, CustomEvents: MatrixEventable> Query<SceneRegistryRefs<CustomE
     fn consume(
         self,
         queryable: &mut SceneRegistryRefs<CustomEvents>,
-        _id: &EntitySystem,
+        _id: &SystemEntity,
     ) -> Result<(), DataStateAccessError> {
         queryable.resources.consume_write(self.data)
     }
 }
 
 pub struct ReadSystemID {
-    id: EntitySystem,
+    id: SystemEntity,
 }
 
 impl Deref for ReadSystemID {
-    type Target = EntitySystem;
+    type Target = SystemEntity;
 
     fn deref(&self) -> &Self::Target {
         &self.id
@@ -329,20 +329,20 @@ impl Deref for ReadSystemID {
 }
 
 impl ReadSystemID {
-    fn new(id: EntitySystem) -> Self {
+    fn new(id: SystemEntity) -> Self {
         Self { id }
     }
 }
 
 impl<Queryable> Query<Queryable> for ReadSystemID {
-    fn check(_queryable: &mut Queryable, _id: &EntitySystem) -> bool
+    fn check(_queryable: &mut Queryable, _id: &SystemEntity) -> bool
     where
         Self: Sized,
     {
         true
     }
 
-    fn query_unchecked(_queryable: &mut Queryable, id: &EntitySystem) -> Self
+    fn query_unchecked(_queryable: &mut Queryable, id: &SystemEntity) -> Self
     where
         Self: Sized,
     {
@@ -352,7 +352,7 @@ impl<Queryable> Query<Queryable> for ReadSystemID {
     fn consume(
         self,
         _queryable: &mut Queryable,
-        _id: &EntitySystem,
+        _id: &SystemEntity,
     ) -> Result<(), DataStateAccessError> {
         Ok(())
     }
@@ -363,7 +363,7 @@ mod tests {
 
     use crate::engine::{
         components::ComponentRegistry,
-        entity::{Entity, EntitySystem},
+        entity::{Entity, SystemEntity},
         scene::SceneRegistryRefs,
     };
 
@@ -377,17 +377,17 @@ mod tests {
         let reg = <SceneRegistryRefs>::dummy();
         let mut reg = reg.registry;
 
-        let q1 = ReadC::<i32>::query(&mut reg, &EntitySystem::new()).unwrap();
-        let q2 = ReadC::<i32>::query(&mut reg, &EntitySystem::new()).unwrap();
-        q1.consume(&mut reg, &EntitySystem::new()).unwrap();
-        q2.consume(&mut reg, &EntitySystem::new()).unwrap();
+        let q1 = ReadC::<i32>::query(&mut reg, &SystemEntity::new()).unwrap();
+        let q2 = ReadC::<i32>::query(&mut reg, &SystemEntity::new()).unwrap();
+        q1.consume(&mut reg, &SystemEntity::new()).unwrap();
+        q2.consume(&mut reg, &SystemEntity::new()).unwrap();
 
-        let q1 = WriteC::<i32>::query(&mut reg, &EntitySystem::new()).unwrap();
-        WriteC::<i32>::query(&mut reg, &EntitySystem::new()).unwrap_err();
+        let q1 = WriteC::<i32>::query(&mut reg, &SystemEntity::new()).unwrap();
+        WriteC::<i32>::query(&mut reg, &SystemEntity::new()).unwrap_err();
 
-        q1.consume(&mut reg, &EntitySystem::new()).unwrap();
+        q1.consume(&mut reg, &SystemEntity::new()).unwrap();
 
-        let id = EntitySystem::new();
+        let id = SystemEntity::new();
         let events = ReadE::query(&mut reg, &id).unwrap();
         events.consume(&mut reg, &id).unwrap();
     }
