@@ -1,11 +1,8 @@
-use winit::{
-    keyboard::KeyCode,
-    window::{Window, WindowAttributes},
-};
+use winit::window::{Window, WindowAttributes};
 
 use crate::engine::{
-    events::MatrixEventable,
-    query::{ReadEvents, ReadR, WriteR},
+    events::{MatrixEvent, MatrixEventable},
+    query::{ReadE, ReadR, WriteE, WriteR},
     scene::NonSendEngineStartupArgs,
 };
 
@@ -41,12 +38,12 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for WindowPlugin {
                 window.request_redraw();
             }
         });
-        let mut i = 0;
-        scene.add_send_system(move |event: &mut ReadEvents| {
-            if event.is_just_pressed(KeyCode::KeyW) {
-                i += 1;
-                println!("W, {}", i);
-            }
-        });
+        scene.add_send_system(
+            move |(events, event_writer): &mut (ReadE, WriteE<CustomEvents>)| {
+                if events.close_requested() {
+                    event_writer.send(MatrixEvent::Exit).unwrap();
+                }
+            },
+        );
     }
 }

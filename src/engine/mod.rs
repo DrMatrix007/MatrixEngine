@@ -19,7 +19,7 @@ use scene::{
 };
 use winit::{error::EventLoopError, event_loop::EventLoop};
 
-pub struct EngineArgs<CustomEvents: Send> {
+pub struct EngineArgs<CustomEvents: MatrixEventable> {
     pub runtime:
         Box<dyn Runtime<SceneRegistryRefs<CustomEvents>, SendEngineArgs, NonSendEngineArgs>>,
     pub startup_runtime: Box<
@@ -42,8 +42,12 @@ impl<CustomEvents: MatrixEventable> Engine<CustomEvents> {
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
         Engine {
+            scene: SceneManager::<CustomEvents>::new(
+                args.runtime,
+                args.startup_runtime,
+                event_loop.create_proxy(),
+            ),
             event_loop,
-            scene: SceneManager::<CustomEvents>::new(args.runtime, args.startup_runtime),
         }
     }
     pub fn run(mut self) -> Result<(), EventLoopError> {

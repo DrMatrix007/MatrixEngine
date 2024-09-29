@@ -1,18 +1,18 @@
 use crate::impl_all;
 
 use super::data_state::DataStateAccessError;
-use super::entity::Entity;
+use super::entity::EntitySystem;
 use super::query::Query;
 macro_rules! impl_queries {
     ($($t:tt)*) => {
         impl<Queryable, $($t:Query<Queryable>),*> Query<Queryable> for ($($t,)*) {
-            fn check(q: &mut Queryable, e: &Entity) -> bool {
+            fn check(q: &mut Queryable, e: &EntitySystem) -> bool {
                 ($($t::check(q,e))&&*)
             }
-            fn query_unchecked(q: &mut Queryable, e: &Entity) -> Self {
+            fn query_unchecked(q: &mut Queryable, e: &EntitySystem) -> Self {
                 ($($t::query_unchecked(q,e),)*)
             }
-            fn consume(self, q: &mut Queryable, e: &Entity) -> Result<(), DataStateAccessError> {
+            fn consume(self, q: &mut Queryable, e: &EntitySystem) -> Result<(), DataStateAccessError> {
                 #[allow(non_snake_case)]
                 let ($($t,)*) = self;
                 $($t::consume($t, q, e)?;)*

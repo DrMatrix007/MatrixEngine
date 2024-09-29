@@ -1,25 +1,28 @@
 use std::{
     collections::{HashMap, HashSet},
-    marker::PhantomData,
+    fmt::Debug,
 };
 
 use winit::{
     event::{ElementState, WindowEvent},
+    event_loop::{EventLoopClosed, EventLoopProxy},
     keyboard::{KeyCode, PhysicalKey},
 };
 
 use super::{
     data_state::{DataState, DataStateAccessError, ReadDataState},
-    entity::Entity,
+    entity::{Entity, EntitySystem},
 };
 
+#[derive(Debug)]
 pub enum MatrixEvent<Custom: MatrixEventable> {
+    Exit,
+    DestroySystem(Entity),
     Custom(Custom),
 }
 
-
-pub trait MatrixEventable: Send + Sync+'static {}
-impl<T: Send + Sync+'static> MatrixEventable for T {}
+pub trait MatrixEventable: Send + Sync + Debug + 'static {}
+impl<T: Send + Sync + Debug + 'static> MatrixEventable for T {}
 
 #[derive(Debug, Default)]
 pub struct Events {
@@ -40,17 +43,28 @@ impl Events {
     }
 
     pub fn handle_event(&mut self, event: &WindowEvent) {
-        if let WindowEvent::KeyboardInput { event, .. } = event {
-            if let PhysicalKey::Code(keycode) = event.physical_key {
-                match event.state {
-                    ElementState::Pressed if !event.repeat => self.on_key_press(keycode),
-                    ElementState::Released => self.on_key_release(keycode),
-                    _ => {}
+        match event {
+            WindowEvent::KeyboardInput { event, .. } => {
+                if let PhysicalKey::Code(keycode) = event.physical_key {
+                    match event.state {
+                        ElementState::Pressed if !event.repeat => self.on_key_press(keycode),
+                        ElementState::Released => self.on_key_release(keycode),
+                        _ => {}
+                    }
                 }
             }
+            WindowEvent::CloseRequested => {
+                self.close_requested = true;
+            }
+            _ => (),
         }
     }
 
+    pub fn reset(&mut self) {
+        self.just_pressed.clear();
+        self.just_released.clear();
+        self.close_requested = false;
+    }
     // This method simulates receiving a key press event in the current frame
     fn on_key_press(&mut self, key: KeyCode) {
         self.just_pressed.insert(key);
@@ -64,10 +78,6 @@ impl Events {
     }
 
     // Reset just_pressed and just_released for the next frame
-    pub fn reset(&mut self) {
-        self.just_pressed.clear();
-        self.just_released.clear();
-    }
 
     // Check if a key is currently being pressed
     pub fn is_pressed(&self, key: KeyCode) -> bool {
@@ -89,32 +99,52 @@ impl Events {
     }
 }
 
-pub struct EventsState {}
-
 #[derive(Debug)]
-pub struct EventRegistry<CustomEvents> {
-    events: HashMap<Entity, DataState<Events>>,
-    // senders: HashMap<Entity,DataState<>>
-    marker: PhantomData<CustomEvents>,
+pub struct EventWriter<CustomEvents: MatrixEventable> {
+    proxy: EventLoopProxy<MatrixEvent<CustomEvents>>,
 }
 
-impl<CustomEvents> EventRegistry<CustomEvents> {
-    pub fn new() -> Self {
+impl<CustomEvents: MatrixEventable> EventWriter<CustomEvents> {
+    pub fn new(proxy: EventLoopProxy<MatrixEvent<CustomEvents>>) -> Self {
+        Self { proxy }
+    }
+    pub fn send(
+        &self,
+        event: MatrixEvent<CustomEvents>,
+    ) -> Result<(), EventLoopClosed<MatrixEvent<CustomEvents>>> {
+        self.proxy.send_event(event)
+    }
+}
+
+#[derive(Debug)]
+pub struct EventRegistry<CustomEvents: MatrixEventable> {
+    events: HashMap<EntitySystem, DataState<Events>>,
+    event_loop_proxy: Option<DataState<EventWriter<CustomEvents>>>,
+}
+
+impl<CustomEvents: MatrixEventable> EventRegistry<CustomEvents> {
+    pub fn new(event_loop_proxy: Option<EventLoopProxy<MatrixEvent<CustomEvents>>>) -> Self {
         Self {
             events: HashMap::new(),
-            marker: PhantomData,
+            event_loop_proxy: event_loop_proxy.map(|x| DataState::new(EventWriter::new(x))),
         }
     }
+    pub fn new_with_events(event_loop_proxy: EventLoopProxy<MatrixEvent<CustomEvents>>) -> Self {
+        Self::new(Some(event_loop_proxy))
+    }
+    pub fn new_no_events() -> Self {
+        Self::new(None)
+    }
 
-    pub fn read(&mut self, e: Entity) -> Result<ReadDataState<Events>, DataStateAccessError> {
+    pub fn get_reader(&mut self, e: EntitySystem) -> Result<ReadDataState<Events>, DataStateAccessError> {
         self.events.entry(e).or_default().read()
     }
-    pub fn check_read(&mut self, e: &Entity) -> bool {
+    pub fn check_reader(&mut self, e: &EntitySystem) -> bool {
         self.events.get(e).map(|x| x.can_read()).unwrap_or(true) // the unwrap_or(true) is when the events will be created and thus available for fetching
     }
-    pub fn consume_read(
+    pub fn consume_reader(
         &mut self,
-        e: &Entity,
+        e: &EntitySystem,
         data: ReadDataState<Events>,
     ) -> Result<(), DataStateAccessError> {
         self.events
@@ -123,15 +153,31 @@ impl<CustomEvents> EventRegistry<CustomEvents> {
             .consume_read(data)
     }
 
+    pub fn get_writer(
+        &mut self,
+    ) -> Option<Result<ReadDataState<EventWriter<CustomEvents>>, DataStateAccessError>> {
+        self.event_loop_proxy.as_mut().map(|x| x.read())
+    }
+    pub fn check_writer(&mut self) -> bool {
+        self.event_loop_proxy
+            .as_mut()
+            .map(|x| x.can_read())
+            .unwrap_or(true)
+    }
+    pub fn consume_writer(
+        &mut self,
+        data: ReadDataState<EventWriter<CustomEvents>>,
+    ) -> Result<(), DataStateAccessError> {
+        if let Some(proxy) = &mut self.event_loop_proxy {
+            proxy.consume_read(data)
+        } else {
+            panic!("consumed an event writer, whene there is no writer at all")
+        }
+    }
+
     pub(crate) fn iter_events(
         &mut self,
-    ) -> impl Iterator<Item = (&Entity, &mut DataState<Events>)> {
+    ) -> impl Iterator<Item = (&EntitySystem, &mut DataState<Events>)> {
         self.events.iter_mut()
-    }
-}
-
-impl<T> Default for EventRegistry<T> {
-    fn default() -> Self {
-        Self::new()
     }
 }

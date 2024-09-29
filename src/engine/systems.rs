@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use super::{
     data_state::DataStateAccessError,
-    entity::Entity,
+    entity::EntitySystem,
     query::{Query, QueryError},
 };
 
@@ -15,7 +15,7 @@ pub trait System<Queryable, EngineArgs> {
     fn prepare_args(
         &mut self,
         queryable: &mut Queryable,
-        system_id: &Entity,
+        system_id: &EntitySystem,
     ) -> Result<(), QueryError>;
 
     fn run(&mut self, run_args: &mut EngineArgs) -> Result<(), SystemError>;
@@ -23,7 +23,7 @@ pub trait System<Queryable, EngineArgs> {
     fn consume(
         &mut self,
         queryable: &mut Queryable,
-        system_id: &Entity,
+        system_id: &EntitySystem,
     ) -> Result<(), DataStateAccessError>;
 }
 
@@ -68,7 +68,7 @@ impl<
     fn prepare_args(
         &mut self,
         queryable: &mut Queryable,
-        system_id: &Entity,
+        system_id: &EntitySystem,
     ) -> Result<(), QueryError> {
         assert!(self.args.is_none());
         self.args = Some(Q::query(queryable, system_id)?);
@@ -88,7 +88,7 @@ impl<
     fn consume(
         &mut self,
         queryable: &mut Queryable,
-        system_id: &Entity,
+        system_id: &EntitySystem,
     ) -> Result<(), DataStateAccessError> {
         self.args.take().unwrap().consume(queryable, system_id)
     }
@@ -267,14 +267,14 @@ impl<Queryable, SendEngineArgs: Send, NonSendEngineArgs> Default
 }
 
 pub struct BoxedSendSystem<Queryable, Args: Send = ()> {
-    id: Entity,
+    id: EntitySystem,
     system: Box<dyn System<Queryable, Args> + Send>,
 }
 
 impl<Queryable, Args: Send> BoxedSendSystem<Queryable, Args> {
     pub fn new(system: Box<dyn System<Queryable, Args> + Send>) -> Self {
         Self {
-            id: Entity::new(),
+            id: EntitySystem::new(),
             system,
         }
     }
@@ -287,7 +287,7 @@ impl<Queryable, Args: Send> BoxedSendSystem<Queryable, Args> {
     pub fn system_mut(&mut self) -> &mut dyn System<Queryable, Args> {
         &mut *self.system
     }
-    pub fn id(&self) -> &Entity {
+    pub fn id(&self) -> &EntitySystem {
         &self.id
     }
 
@@ -303,14 +303,14 @@ impl<Queryable, Args: Send> BoxedSendSystem<Queryable, Args> {
 }
 
 pub struct BoxedNonSendSystem<Queryable, Args = ()> {
-    id: Entity,
+    id: EntitySystem,
     system: Box<dyn System<Queryable, Args>>,
 }
 
 impl<Queryable, Args> BoxedNonSendSystem<Queryable, Args> {
     pub fn new(system: Box<dyn System<Queryable, Args>>) -> Self {
         Self {
-            id: Entity::new(),
+            id: EntitySystem::new(),
             system,
         }
     }
@@ -323,7 +323,7 @@ impl<Queryable, Args> BoxedNonSendSystem<Queryable, Args> {
     pub fn system_mut(&mut self) -> &mut dyn System<Queryable, Args> {
         &mut *self.system
     }
-    pub fn id(&self) -> &Entity {
+    pub fn id(&self) -> &EntitySystem {
         &self.id
     }
 
@@ -340,7 +340,7 @@ impl<Queryable, Args> BoxedNonSendSystem<Queryable, Args> {
 #[cfg(test)]
 mod test {
     use crate::engine::{
-        entity::Entity,
+        entity::EntitySystem,
         query::{ReadC, WriteC},
         scene::SceneRegistryRefs,
     };
@@ -375,21 +375,21 @@ mod test {
         let mut d: Box<dyn System<SceneRegistryRefs, ()>> = system_boxed(A);
         let mut e: Box<dyn System<SceneRegistryRefs, ()>> = system_boxed(A);
 
-        b.prepare_args(reg, &Entity::new()).unwrap();
-        c.prepare_args(reg, &Entity::new()).unwrap();
-        d.prepare_args(reg, &Entity::new()).unwrap_err();
+        b.prepare_args(reg, &EntitySystem::new()).unwrap();
+        c.prepare_args(reg, &EntitySystem::new()).unwrap();
+        d.prepare_args(reg, &EntitySystem::new()).unwrap_err();
 
         b.run(&mut ()).unwrap();
         c.run(&mut ()).unwrap();
 
-        b.consume(reg, &Entity::new()).unwrap();
-        c.consume(reg, &Entity::new()).unwrap();
+        b.consume(reg, &EntitySystem::new()).unwrap();
+        c.consume(reg, &EntitySystem::new()).unwrap();
 
-        d.prepare_args(reg, &Entity::new()).unwrap();
-        e.prepare_args(reg, &Entity::new()).unwrap_err();
+        d.prepare_args(reg, &EntitySystem::new()).unwrap();
+        e.prepare_args(reg, &EntitySystem::new()).unwrap_err();
 
         d.run(&mut ()).unwrap();
 
-        d.consume(reg, &Entity::new()).unwrap();
+        d.consume(reg, &EntitySystem::new()).unwrap();
     }
 }
