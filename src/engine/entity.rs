@@ -2,7 +2,7 @@ use std::sync::atomic::AtomicU64;
 
 static COUNTER: AtomicU64 = AtomicU64::new(0);
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord,Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord,Clone, Copy,Hash)]
 pub struct Entity(u64);
 
 impl Entity {

@@ -1,14 +1,17 @@
 use std::{
     any::{Any, TypeId},
     collections::{btree_map, BTreeMap, HashMap},
-    ops::{Deref, DerefMut},
 };
 
-use super::entity::Entity;
+use super::{
+    data_state::{DataState, DataStateAccessError, ReadDataState, WriteDataState},
+    entity::Entity,
+};
 
 pub trait Component: Send + Sync + Any {}
 impl<T: Send + Sync + Any> Component for T {}
 
+#[derive(Debug)]
 pub struct Components<C: Component> {
     data: BTreeMap<Entity, C>,
 }
@@ -77,150 +80,7 @@ impl<C: Component> Default for Components<C> {
     }
 }
 
-enum State {
-    Ready,
-    Reading { readers: i32 },
-    Writing,
-}
-
-pub struct ComponentState<C: Component> {
-    data: Box<Components<C>>,
-    state: State,
-}
-impl<C: Component> ComponentState<C> {
-    pub fn new() -> Self {
-        Self {
-            data: Box::new(Components::new()),
-            state: State::Ready,
-        }
-    }
-
-    pub fn read(&mut self) -> Result<ReadComponentState<C>, ComponentAccessError> {
-        match &mut self.state {
-            State::Ready => {
-                self.state = State::Reading { readers: 1 };
-                Ok(ReadComponentState::new(&*self.data))
-            }
-            State::Reading { readers } => {
-                *readers += 1;
-                Ok(ReadComponentState::new(&*self.data))
-            }
-            State::Writing => Err(ComponentAccessError::NotAvailableError),
-        }
-    }
-    pub fn write(&mut self) -> Result<WriteComponentState<C>, ComponentAccessError> {
-        match self.state {
-            State::Reading { .. } | State::Writing => Err(ComponentAccessError::NotAvailableError),
-            State::Ready => {
-                self.state = State::Writing;
-                Ok(WriteComponentState::new(&mut *self.data))
-            }
-        }
-    }
-
-    pub fn consume_write(
-        &mut self,
-        data: WriteComponentState<C>,
-    ) -> Result<(), ComponentAccessError> {
-        if &*self.data as *const _ != data.data {
-            return Err(ComponentAccessError::WrongFuckingData);
-        }
-        match self.state {
-            State::Writing => {
-                self.state = State::Ready;
-                Ok(())
-            }
-            State::Reading { .. } | State::Ready => Err(ComponentAccessError::NotAvailableError),
-        }
-    }
-    pub fn consume_read(
-        &mut self,
-        data: ReadComponentState<C>,
-    ) -> Result<(), ComponentAccessError> {
-        if &*self.data as *const _ != data.data {
-            return Err(ComponentAccessError::WrongFuckingData);
-        }
-        match &mut self.state {
-            State::Reading { readers } => {
-                *readers -= 1;
-                if *readers <= 0 {
-                    self.state = State::Ready;
-                }
-                Ok(())
-            }
-            State::Writing | State::Ready => Err(ComponentAccessError::NotAvailableError),
-        }
-    }
-    pub fn can_read(&self) -> bool {
-        match self.state {
-            State::Ready | State::Reading { .. } => true,
-            State::Writing => false,
-        }
-    }
-    pub fn can_write(&self) -> bool {
-        match self.state {
-            State::Ready => true,
-            State::Reading { .. } | State::Writing => false,
-        }
-    }
-}
-
 #[derive(Debug)]
-#[must_use = "needs to be consumed"]
-pub struct ReadComponentState<C: Component> {
-    data: *const Components<C>,
-}
-
-impl<C: Component> ReadComponentState<C> {
-    fn new(data: *const Components<C>) -> Self {
-        Self { data }
-    }
-}
-
-impl<C: Component> Deref for ReadComponentState<C> {
-    fn deref(&self) -> &Components<C> {
-        unsafe { &*self.data }
-    }
-
-    type Target = Components<C>;
-}
-
-#[must_use = "needs to be consumed"]
-#[derive(Debug)]
-pub struct WriteComponentState<C: Component> {
-    data: *mut Components<C>,
-}
-
-impl<C: Component> WriteComponentState<C> {
-    fn new(data: *mut Components<C>) -> Self {
-        Self { data }
-    }
-}
-
-impl<C: Component> Deref for WriteComponentState<C> {
-    type Target = Components<C>;
-    fn deref(&self) -> &Components<C> {
-        unsafe { &*self.data }
-    }
-}
-impl<C: Component> DerefMut for WriteComponentState<C> {
-    fn deref_mut(&mut self) -> &mut Components<C> {
-        unsafe { &mut *self.data }
-    }
-}
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
-pub enum ComponentAccessError {
-    NotAvailableError,
-    WrongFuckingData,
-}
-
-impl<C: Component> Default for ComponentState<C> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 pub struct ComponentRegistry {
     data: HashMap<TypeId, Box<dyn Any + Send>>,
 }
@@ -232,66 +92,55 @@ impl ComponentRegistry {
         }
     }
 
-    pub fn read<C: Component>(&mut self) -> Result<ReadComponentState<C>, ComponentAccessError> {
+    fn get_state<C: Component>(&mut self) -> &mut DataState<Components<C>> {
         self.data
             .entry(TypeId::of::<C>())
-            .or_insert_with(|| Box::new(ComponentState::<C>::new()))
-            .downcast_mut::<ComponentState<C>>()
-            .unwrap()
-            .read()
+            .or_insert_with(|| Box::new(DataState::<Components<C>>::default()))
+            .downcast_mut::<DataState<Components<C>>>()
+            .expect("Failed to downcast data.")
     }
-    pub fn write<C: Component>(&mut self) -> Result<WriteComponentState<C>, ComponentAccessError> {
-        self.data
-            .entry(TypeId::of::<C>())
-            .or_insert_with(|| Box::new(ComponentState::<C>::new()))
-            .downcast_mut::<ComponentState<C>>()
-            .unwrap()
-            .write()
+
+    pub fn read<C: Component>(
+        &mut self,
+    ) -> Result<ReadDataState<Components<C>>, DataStateAccessError> {
+        self.get_state::<C>().read()
+    }
+
+    pub fn write<C: Component>(
+        &mut self,
+    ) -> Result<WriteDataState<Components<C>>, DataStateAccessError> {
+        self.get_state::<C>().write()
     }
 
     pub fn consume_read<C: Component>(
         &mut self,
-        read: ReadComponentState<C>,
-    ) -> Result<(), ComponentAccessError> {
-        self.data
-            .get_mut(&TypeId::of::<C>())
-            .ok_or(ComponentAccessError::NotAvailableError)
-            .map(|data| data.downcast_mut::<ComponentState<C>>().unwrap())
-            .and_then(|data| data.consume_read(read))
+        read: ReadDataState<Components<C>>,
+    ) -> Result<(), DataStateAccessError> {
+        self.get_state::<C>().consume_read(read)
     }
 
     pub fn consume_write<C: Component>(
         &mut self,
-        write: WriteComponentState<C>,
-    ) -> Result<(), ComponentAccessError> {
-        self.data
-            .get_mut(&TypeId::of::<C>())
-            .ok_or(ComponentAccessError::NotAvailableError)
-            .map(|data| data.downcast_mut::<ComponentState<C>>().unwrap())
-            .and_then(|data| data.consume_write(write))
+        write: WriteDataState<Components<C>>,
+    ) -> Result<(), DataStateAccessError> {
+        self.get_state::<C>().consume_write(write)
     }
 
-    pub fn check_read<C: Component>(&self) -> bool {
-        self.data
-            .get(&TypeId::of::<C>())
-            .map(|x| x.downcast_ref::<ComponentState<C>>().unwrap().can_read())
-            .unwrap_or(true) // the unwrap_or(true) is if the comp list does not exist, and thus it will be default and can be read of
+    pub fn check_read<C: Component>(&mut self) -> bool {
+        self.get_state::<C>().can_read()
     }
-    pub fn check_write<C: Component>(&self) -> bool {
-        self.data
-            .get(&TypeId::of::<C>())
-            .map(|x| x.downcast_ref::<ComponentState<C>>().unwrap().can_write())
-            .unwrap_or(true) // the unwrap_or(true) is if the comp list does not exist, and thus it will be default and can be read of
+
+    pub fn check_write<C: Component>(&mut self) -> bool {
+        self.get_state::<C>().can_write()
     }
 
     pub fn try_insert<C: Component>(
         &mut self,
         e: Entity,
         c: C,
-    ) -> Result<(), ComponentAccessError> {
-        let mut w = self.write()?;
+    ) -> Result<(), DataStateAccessError> {
+        let w = self.get_state::<C>().get_mut()?;
         w.insert(e, c);
-        self.consume_write(w)?;
         Ok(())
     }
 }

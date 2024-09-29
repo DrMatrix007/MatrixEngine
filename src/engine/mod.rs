@@ -1,37 +1,43 @@
 pub mod components;
+pub mod data_state;
 pub mod entity;
+pub mod events;
+pub mod group_query;
 pub mod plugins;
 pub mod query;
+pub mod resources;
 pub mod runtimes;
 pub mod scene;
 pub mod systems;
-pub mod event_registry;
 
+use events::{MatrixEvent, MatrixEventable};
 use plugins::Plugin;
 use runtimes::Runtime;
 use scene::{
-    NonSendEngineArgs, NonSendEngineStartupArgs, Scene, SceneManager, SceneRegistry,
-    SendEngineArgs, SendEngineStartupArgs,
+    NonSendEngineArgs, NonSendEngineStartupArgs, SceneManager, SceneRegistryRefs, SendEngineArgs,
+    SendEngineStartupArgs,
 };
 use winit::{error::EventLoopError, event_loop::EventLoop};
 
-pub enum MatrixEvent<Custom> {
-    Custom(Custom),
+pub struct EngineArgs<CustomEvents: Send> {
+    pub runtime:
+        Box<dyn Runtime<SceneRegistryRefs<CustomEvents>, SendEngineArgs, NonSendEngineArgs>>,
+    pub startup_runtime: Box<
+        dyn Runtime<
+            SceneRegistryRefs<CustomEvents>,
+            SendEngineStartupArgs,
+            NonSendEngineStartupArgs,
+        >,
+    >,
 }
 
-pub struct EngineArgs {
-    pub runtime: Box<dyn Runtime<SceneRegistry, SendEngineArgs, NonSendEngineArgs>>,
-    pub startup_runtime:
-        Box<dyn Runtime<SceneRegistry, SendEngineStartupArgs, NonSendEngineStartupArgs>>,
-}
-
-pub struct Engine<CustomEvents: 'static = ()> {
+pub struct Engine<CustomEvents: MatrixEventable = ()> {
     event_loop: EventLoop<MatrixEvent<CustomEvents>>,
     scene: SceneManager<CustomEvents>,
 }
 
-impl<CustomEvents: 'static> Engine<CustomEvents> {
-    pub fn new(args: EngineArgs) -> Self {
+impl<CustomEvents: MatrixEventable> Engine<CustomEvents> {
+    pub fn new(args: EngineArgs<CustomEvents>) -> Self {
         let event_loop = EventLoop::with_user_event().build().unwrap();
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
@@ -41,7 +47,6 @@ impl<CustomEvents: 'static> Engine<CustomEvents> {
         }
     }
     pub fn run(mut self) -> Result<(), EventLoopError> {
-        
         self.event_loop.run_app(&mut self.scene)
     }
 

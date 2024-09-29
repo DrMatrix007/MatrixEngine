@@ -1,8 +1,11 @@
-use winit::window::{Window, WindowAttributes};
+use winit::{
+    keyboard::KeyCode,
+    window::{Window, WindowAttributes},
+};
 
 use crate::engine::{
-    entity::Entity,
-    query::{ReadC, WriteC},
+    events::MatrixEventable,
+    query::{ReadEvents, ReadR, WriteR},
     scene::NonSendEngineStartupArgs,
 };
 
@@ -20,13 +23,12 @@ impl WindowPlugin {
     }
 }
 
-impl<T> Plugin<T> for WindowPlugin {
-    fn build(&self, scene: &mut crate::engine::scene::Scene<T>) {
+impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for WindowPlugin {
+    fn build(&self, scene: &mut crate::engine::scene::Scene<CustomEvents>) {
         let title = self.name.to_string();
         scene.add_non_send_startup_system(
-            move |args: &mut NonSendEngineStartupArgs, data: &mut WriteC<Window>| {
-                data.insert(
-                    Entity::new(),
+            move |args: &mut NonSendEngineStartupArgs, data: &mut WriteR<Window>| {
+                **data = Some(
                     args.event_loop
                         .create_window(WindowAttributes::default().with_title(&title))
                         .unwrap(),
@@ -34,11 +36,17 @@ impl<T> Plugin<T> for WindowPlugin {
             },
         );
 
-        scene.add_send_system(|data: &mut ReadC<Window>| {
-            for (_, w) in data.iter() {
-                w.request_redraw();
+        scene.add_send_system(|window: &mut ReadR<Window>| {
+            if let Some(window) = window.as_ref() {
+                window.request_redraw();
             }
-            println!("update")
+        });
+        let mut i = 0;
+        scene.add_send_system(move |event: &mut ReadEvents| {
+            if event.is_just_pressed(KeyCode::KeyW) {
+                i += 1;
+                println!("W, {}", i);
+            }
         });
     }
 }
