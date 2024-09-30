@@ -5,6 +5,7 @@ use std::{
 };
 
 use winit::{
+    dpi::PhysicalSize,
     event::{ElementState, WindowEvent},
     event_loop::{EventLoopClosed, EventLoopProxy},
     keyboard::{KeyCode, PhysicalKey},
@@ -19,7 +20,7 @@ use super::{
 pub enum MatrixEvent<Custom: MatrixEventable> {
     Exit,
     DestroySystem(SystemEntity),
-    ResourceCreated(TypeId),
+    ChangedResource(TypeId),
     Custom(Custom),
 }
 
@@ -33,17 +34,12 @@ pub struct Events<CustomEvents: MatrixEventable> {
     just_released: HashSet<KeyCode>,
     close_requested: bool,
     matrix_events: VecDeque<MatrixEvent<CustomEvents>>,
+    new_inner_size: Option<PhysicalSize<u32>>,
 }
 
 impl<CustomEvents: MatrixEventable> Default for Events<CustomEvents> {
     fn default() -> Self {
-        Self {
-            currently_pressed: Default::default(),
-            just_pressed: Default::default(),
-            just_released: Default::default(),
-            close_requested: Default::default(),
-            matrix_events: Default::default(),
-        }
+        Self::new()
     }
 }
 
@@ -53,8 +49,9 @@ impl<CustomEvents: MatrixEventable> Events<CustomEvents> {
             currently_pressed: HashSet::new(),
             just_pressed: HashSet::new(),
             just_released: HashSet::new(),
-            close_requested: false,
             matrix_events: VecDeque::new(),
+            close_requested: false,
+            new_inner_size: None,
         }
     }
 
@@ -72,6 +69,9 @@ impl<CustomEvents: MatrixEventable> Events<CustomEvents> {
             WindowEvent::CloseRequested => {
                 self.close_requested = true;
             }
+            WindowEvent::Resized(size) => {
+                self.new_inner_size = Some(*size);
+            }
             _ => (),
         }
     }
@@ -87,6 +87,11 @@ impl<CustomEvents: MatrixEventable> Events<CustomEvents> {
         self.just_pressed.clear();
         self.just_released.clear();
         self.close_requested = false;
+        self.new_inner_size = None;
+    }
+
+    pub fn new_inner_size(&self) -> Option<&PhysicalSize<u32>> {
+        self.new_inner_size.as_ref()
     }
     // This method simulates receiving a key press event in the current frame
     fn on_key_press(&mut self, key: KeyCode) {
@@ -141,14 +146,14 @@ impl<CustomEvents: MatrixEventable> EventWriter<CustomEvents> {
 
 #[derive(Debug)]
 pub struct EventRegistry<CustomEvents: MatrixEventable> {
-    events: HashMap<SystemEntity, DataState<Events<CustomEvents>>>,
+    events: DataState<Events<CustomEvents>>,
     event_loop_proxy: Option<DataState<EventWriter<CustomEvents>>>,
 }
 
 impl<CustomEvents: MatrixEventable> EventRegistry<CustomEvents> {
     pub fn new(event_loop_proxy: Option<EventLoopProxy<MatrixEvent<CustomEvents>>>) -> Self {
         Self {
-            events: HashMap::new(),
+            events: DataState::new(Events::new()),
             event_loop_proxy: event_loop_proxy.map(|x| DataState::new(EventWriter::new(x))),
         }
     }
@@ -161,22 +166,17 @@ impl<CustomEvents: MatrixEventable> EventRegistry<CustomEvents> {
 
     pub fn get_reader(
         &mut self,
-        e: SystemEntity,
     ) -> Result<ReadDataState<Events<CustomEvents>>, DataStateAccessError> {
-        self.events.entry(e).or_default().read()
+        self.events.read()
     }
-    pub fn check_reader(&mut self, e: &SystemEntity) -> bool {
-        self.events.get(e).map(|x| x.can_read()).unwrap_or(true) // the unwrap_or(true) is when the events will be created and thus available for fetching
+    pub fn check_reader(&mut self) -> bool {
+        self.events.can_read()
     }
     pub fn consume_reader(
         &mut self,
-        e: &SystemEntity,
         data: ReadDataState<Events<CustomEvents>>,
     ) -> Result<(), DataStateAccessError> {
-        self.events
-            .get_mut(e)
-            .expect("missing events. this should not happend 💀")
-            .consume_read(data)
+        self.events.consume_read(data)
     }
 
     pub fn get_writer(
@@ -184,11 +184,8 @@ impl<CustomEvents: MatrixEventable> EventRegistry<CustomEvents> {
     ) -> Option<Result<ReadDataState<EventWriter<CustomEvents>>, DataStateAccessError>> {
         self.event_loop_proxy.as_mut().map(|x| x.read())
     }
-    pub fn check_writer(&mut self) -> bool {
-        self.event_loop_proxy
-            .as_mut()
-            .map(|x| x.can_read())
-            .unwrap_or(true)
+    pub fn check_writer(&mut self) -> Option<bool> {
+        self.event_loop_proxy.as_mut().map(|x| x.can_read())
     }
     pub fn consume_writer(
         &mut self,
@@ -201,9 +198,7 @@ impl<CustomEvents: MatrixEventable> EventRegistry<CustomEvents> {
         }
     }
 
-    pub(crate) fn iter_events(
-        &mut self,
-    ) -> impl Iterator<Item = (&SystemEntity, &mut DataState<Events<CustomEvents>>)> {
-        self.events.iter_mut()
+    pub fn events(&mut self) -> &mut DataState<Events<CustomEvents>> {
+        &mut self.events
     }
 }

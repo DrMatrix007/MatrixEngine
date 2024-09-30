@@ -15,11 +15,15 @@ use super::systems::{
 macro_rules! impl_queries {
     ($($t:tt)*) => {
         impl<Queryable, $($t:Query<Queryable>),*> Query<Queryable> for ($($t,)*) {
-            fn check(q: &mut Queryable, e: &SystemEntity) -> bool {
-                ($($t::check(q,e))&&*)
-            }
-            fn query_unchecked(q: &mut Queryable, e: &SystemEntity) -> Self {
-                ($($t::query_unchecked(q,e),)*)
+            fn query(q: &mut Queryable, e: &SystemEntity) -> Result<Self,DataStateAccessError> {
+                let ($($t,)*)  =($($t::query(q,e),)*);
+                match($($t,)*) {
+                    ($(Ok($t),)*) => { Ok(($($t,)*)) },
+                    ($($t,)*) => {
+                        $(if let Ok($t) = $t {<$t>::consume($t,q,e);})*;
+                        Err(DataStateAccessError::NotAvailableError)
+                    }
+                }
             }
             fn consume(self, q: &mut Queryable, e: &SystemEntity) -> Result<(), DataStateAccessError> {
                 #[allow(non_snake_case)]
@@ -126,7 +130,7 @@ macro_rules! impl_systems {
                 system_id: &SystemEntity,
             ) -> Result<(), QueryError> {
                 assert!(self.args.is_none());
-                self.args = Some(<($($t,)*)>::query(queryable, system_id)?);
+                self.args = Some(<($($t,)*)>::query(queryable, system_id).map_err(|_|QueryError::NotAvailable)?);
                 Ok(())
             }
 
@@ -197,7 +201,6 @@ macro_rules! impl_systems {
 
 // impl_systems!(A B C);
 impl_all!(impl_systems);
-
 #[cfg(test)]
 mod tests {
     use crate::engine::{

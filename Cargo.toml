@@ -6,6 +6,8 @@ edition = "2021"
 
 [dependencies]
 paste = "1.0.15"
+tokio = { version = "1", features = ["full"] }
+tokio-macros = { version = "0.2.0-alpha.6" }
 wgpu = "22.1.0"
 winit = "0.30.5"
 

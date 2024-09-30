@@ -78,7 +78,7 @@ impl<
         system_id: &SystemEntity,
     ) -> Result<(), QueryError> {
         assert!(self.args.is_none());
-        self.args = Some(Q::query(queryable, system_id)?);
+        self.args = Some(Q::query(queryable, system_id).map_err(|_| QueryError::NotAvailable)?);
         Ok(())
     }
 

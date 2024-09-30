@@ -9,6 +9,7 @@ pub mod resources;
 pub mod runtimes;
 pub mod scene;
 pub mod systems;
+pub mod typeid;
 
 use events::{MatrixEvent, MatrixEventable};
 use plugins::Plugin;

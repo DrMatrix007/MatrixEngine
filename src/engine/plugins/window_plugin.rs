@@ -1,8 +1,9 @@
-use winit::window::Window;
+use winit::window::{Window, WindowAttributes};
 
 use crate::engine::{
     events::{MatrixEvent, MatrixEventable},
     query::{ReadE, ReadR, WriteE, WriteR},
+    scene::NonSendEngineStartupArgs,
 };
 
 use super::Plugin;
@@ -21,7 +22,15 @@ impl WindowPlugin {
 
 impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for WindowPlugin {
     fn build(&self, scene: &mut crate::engine::scene::Scene<CustomEvents>) {
-        scene.add_send_startup_system(|window: &mut WriteR<Window>| {});
+        scene.add_non_send_startup_system(
+            |args: &NonSendEngineStartupArgs, window: &mut WriteR<Window, CustomEvents>| {
+                window.insert_and_notify(
+                    args.event_loop
+                        .create_window(WindowAttributes::default())
+                        .unwrap(),
+                )
+            },
+        );
 
         scene.add_send_system(|window: &mut ReadR<Window>| {
             if let Some(window) = window.get() {
@@ -29,12 +38,7 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for WindowPlugin {
             }
         });
         scene.add_send_system(
-            move |(events, event_writer, test): &mut (
-                ReadE<CustomEvents>,
-                WriteE<CustomEvents>,
-                WriteR<i32>,
-            )| {
-                *test.get_mut().unwrap() = 10;
+            move |events: &mut ReadE<CustomEvents>, event_writer: &mut WriteE<CustomEvents>| {
                 if events.close_requested() {
                     event_writer.send(MatrixEvent::Exit).unwrap();
                 }

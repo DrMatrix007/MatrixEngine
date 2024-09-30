@@ -3,8 +3,9 @@ use std::{collections::VecDeque, marker::PhantomData, ops::Deref};
 use winit::{
     application::ApplicationHandler,
     event_loop::{ActiveEventLoop, EventLoopProxy},
-    window::{Window, WindowAttributes},
 };
+
+use crate::timing::Stopwatch;
 
 use super::{
     components::ComponentRegistry,
@@ -160,7 +161,6 @@ pub struct SceneManager<CustomEvents: MatrixEventable> {
         >,
     >,
     resources: DataState<ResourceRegistry>,
-    window: Option<DataState<Window>>,
     closing: bool,
 }
 
@@ -183,7 +183,6 @@ impl<CustomEvents: MatrixEventable> SceneManager<CustomEvents> {
             runtime,
             startup_runtime,
             resources: DataState::default(),
-            window: None,
             closing: false,
         }
     }
@@ -196,12 +195,6 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
     for SceneManager<CustomEvents>
 {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        self.window = Some(DataState::new(
-            event_loop
-                .create_window(WindowAttributes::default())
-                .unwrap(),
-        ));
-
         while let Some(plugin) = self.current_scene.plugins.pop_back() {
             plugin.build(&mut self.current_scene);
         }
@@ -242,18 +235,15 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
         _window_id: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
-        for (_, events) in self
-            .current_scene
+        self.current_scene
             .events
             .get_mut()
-            .expect("this should be available")
-            .iter_events()
-        {
-            events
-                .get_mut()
-                .expect("this should not be accessed now")
-                .handle_window_event(&event);
-        }
+            .expect("this should not be accessed now")
+            .events()
+            .get_mut()
+            .expect("this should not be accessed now")
+            .handle_window_event(&event);
+
 
         if event == winit::event::WindowEvent::RedrawRequested {
             let mut reg = SceneRegistryRefs {
@@ -269,7 +259,6 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
                     .expect("this should be available"),
                 resources: self.resources.write().expect("this should be available"),
             };
-
             self.runtime.run(
                 &mut self.current_scene.systems,
                 &mut reg,
@@ -277,9 +266,7 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
                 NonSendEngineArgs,
             );
 
-            for (_, events) in reg.events.iter_events() {
-                events.get_mut().unwrap().reset();
-            }
+
 
             self.current_scene
                 .components
@@ -291,6 +278,15 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
             if self.closing {
                 event_loop.exit();
             }
+            self.current_scene
+                .events
+                .get_mut()
+                .expect("this should not be accessed now")
+                .events()
+                .get_mut()
+                .expect("this should not be accessed now")
+                .reset();
+
         }
 
         // println!("event: {event:?}");
@@ -306,17 +302,13 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
             }
             _ => (),
         }
-        for (_, events) in self
-            .current_scene
+        self.current_scene
             .events
             .get_mut()
-            .expect("this should not be locked here")
-            .iter_events()
-        {
-            events
-                .get_mut()
-                .expect("this shoudl not be locked here")
-                .handle_matrix_event(event.clone());
-        }
+            .expect("this should not be accessed now")
+            .events()
+            .get_mut()
+            .expect("this should not be accessed now")
+            .handle_matrix_event(event.clone());
     }
 }
