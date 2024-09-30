@@ -18,7 +18,7 @@ pub trait System<Queryable, EngineArgs> {
         system_id: &SystemEntity,
     ) -> Result<(), QueryError>;
 
-    fn run(&mut self, run_args: &mut EngineArgs) -> Result<(), SystemError>;
+    fn run(&mut self, run_args: &EngineArgs) -> Result<(), SystemError>;
 
     fn consume(
         &mut self,
@@ -29,7 +29,7 @@ pub trait System<Queryable, EngineArgs> {
 
 pub trait QuerySystem<Queryable, EngineArgs> {
     type Query: Query<Queryable>;
-    fn run(&mut self, engine_args: &mut EngineArgs, args: &mut Self::Query);
+    fn run(&mut self, engine_args: &EngineArgs, args: &mut Self::Query);
 }
 pub trait IntoNonSendSystem<Queryable, EngineArgs, Placeholder> {
     fn into_system(self) -> impl System<Queryable, EngineArgs>;
@@ -82,7 +82,7 @@ impl<
         Ok(())
     }
 
-    fn run(&mut self, engine_args: &mut EngineArgs) -> Result<(), SystemError> {
+    fn run(&mut self, engine_args: &EngineArgs) -> Result<(), SystemError> {
         let args = self.args.as_mut();
         if let Some(args) = args {
             self.system.run(engine_args, args);
@@ -308,7 +308,7 @@ impl<Queryable, Args: Send> BoxedSendSystem<Queryable, Args> {
     pub fn prepare_args(&mut self, queryable: &mut Queryable) -> Result<(), QueryError> {
         self.system.prepare_args(queryable, &self.id)
     }
-    pub fn run(&mut self, args: &mut Args) -> Result<(), SystemError> {
+    pub fn run(&mut self, args: &Args) -> Result<(), SystemError> {
         self.system.run(args)
     }
     pub fn consume(&mut self, queryable: &mut Queryable) -> Result<(), DataStateAccessError> {
@@ -344,7 +344,7 @@ impl<Queryable, Args> BoxedNonSendSystem<Queryable, Args> {
     pub fn prepare_args(&mut self, queryable: &mut Queryable) -> Result<(), QueryError> {
         self.system.prepare_args(queryable, &self.id)
     }
-    pub fn run(&mut self, args: &mut Args) -> Result<(), SystemError> {
+    pub fn run(&mut self, args: &Args) -> Result<(), SystemError> {
         self.system.run(args)
     }
     pub fn consume(&mut self, queryable: &mut Queryable) -> Result<(), DataStateAccessError> {
@@ -367,7 +367,7 @@ mod test {
     impl QuerySystem<SceneRegistryRefs, ()> for A {
         type Query = WriteC<()>;
 
-        fn run(&mut self, _engine_args: &mut (), _args: &mut Self::Query) {}
+        fn run(&mut self, _engine_args: &(), _args: &mut Self::Query) {}
     }
 
     fn system_b(_args: &mut (), _data: &mut ReadC<()>) {}

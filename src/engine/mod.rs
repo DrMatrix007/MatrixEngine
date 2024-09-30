@@ -11,6 +11,8 @@ pub mod scene;
 pub mod systems;
 pub mod typeid;
 
+use std::marker::PhantomData;
+
 use events::{MatrixEvent, MatrixEventable};
 use plugins::Plugin;
 use runtimes::Runtime;
@@ -20,16 +22,29 @@ use scene::{
 };
 use winit::{error::EventLoopError, event_loop::EventLoop};
 
-pub struct EngineArgs<CustomEvents: MatrixEventable> {
-    pub runtime:
-        Box<dyn Runtime<SceneRegistryRefs<CustomEvents>, SendEngineArgs, NonSendEngineArgs>>,
-    pub startup_runtime: Box<
-        dyn Runtime<
-            SceneRegistryRefs<CustomEvents>,
-            SendEngineStartupArgs,
-            NonSendEngineStartupArgs,
-        >,
-    >,
+pub struct EngineArgs<
+    RuntimeA: Runtime<SceneRegistryRefs<CustomEvents>, SendEngineArgs, NonSendEngineArgs>,
+    RuntimeB: Runtime<SceneRegistryRefs<CustomEvents>, SendEngineStartupArgs, NonSendEngineStartupArgs>,
+    CustomEvents: MatrixEventable,
+> {
+    pub runtime: RuntimeA,
+    pub startup_runtime: RuntimeB,
+    marker: PhantomData<CustomEvents>,
+}
+
+impl<
+        RuntimeA: Runtime<SceneRegistryRefs<CustomEvents>, SendEngineArgs, NonSendEngineArgs>,
+        RuntimeB: Runtime<SceneRegistryRefs<CustomEvents>, SendEngineStartupArgs, NonSendEngineStartupArgs>,
+        CustomEvents: MatrixEventable,
+    > EngineArgs<RuntimeA, RuntimeB, CustomEvents>
+{
+    pub fn new(runtime: RuntimeA, startup_runtime: RuntimeB) -> Self {
+        Self {
+            runtime,
+            startup_runtime,
+            marker: PhantomData,
+        }
+    }
 }
 
 pub struct Engine<CustomEvents: MatrixEventable = ()> {
@@ -38,14 +53,23 @@ pub struct Engine<CustomEvents: MatrixEventable = ()> {
 }
 
 impl<CustomEvents: MatrixEventable> Engine<CustomEvents> {
-    pub fn new(args: EngineArgs<CustomEvents>) -> Self {
+    pub fn new<
+        A: Runtime<SceneRegistryRefs<CustomEvents>, SendEngineArgs, NonSendEngineArgs> + 'static,
+        B: Runtime<
+                SceneRegistryRefs<CustomEvents>,
+                SendEngineStartupArgs,
+                NonSendEngineStartupArgs,
+            > + 'static,
+    >(
+        args: EngineArgs<A, B, CustomEvents>,
+    ) -> Self {
         let event_loop = EventLoop::with_user_event().build().unwrap();
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
         Engine {
             scene: SceneManager::<CustomEvents>::new(
-                args.runtime,
-                args.startup_runtime,
+                Box::new(args.runtime),
+                Box::new(args.startup_runtime),
                 event_loop.create_proxy(),
             ),
             event_loop,

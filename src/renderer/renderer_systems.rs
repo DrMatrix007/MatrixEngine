@@ -1,6 +1,6 @@
 use std::future::Future;
 
-use tokio::runtime::Runtime;
+use tokio::runtime::{Builder, Runtime};
 use wgpu::{
     CommandEncoderDescriptor, Device, Instance, InstanceDescriptor, Queue, Surface,
     SurfaceConfiguration, TextureViewDescriptor,
@@ -20,8 +20,85 @@ pub struct RendererResource {
     pub(crate) surface_config: SurfaceConfiguration,
 }
 
+fn create_render_resource<CustomEvents: MatrixEventable>(
+    window: &Window,
+    event_writer: &WriteE<CustomEvents>,
+    system_id: &ReadSystemID,
+) -> RendererResource {
+    let size = window.inner_size();
+    let instance = Instance::new(InstanceDescriptor {
+        backends: wgpu::Backends::PRIMARY,
+        ..Default::default()
+    });
+    let surface = instance.create_surface(window).unwrap();
+    let surface = unsafe { core::mem::transmute::<Surface<'_>, Surface<'static>>(surface) };
+
+    let adapter = block_on(async {
+        instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::default(),
+                compatible_surface: Some(&surface),
+                force_fallback_adapter: false,
+            })
+            .await
+            .unwrap()
+    });
+
+    let (device, queue) = block_on(async {
+        adapter
+            .request_device(
+                &wgpu::DeviceDescriptor {
+                    required_features: wgpu::Features::empty(),
+                    required_limits: wgpu::Limits::default(),
+                    label: None,
+                    memory_hints: Default::default(),
+                },
+                None, // Trace path
+            )
+            .await
+            .unwrap()
+    });
+
+    let surface_caps = surface.get_capabilities(&adapter);
+    // Shader code in this tutorial assumes an sRGB surface texture. Using a different
+    // one will result in all the colors coming out darker. If you want to support non
+    // sRGB surfaces, you'll need to account for that when drawing to the frame.
+    let surface_format = surface_caps
+        .formats
+        .iter()
+        .find(|f| f.is_srgb())
+        .copied()
+        .unwrap_or(surface_caps.formats[0]);
+    let surface_config = wgpu::SurfaceConfiguration {
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+        format: surface_format,
+        width: size.width,
+        height: size.height,
+        present_mode: surface_caps.present_modes[0],
+        alpha_mode: surface_caps.alpha_modes[0],
+        view_formats: vec![],
+        desired_maximum_frame_latency: 2,
+    };
+
+    surface.configure(&device, &surface_config);
+
+    event_writer
+        .send(MatrixEvent::DestroySystem(**system_id))
+        .unwrap();
+    println!("created! - device name is {}", adapter.get_info().name);
+    RendererResource {
+        current_window_id: window.id(),
+        device,
+        queue,
+        surface,
+        surface_config,
+    }
+}
 fn block_on<T>(future: impl Future<Output = T>) -> T {
-    Runtime::new().unwrap().block_on(future)
+    Builder::new_current_thread()
+        .build()
+        .unwrap()
+        .block_on(future)
 }
 
 pub(crate) fn create_renderer_resource<CustomEvents: MatrixEventable>(
@@ -32,74 +109,7 @@ pub(crate) fn create_renderer_resource<CustomEvents: MatrixEventable>(
 ) {
     if let Some(window) = window.get() {
         renderer.unwrap_or_insert_with_and_notify(|| {
-            let size = window.inner_size();
-            let instance = Instance::new(InstanceDescriptor {
-                backends: wgpu::Backends::PRIMARY,
-                ..Default::default()
-            });
-            let surface = instance.create_surface(window).unwrap();
-            let surface = unsafe { core::mem::transmute::<Surface<'_>, Surface<'static>>(surface) };
-
-            let adapter = block_on(async {
-                instance
-                    .request_adapter(&wgpu::RequestAdapterOptions {
-                        power_preference: wgpu::PowerPreference::default(),
-                        compatible_surface: Some(&surface),
-                        force_fallback_adapter: false,
-                    })
-                    .await
-                    .unwrap()
-            });
-
-            let (device, queue) = block_on(async {
-                adapter
-                    .request_device(
-                        &wgpu::DeviceDescriptor {
-                            required_features: wgpu::Features::empty(),
-                            required_limits: wgpu::Limits::default(),
-                            label: None,
-                            memory_hints: Default::default(),
-                        },
-                        None, // Trace path
-                    )
-                    .await
-                    .unwrap()
-            });
-
-            let surface_caps = surface.get_capabilities(&adapter);
-            // Shader code in this tutorial assumes an sRGB surface texture. Using a different
-            // one will result in all the colors coming out darker. If you want to support non
-            // sRGB surfaces, you'll need to account for that when drawing to the frame.
-            let surface_format = surface_caps
-                .formats
-                .iter()
-                .find(|f| f.is_srgb())
-                .copied()
-                .unwrap_or(surface_caps.formats[0]);
-            let surface_config = wgpu::SurfaceConfiguration {
-                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                format: surface_format,
-                width: size.width,
-                height: size.height,
-                present_mode: surface_caps.present_modes[0],
-                alpha_mode: surface_caps.alpha_modes[0],
-                view_formats: vec![],
-                desired_maximum_frame_latency: 2,
-            };
-
-            surface.configure(&device, &surface_config);
-
-            event_writer
-                .send(MatrixEvent::DestroySystem(**system_id))
-                .unwrap();
-            println!("created! - device name is {}", adapter.get_info().name);
-            RendererResource {
-                current_window_id: window.id(),
-                device,
-                queue,
-                surface,
-                surface_config,
-            }
+            create_render_resource(window, event_writer, system_id)
         });
     };
 }

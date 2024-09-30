@@ -44,10 +44,7 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
 }
 
 fn main() {
-    let mut engine = <Engine>::new(EngineArgs {
-        runtime: Box::new(SingleThreaded),
-        startup_runtime: Box::new(SingleThreaded),
-    });
+    let mut engine = <Engine>::new(EngineArgs::new(SingleThreaded, SingleThreaded));
 
     engine.add_scene_plugin(WindowPlugin::new("hello example!"));
 

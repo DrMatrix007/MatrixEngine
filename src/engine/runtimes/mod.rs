@@ -1,4 +1,5 @@
 pub mod single_threaded;
+pub mod multi_threading;
 
 use super::systems::SystemRegistry;
 

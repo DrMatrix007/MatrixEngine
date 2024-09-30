@@ -71,7 +71,7 @@ macro_rules! impl_systems {
         {
             type Query = ($($t,)*);
 
-            fn run(&mut self, _engine_args: &mut EngineArgs, args: &mut Self::Query) {
+            fn run(&mut self, _engine_args: &EngineArgs, args: &mut Self::Query) {
                 #[allow(non_snake_case)]
                 let ($($t,)*) = args;
                 (self.0)($($t,)*);
@@ -84,7 +84,7 @@ macro_rules! impl_systems {
         {
             type Query = ($($t,)*);
 
-            fn run(&mut self, engine_args: &mut EngineArgs, args: &mut Self::Query) {
+            fn run(&mut self, engine_args: &EngineArgs, args: &mut Self::Query) {
                 #[allow(non_snake_case)]
                 let ($($t,)*) = args;
                 (self.0)(engine_args, $($t,)*);
@@ -134,7 +134,7 @@ macro_rules! impl_systems {
                 Ok(())
             }
 
-            fn run(&mut self, engine_args: &mut EngineArgs) -> Result<(), SystemError> {
+            fn run(&mut self, engine_args: &EngineArgs) -> Result<(), SystemError> {
                 let args = self.args.as_mut();
                 if let Some(args) = args {
                     self.system.run(engine_args, args);
