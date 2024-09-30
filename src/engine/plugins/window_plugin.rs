@@ -1,9 +1,8 @@
-use winit::window::{Window, WindowAttributes};
+use winit::window::Window;
 
 use crate::engine::{
     events::{MatrixEvent, MatrixEventable},
     query::{ReadE, ReadR, WriteE, WriteR},
-    scene::{NonSendEngineStartupArgs, SendEngineArgs},
 };
 
 use super::Plugin;
@@ -22,10 +21,7 @@ impl WindowPlugin {
 
 impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for WindowPlugin {
     fn build(&self, scene: &mut crate::engine::scene::Scene<CustomEvents>) {
-        scene.add_send_startup_system(|(window,):&mut WriteR<Window>|{
-            
-        });
-
+        scene.add_send_startup_system(|window: &mut WriteR<Window>| {});
 
         scene.add_send_system(|window: &mut ReadR<Window>| {
             if let Some(window) = window.get() {

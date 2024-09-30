@@ -75,7 +75,13 @@ impl<CustomEvents: MatrixEventable> Events<CustomEvents> {
             _ => (),
         }
     }
-    pub fn handle_matrix_event(&mut self) {}
+    pub fn handle_matrix_event(&mut self, event: MatrixEvent<CustomEvents>) {
+        self.matrix_events.push_back(event);
+    }
+
+    pub fn matrix_events(&self) -> impl Iterator<Item = &MatrixEvent<CustomEvents>> {
+        self.matrix_events.iter()
+    }
 
     pub fn reset(&mut self) {
         self.just_pressed.clear();

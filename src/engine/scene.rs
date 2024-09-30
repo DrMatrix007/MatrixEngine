@@ -161,7 +161,7 @@ pub struct SceneManager<CustomEvents: MatrixEventable> {
     >,
     resources: DataState<ResourceRegistry>,
     window: Option<DataState<Window>>,
-    marker: PhantomData<CustomEvents>,
+    closing: bool,
 }
 
 impl<CustomEvents: MatrixEventable> SceneManager<CustomEvents> {
@@ -183,8 +183,8 @@ impl<CustomEvents: MatrixEventable> SceneManager<CustomEvents> {
             runtime,
             startup_runtime,
             resources: DataState::default(),
-            marker: PhantomData,
             window: None,
+            closing: false,
         }
     }
 
@@ -238,7 +238,7 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
 
     fn window_event(
         &mut self,
-        _event_loop: &winit::event_loop::ActiveEventLoop,
+        event_loop: &winit::event_loop::ActiveEventLoop,
         _window_id: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
@@ -287,20 +287,36 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
                 .unwrap();
             self.current_scene.events.consume_write(reg.events).unwrap();
             self.resources.consume_write(reg.resources).unwrap();
+
+            if self.closing {
+                event_loop.exit();
+            }
         }
 
         // println!("event: {event:?}");
     }
 
-    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: MatrixEvent<CustomEvents>) {
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: MatrixEvent<CustomEvents>) {
         match event {
             MatrixEvent::Exit => {
-                println!("lets go");
+                self.closing = true;
             }
             MatrixEvent::DestroySystem(id) => {
                 self.current_scene.destroy_system(id);
             }
             _ => (),
+        }
+        for (_, events) in self
+            .current_scene
+            .events
+            .get_mut()
+            .expect("this should not be locked here")
+            .iter_events()
+        {
+            events
+                .get_mut()
+                .expect("this shoudl not be locked here")
+                .handle_matrix_event(event.clone());
         }
     }
 }

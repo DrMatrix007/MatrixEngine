@@ -9,8 +9,7 @@ use super::entity::SystemEntity;
 use super::query::{Query, QueryError};
 use super::systems::{
     FnNonSendPlaceHolderWithArgs, FnPlaceHolderNonSend, FnPlaceHolderSend,
-    FnSendPlaceHolderWithArgs, IntoNonSendSystem, IntoSendSystem, QsNonSendPlaceHolder,
-    QsSendPlaceHolder, QuerySystem, System, SystemError,
+    FnSendPlaceHolderWithArgs, IntoNonSendSystem, IntoSendSystem, QuerySystem, System, SystemError,
 };
 
 macro_rules! impl_queries {
@@ -36,7 +35,8 @@ impl_all!(impl_queries);
 
 macro_rules! impl_systems {
     ($($t:tt)*) => {
-        paste!{pub struct [<QuerySystemFn $($t)*>]<$($t:Query<Queryable>),*, Queryable, Fn: FnMut($(&mut $t),*)>(
+        paste!{
+        pub struct [<QuerySystemFn $($t)*>]<$($t:Query<Queryable>),*, Queryable, Fn: FnMut($(&mut $t),*)>(
             Fn,
             PhantomData<($($t,)* Queryable)>,
         );
@@ -189,7 +189,7 @@ macro_rules! impl_systems {
             fn into_system(self) -> impl System<Queryable, EngineArgs> {
                 [<QuerySystemWrapper $($t)*>]::new([<QuerySystemFnWithArgs $($t)*>]::new(self))
             }
-        
+
         }
         }
     };
@@ -212,7 +212,7 @@ mod tests {
         let mut reg = reg.registry;
 
         let mut sys1 = BoxedSendSystem::from_system(
-            (|_args: &mut (), readc: &mut ReadC<()>, write_i: &mut WriteC<i32>| {}).into_system(),
+            (|_args: &mut (), _readc: &mut ReadC<()>, _write_i: &mut WriteC<i32>| {}).into_system(),
         );
         let mut sys2 = BoxedSendSystem::from_system(
             (|_args: &mut (), _data: &mut (ReadC<()>, WriteC<i16>)| {}).into_system(),
