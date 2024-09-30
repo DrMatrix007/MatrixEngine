@@ -5,7 +5,7 @@ use matrix_engine::{
         events::{MatrixEvent, MatrixEventable},
         plugins::{window_plugin::WindowPlugin, Plugin},
         query::{ReadE, ReadSystemID, WriteE},
-        runtimes::single_threaded::SingleThreaded,
+        runtimes::{multi_threading::MultiThreaded, single_threaded::SingleThreaded},
         Engine, EngineArgs,
     },
     renderer::renderer_plugin::RendererPlugin,
@@ -44,7 +44,7 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
 }
 
 fn main() {
-    let mut engine = <Engine>::new(EngineArgs::new(SingleThreaded, SingleThreaded));
+    let mut engine = <Engine>::new(EngineArgs::new(MultiThreaded::with_cpu_count(), SingleThreaded));
 
     engine.add_scene_plugin(WindowPlugin::new("hello example!"));
 

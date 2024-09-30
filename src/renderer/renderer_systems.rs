@@ -20,11 +20,7 @@ pub struct RendererResource {
     pub(crate) surface_config: SurfaceConfiguration,
 }
 
-fn create_render_resource<CustomEvents: MatrixEventable>(
-    window: &Window,
-    event_writer: &WriteE<CustomEvents>,
-    system_id: &ReadSystemID,
-) -> RendererResource {
+fn create_render_resource(window: &Window, system_id: &ReadSystemID) -> RendererResource {
     let size = window.inner_size();
     let instance = Instance::new(InstanceDescriptor {
         backends: wgpu::Backends::PRIMARY,
@@ -82,9 +78,6 @@ fn create_render_resource<CustomEvents: MatrixEventable>(
 
     surface.configure(&device, &surface_config);
 
-    event_writer
-        .send(MatrixEvent::DestroySystem(**system_id))
-        .unwrap();
     println!("created! - device name is {}", adapter.get_info().name);
     RendererResource {
         current_window_id: window.id(),
@@ -109,7 +102,10 @@ pub(crate) fn create_renderer_resource<CustomEvents: MatrixEventable>(
 ) {
     if let Some(window) = window.get() {
         renderer.unwrap_or_insert_with_and_notify(|| {
-            create_render_resource(window, event_writer, system_id)
+            event_writer
+                .send(MatrixEvent::DestroySystem(**system_id))
+                .unwrap();
+            create_render_resource(window, system_id)
         });
     };
 }
