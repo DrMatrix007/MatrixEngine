@@ -12,7 +12,11 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
     fn build(&self, scene: &mut matrix_engine::engine::scene::Scene<CustomEvents>) {
         let mut i = 0;
         scene.add_send_system(
-            move |(events, write_events, id): &mut (ReadE, WriteE<CustomEvents>, ReadSystemID)| {
+            move |(events, write_events, id): &mut (
+                ReadE<CustomEvents>,
+                WriteE<CustomEvents>,
+                ReadSystemID,
+            )| {
                 println!("{}", i);
                 i += 1;
 

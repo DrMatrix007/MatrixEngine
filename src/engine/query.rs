@@ -135,25 +135,25 @@ impl<C: Component, CustomEvents: MatrixEventable> Query<SceneRegistryRefs<Custom
     }
 }
 
-pub struct ReadE {
-    data: ReadDataState<Events>,
+pub struct ReadE<CustomEvents: MatrixEventable> {
+    data: ReadDataState<Events<CustomEvents>>,
 }
 
-impl ReadE {
-    fn new(data: ReadDataState<Events>) -> Self {
+impl<CustomEvents: MatrixEventable> ReadE<CustomEvents> {
+    fn new(data: ReadDataState<Events<CustomEvents>>) -> Self {
         Self { data }
     }
 }
 
-impl Deref for ReadE {
-    type Target = Events;
+impl<CustomEvents: MatrixEventable> Deref for ReadE<CustomEvents> {
+    type Target = Events<CustomEvents>;
 
     fn deref(&self) -> &Self::Target {
         self.data.deref()
     }
 }
 
-impl<CustomEvents: MatrixEventable> Query<SceneRegistryRefs<CustomEvents>> for ReadE {
+impl<CustomEvents: MatrixEventable> Query<SceneRegistryRefs<CustomEvents>> for ReadE<CustomEvents> {
     fn check(queryable: &mut SceneRegistryRefs<CustomEvents>, id: &SystemEntity) -> bool
     where
         Self: Sized,
@@ -226,17 +226,12 @@ pub struct ReadR<R: Resource> {
     data: ReadDataState<ResourceHolder<R>>,
 }
 
-impl<R: Resource> Deref for ReadR<R> {
-    type Target = Option<R>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.data
-    }
-}
-
 impl<R: Resource> ReadR<R> {
     pub fn new(data: ReadDataState<ResourceHolder<R>>) -> Self {
         Self { data }
+    }
+    pub fn get(&self) -> Option<&R> {
+        self.data.as_ref()
     }
 }
 
@@ -270,23 +265,16 @@ pub struct WriteR<R: Resource> {
     data: WriteDataState<ResourceHolder<R>>,
 }
 
-impl<R: Resource> DerefMut for WriteR<R> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
-    }
-}
-
-impl<R: Resource> Deref for WriteR<R> {
-    type Target = Option<R>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.data
-    }
-}
-
 impl<R: Resource> WriteR<R> {
     pub fn new(data: WriteDataState<ResourceHolder<R>>) -> Self {
         Self { data }
+    }
+
+    pub fn get(&self) -> Option<&R> {
+        self.data.as_ref()
+    }
+    pub fn get_mut(&mut self) -> Option<&mut R> {
+        self.data.as_mut()
     }
 }
 
@@ -354,6 +342,25 @@ impl<Queryable> Query<Queryable> for ReadSystemID {
         _queryable: &mut Queryable,
         _id: &SystemEntity,
     ) -> Result<(), DataStateAccessError> {
+        Ok(())
+    }
+}
+
+impl<T> Query<T> for () {
+    fn check(_queryable: &mut T, _id: &SystemEntity) -> bool
+    where
+        Self: Sized,
+    {
+        true
+    }
+
+    fn query_unchecked(_queryable: &mut T, _id: &SystemEntity) -> Self
+    where
+        Self: Sized,
+    {
+    }
+
+    fn consume(self, _queryable: &mut T, _id: &SystemEntity) -> Result<(), DataStateAccessError> {
         Ok(())
     }
 }

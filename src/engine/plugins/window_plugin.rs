@@ -3,7 +3,7 @@ use winit::window::{Window, WindowAttributes};
 use crate::engine::{
     events::{MatrixEvent, MatrixEventable},
     query::{ReadE, ReadR, WriteE, WriteR},
-    scene::NonSendEngineStartupArgs,
+    scene::{NonSendEngineStartupArgs, SendEngineArgs},
 };
 
 use super::Plugin;
@@ -22,24 +22,23 @@ impl WindowPlugin {
 
 impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for WindowPlugin {
     fn build(&self, scene: &mut crate::engine::scene::Scene<CustomEvents>) {
-        let title = self.name.to_string();
-        scene.add_non_send_startup_system(
-            move |args: &mut NonSendEngineStartupArgs, data: &mut WriteR<Window>| {
-                **data = Some(
-                    args.event_loop
-                        .create_window(WindowAttributes::default().with_title(&title))
-                        .unwrap(),
-                );
-            },
-        );
+        scene.add_send_startup_system(|(window,):&mut WriteR<Window>|{
+            
+        });
+
 
         scene.add_send_system(|window: &mut ReadR<Window>| {
-            if let Some(window) = window.as_ref() {
+            if let Some(window) = window.get() {
                 window.request_redraw();
             }
         });
         scene.add_send_system(
-            move |(events, event_writer): &mut (ReadE, WriteE<CustomEvents>)| {
+            move |(events, event_writer, test): &mut (
+                ReadE<CustomEvents>,
+                WriteE<CustomEvents>,
+                WriteR<i32>,
+            )| {
+                *test.get_mut().unwrap() = 10;
                 if events.close_requested() {
                     event_writer.send(MatrixEvent::Exit).unwrap();
                 }

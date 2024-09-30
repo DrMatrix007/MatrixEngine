@@ -5,6 +5,8 @@ edition = "2021"
 
 
 [dependencies]
+paste = "1.0.15"
+wgpu = "22.1.0"
 winit = "0.30.5"
 
 [[example]]

@@ -3,6 +3,7 @@ use std::{collections::VecDeque, marker::PhantomData, ops::Deref};
 use winit::{
     application::ApplicationHandler,
     event_loop::{ActiveEventLoop, EventLoopProxy},
+    window::{Window, WindowAttributes},
 };
 
 use super::{
@@ -74,6 +75,7 @@ pub struct NonSendEngineStartupArgs {
     pub event_loop: ActiveEventLoopRef,
 }
 pub struct SendEngineArgs;
+
 pub struct NonSendEngineArgs;
 
 pub struct Scene<CustomEvents: MatrixEventable> {
@@ -139,12 +141,11 @@ impl<CustomEvents: MatrixEventable> Scene<CustomEvents> {
     pub fn components_mut(&mut self) -> Result<&mut ComponentRegistry, DataStateAccessError> {
         self.components.get_mut()
     }
-    
+
     fn destroy_system(&mut self, id: super::entity::SystemEntity) {
         if !self.systems.destroy_system(id) {
-            self.startup_systems.destroy_system(id);   
+            self.startup_systems.destroy_system(id);
         }
-        
     }
 }
 
@@ -159,6 +160,7 @@ pub struct SceneManager<CustomEvents: MatrixEventable> {
         >,
     >,
     resources: DataState<ResourceRegistry>,
+    window: Option<DataState<Window>>,
     marker: PhantomData<CustomEvents>,
 }
 
@@ -182,6 +184,7 @@ impl<CustomEvents: MatrixEventable> SceneManager<CustomEvents> {
             startup_runtime,
             resources: DataState::default(),
             marker: PhantomData,
+            window: None,
         }
     }
 
@@ -193,6 +196,12 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
     for SceneManager<CustomEvents>
 {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        self.window = Some(DataState::new(
+            event_loop
+                .create_window(WindowAttributes::default())
+                .unwrap(),
+        ));
+
         while let Some(plugin) = self.current_scene.plugins.pop_back() {
             plugin.build(&mut self.current_scene);
         }
@@ -243,7 +252,7 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
             events
                 .get_mut()
                 .expect("this should not be accessed now")
-                .handle_event(&event);
+                .handle_window_event(&event);
         }
 
         if event == winit::event::WindowEvent::RedrawRequested {
@@ -287,8 +296,7 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
         match event {
             MatrixEvent::Exit => {
                 println!("lets go");
-                event_loop.exit();
-            },
+            }
             MatrixEvent::DestroySystem(id) => {
                 self.current_scene.destroy_system(id);
             }

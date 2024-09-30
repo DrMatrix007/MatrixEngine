@@ -1,5 +1,6 @@
 use std::{
-    collections::{HashMap, HashSet},
+    any::TypeId,
+    collections::{HashMap, HashSet, VecDeque},
     fmt::Debug,
 };
 
@@ -14,35 +15,50 @@ use super::{
     entity::SystemEntity,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MatrixEvent<Custom: MatrixEventable> {
     Exit,
     DestroySystem(SystemEntity),
+    ResourceCreated(TypeId),
     Custom(Custom),
 }
 
-pub trait MatrixEventable: Send + Sync + Debug + 'static {}
-impl<T: Send + Sync + Debug + 'static> MatrixEventable for T {}
+pub trait MatrixEventable: Clone + Send + Sync + Debug + 'static {}
+impl<T: Clone + Send + Sync + Debug + 'static> MatrixEventable for T {}
 
-#[derive(Debug, Default)]
-pub struct Events {
+#[derive(Debug)]
+pub struct Events<CustomEvents: MatrixEventable> {
     currently_pressed: HashSet<KeyCode>,
     just_pressed: HashSet<KeyCode>,
     just_released: HashSet<KeyCode>,
     close_requested: bool,
+    matrix_events: VecDeque<MatrixEvent<CustomEvents>>,
 }
 
-impl Events {
+impl<CustomEvents: MatrixEventable> Default for Events<CustomEvents> {
+    fn default() -> Self {
+        Self {
+            currently_pressed: Default::default(),
+            just_pressed: Default::default(),
+            just_released: Default::default(),
+            close_requested: Default::default(),
+            matrix_events: Default::default(),
+        }
+    }
+}
+
+impl<CustomEvents: MatrixEventable> Events<CustomEvents> {
     pub fn new() -> Self {
         Events {
             currently_pressed: HashSet::new(),
             just_pressed: HashSet::new(),
             just_released: HashSet::new(),
             close_requested: false,
+            matrix_events: VecDeque::new(),
         }
     }
 
-    pub fn handle_event(&mut self, event: &WindowEvent) {
+    pub fn handle_window_event(&mut self, event: &WindowEvent) {
         match event {
             WindowEvent::KeyboardInput { event, .. } => {
                 if let PhysicalKey::Code(keycode) = event.physical_key {
@@ -59,6 +75,7 @@ impl Events {
             _ => (),
         }
     }
+    pub fn handle_matrix_event(&mut self) {}
 
     pub fn reset(&mut self) {
         self.just_pressed.clear();
@@ -118,7 +135,7 @@ impl<CustomEvents: MatrixEventable> EventWriter<CustomEvents> {
 
 #[derive(Debug)]
 pub struct EventRegistry<CustomEvents: MatrixEventable> {
-    events: HashMap<SystemEntity, DataState<Events>>,
+    events: HashMap<SystemEntity, DataState<Events<CustomEvents>>>,
     event_loop_proxy: Option<DataState<EventWriter<CustomEvents>>>,
 }
 
@@ -139,7 +156,7 @@ impl<CustomEvents: MatrixEventable> EventRegistry<CustomEvents> {
     pub fn get_reader(
         &mut self,
         e: SystemEntity,
-    ) -> Result<ReadDataState<Events>, DataStateAccessError> {
+    ) -> Result<ReadDataState<Events<CustomEvents>>, DataStateAccessError> {
         self.events.entry(e).or_default().read()
     }
     pub fn check_reader(&mut self, e: &SystemEntity) -> bool {
@@ -148,7 +165,7 @@ impl<CustomEvents: MatrixEventable> EventRegistry<CustomEvents> {
     pub fn consume_reader(
         &mut self,
         e: &SystemEntity,
-        data: ReadDataState<Events>,
+        data: ReadDataState<Events<CustomEvents>>,
     ) -> Result<(), DataStateAccessError> {
         self.events
             .get_mut(e)
@@ -180,7 +197,7 @@ impl<CustomEvents: MatrixEventable> EventRegistry<CustomEvents> {
 
     pub(crate) fn iter_events(
         &mut self,
-    ) -> impl Iterator<Item = (&SystemEntity, &mut DataState<Events>)> {
+    ) -> impl Iterator<Item = (&SystemEntity, &mut DataState<Events<CustomEvents>>)> {
         self.events.iter_mut()
     }
 }
