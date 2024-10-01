@@ -1,6 +1,6 @@
 use std::future::Future;
 
-use tokio::runtime::{Builder, Runtime};
+use tokio::runtime::Builder;
 use wgpu::{
     CommandEncoderDescriptor, Device, Instance, InstanceDescriptor, Queue, Surface,
     SurfaceConfiguration, TextureViewDescriptor,
@@ -20,7 +20,7 @@ pub struct RendererResource {
     pub(crate) surface_config: SurfaceConfiguration,
 }
 
-fn create_render_resource(window: &Window, system_id: &ReadSystemID) -> RendererResource {
+fn create_render_resource(window: &Window) -> RendererResource {
     let size = window.inner_size();
     let instance = Instance::new(InstanceDescriptor {
         backends: wgpu::Backends::PRIMARY,
@@ -70,7 +70,7 @@ fn create_render_resource(window: &Window, system_id: &ReadSystemID) -> Renderer
         format: surface_format,
         width: size.width,
         height: size.height,
-        present_mode: surface_caps.present_modes[0],
+        present_mode: wgpu::PresentMode::AutoNoVsync,
         alpha_mode: surface_caps.alpha_modes[0],
         view_formats: vec![],
         desired_maximum_frame_latency: 2,
@@ -105,7 +105,7 @@ pub(crate) fn create_renderer_resource<CustomEvents: MatrixEventable>(
             event_writer
                 .send(MatrixEvent::DestroySystem(**system_id))
                 .unwrap();
-            create_render_resource(window, system_id)
+            create_render_resource(window)
         });
     };
 }

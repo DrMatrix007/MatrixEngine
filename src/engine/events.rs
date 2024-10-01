@@ -1,6 +1,6 @@
 use std::{
     any::TypeId,
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashSet, VecDeque},
     fmt::Debug,
 };
 

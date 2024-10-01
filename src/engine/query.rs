@@ -283,10 +283,10 @@ impl<R: Resource, CustomEvents: MatrixEventable> Query<SceneRegistryRefs<CustomE
             (Ok(data1), Ok(data2)) => Ok(Self::new(data1, data2)),
             (a, b) => {
                 if let Ok(a) = a {
-                    queryable.resources.consume_write(a);
+                    queryable.resources.consume_write(a)?;
                 }
                 if let Ok(b) = b {
-                    queryable.events.consume_writer(b);
+                    queryable.events.consume_writer(b)?;
                 }
                 Err(DataStateAccessError::NotAvailableError)
             }

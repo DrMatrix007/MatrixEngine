@@ -15,12 +15,13 @@ use super::systems::{
 macro_rules! impl_queries {
     ($($t:tt)*) => {
         impl<Queryable, $($t:Query<Queryable>),*> Query<Queryable> for ($($t,)*) {
+            #[allow(non_snake_case)]
             fn query(q: &mut Queryable, e: &SystemEntity) -> Result<Self,DataStateAccessError> {
                 let ($($t,)*)  =($($t::query(q,e),)*);
                 match($($t,)*) {
                     ($(Ok($t),)*) => { Ok(($($t,)*)) },
                     ($($t,)*) => {
-                        $(if let Ok($t) = $t {<$t>::consume($t,q,e);})*;
+                        $(if let Ok($t) = $t {<$t>::consume($t,q,e)?;})*;
                         Err(DataStateAccessError::NotAvailableError)
                     }
                 }
@@ -224,10 +225,10 @@ mod tests {
             (|_args: &mut (), _data: &mut (ReadC<()>, WriteC<i32>)| {}).into_system(),
         );
         sys1.prepare_args(&mut reg).unwrap();
-        sys1.run(&mut ()).unwrap();
+        sys1.run(&()).unwrap();
 
         sys2.prepare_args(&mut reg).unwrap();
-        sys2.run(&mut ()).unwrap();
+        sys2.run(&()).unwrap();
 
         sys3.prepare_args(&mut reg).unwrap_err();
 
@@ -235,7 +236,7 @@ mod tests {
         sys2.consume(&mut reg).unwrap();
 
         sys3.prepare_args(&mut reg).unwrap();
-        sys3.run(&mut ()).unwrap();
+        sys3.run(&()).unwrap();
         sys3.consume(&mut reg).unwrap();
     }
 }

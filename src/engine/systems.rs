@@ -393,8 +393,8 @@ mod test {
         c.prepare_args(reg, &SystemEntity::new()).unwrap();
         d.prepare_args(reg, &SystemEntity::new()).unwrap_err();
 
-        b.run(&mut ()).unwrap();
-        c.run(&mut ()).unwrap();
+        b.run(&()).unwrap();
+        c.run(&()).unwrap();
 
         b.consume(reg, &SystemEntity::new()).unwrap();
         c.consume(reg, &SystemEntity::new()).unwrap();
@@ -402,7 +402,7 @@ mod test {
         d.prepare_args(reg, &SystemEntity::new()).unwrap();
         e.prepare_args(reg, &SystemEntity::new()).unwrap_err();
 
-        d.run(&mut ()).unwrap();
+        d.run(&()).unwrap();
 
         d.consume(reg, &SystemEntity::new()).unwrap();
     }

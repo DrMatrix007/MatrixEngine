@@ -5,7 +5,7 @@ use winit::{
     event_loop::{ActiveEventLoop, EventLoopProxy},
 };
 
-use crate::timing::Stopwatch;
+
 
 use super::{
     components::ComponentRegistry,
