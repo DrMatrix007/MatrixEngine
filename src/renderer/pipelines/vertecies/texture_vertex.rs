@@ -4,7 +4,7 @@ use super::Vertexable;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-struct TextureVertex {
+pub struct TextureVertex {
     position: [f32; 3],
     tex_coords: [f32; 2],
 }

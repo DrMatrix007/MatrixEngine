@@ -7,10 +7,15 @@ use wgpu::{
 };
 use winit::window::{Window, WindowId};
 
-use crate::engine::{
-    events::{MatrixEvent, MatrixEventable},
-    query::{ReadE, ReadR, ReadSystemID, WriteE, WriteR},
+use crate::{
+    engine::{
+        events::{MatrixEvent, MatrixEventable},
+        query::{ReadE, ReadR, ReadSystemID, WriteE, WriteR},
+    },
+    renderer::pipelines::{device_queue::DeviceQueue, shaders::MatrixShaders, MatrixPipelineArgs},
 };
+
+use super::pipelines::{vertecies::texture_vertex::TextureVertex, MatrixPipeline};
 
 pub struct RendererResource {
     pub(crate) device: Arc<Device>,
@@ -18,6 +23,7 @@ pub struct RendererResource {
     pub(crate) current_window_id: WindowId,
     pub(crate) surface: Surface<'static>,
     pub(crate) surface_config: SurfaceConfiguration,
+    pub(crate) pipeline: MatrixPipeline<TextureVertex>,
 }
 
 fn create_render_resource(window: &Window) -> RendererResource {
@@ -78,13 +84,25 @@ fn create_render_resource(window: &Window) -> RendererResource {
 
     surface.configure(&device, &surface_config);
 
+    let device = Arc::new(device);
+    let queue = Arc::new(queue);
+
+    let device_queue = DeviceQueue::new(device.clone(), queue.clone());
+
+    let pipeline = MatrixPipeline::new(MatrixPipelineArgs {
+        shaders: MatrixShaders::new(&device_queue, include_str!("shaders.wgsl")),
+        device_queue,
+        surface_config: &surface_config,
+    });
+
     println!("created! - device name is {}", adapter.get_info().name);
     RendererResource {
         current_window_id: window.id(),
-        device: Arc::new(device),
-        queue: Arc::new(queue),
+        device,
+        queue,
         surface,
         surface_config,
+        pipeline,
     }
 }
 fn block_on<T>(future: impl Future<Output = T>) -> T {

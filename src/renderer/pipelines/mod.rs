@@ -11,6 +11,8 @@ use wgpu::{
 pub mod device_queue;
 pub mod shaders;
 pub mod vertecies;
+pub mod bind_groups;
+pub mod textures;
 
 pub struct MatrixPipelineArgs<'a, Vertex: Vertexable> {
     pub device_queue: DeviceQueue,
