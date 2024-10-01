@@ -1,4 +1,4 @@
-use std::future::Future;
+use std::{future::Future, sync::Arc};
 
 use tokio::runtime::Builder;
 use wgpu::{
@@ -13,8 +13,8 @@ use crate::engine::{
 };
 
 pub struct RendererResource {
-    pub(crate) device: Device,
-    pub(crate) queue: Queue,
+    pub(crate) device: Arc<Device>,
+    pub(crate) queue: Arc<Queue>,
     pub(crate) current_window_id: WindowId,
     pub(crate) surface: Surface<'static>,
     pub(crate) surface_config: SurfaceConfiguration,
@@ -81,8 +81,8 @@ fn create_render_resource(window: &Window) -> RendererResource {
     println!("created! - device name is {}", adapter.get_info().name);
     RendererResource {
         current_window_id: window.id(),
-        device,
-        queue,
+        device: Arc::new(device),
+        queue: Arc::new(queue),
         surface,
         surface_config,
     }
