@@ -23,7 +23,7 @@ pub struct RendererResource {
     pub(crate) current_window_id: WindowId,
     pub(crate) surface: Surface<'static>,
     pub(crate) surface_config: SurfaceConfiguration,
-    pub(crate) pipeline: MatrixPipeline<TextureVertex>,
+    pub(crate) pipeline: MatrixPipeline<TextureVertex, ()>,
 }
 
 fn create_render_resource(window: &Window) -> RendererResource {
@@ -162,7 +162,7 @@ pub(crate) fn renderer_system<CustomEvents: MatrixEventable>(
                 label: Some("main render encoder"),
             });
         {
-            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
@@ -181,6 +181,12 @@ pub(crate) fn renderer_system<CustomEvents: MatrixEventable>(
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });
+
+            {
+                renderer.pipeline.setup_pass(&mut render_pass);
+                renderer.pipeline.setup_groups(&mut render_pass, ());
+                render_pass.draw(0..2, 0..1);
+            }
         }
 
         // submit will accept anything that implements IntoIter

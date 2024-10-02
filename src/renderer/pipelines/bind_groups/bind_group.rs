@@ -49,12 +49,15 @@ pub trait MatrixBindGroupable {
 macro_rules! impl_group {
     ($($t:tt)*) => {
         impl<$($t:MatrixBindable,)*> MatrixBindGroupable for ($($t,)*) {
+            #[allow(non_snake_case)]
             fn create_group_layout(device_queue:&DeviceQueue) -> BindGroupLayout {
+                let mut i = 0;
+                $(let $t =$t::bind_layout_entry({i+=1;i-1});)*
                 device_queue
                     .device()
                     .create_bind_group_layout(&BindGroupLayoutDescriptor {
                         label: Some(Self::layout_name()),
-                        entries: &[$($t::bind_layout_entry(),)*],
+                        entries: &[$($t,)*],
                     })
              }
             fn create_group(&self,device_queue:&DeviceQueue, layout: &MatrixBindGroupLayout<Self>) -> BindGroup where Self:Sized {

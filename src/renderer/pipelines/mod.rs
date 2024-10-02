@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use bind_groups::bind_group_group::MatrixBindGroupableGroupable;
 use device_queue::DeviceQueue;
 use shaders::MatrixShaders;
 use vertecies::Vertexable;
@@ -8,11 +9,11 @@ use wgpu::{
     SurfaceConfiguration,
 };
 
+pub mod bind_groups;
 pub mod device_queue;
 pub mod shaders;
-pub mod vertecies;
-pub mod bind_groups;
 pub mod textures;
+pub mod vertecies;
 
 pub struct MatrixPipelineArgs<'a, Vertex: Vertexable> {
     pub device_queue: DeviceQueue,
@@ -20,21 +21,27 @@ pub struct MatrixPipelineArgs<'a, Vertex: Vertexable> {
     pub surface_config: &'a SurfaceConfiguration,
 }
 
-pub struct MatrixPipeline<Vertex: Vertexable> {
+pub struct MatrixPipeline<Vertex: Vertexable, BindGroupGroup: MatrixBindGroupableGroupable> {
     device_queue: DeviceQueue,
     pipeline: RenderPipeline,
+    layouts: BindGroupGroup::Layouts,
     marker: PhantomData<(Vertex,)>,
 }
 
-impl<Vertex: Vertexable> MatrixPipeline<Vertex> {
+impl<Vertex: Vertexable, BindGroupGroup: MatrixBindGroupableGroupable>
+    MatrixPipeline<Vertex, BindGroupGroup>
+{
     pub fn new(args: MatrixPipelineArgs<Vertex>) -> Self {
         let device_queue = args.device_queue;
+
+        let layouts = BindGroupGroup::create_layouts(&device_queue);
+
         let pipeline_layout =
             device_queue
                 .device()
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: Some("matrix pipeline layout"),
-                    bind_group_layouts: &[],
+                    bind_group_layouts: &BindGroupGroup::as_slice(&layouts),
                     push_constant_ranges: &[],
                 });
 
@@ -82,7 +89,20 @@ impl<Vertex: Vertexable> MatrixPipeline<Vertex> {
         Self {
             device_queue,
             pipeline,
+            layouts,
             marker: PhantomData,
         }
+    }
+
+    pub(crate) fn setup_pass(&self, pass: &mut wgpu::RenderPass<'_>) {
+        pass.set_pipeline(&self.pipeline);
+    }
+
+    pub(crate) fn setup_groups(
+        &self,
+        pass: &mut wgpu::RenderPass,
+        groups: BindGroupGroup::Groups<'_>,
+    ) {
+        BindGroupGroup::setup_pass(pass, groups);
     }
 }

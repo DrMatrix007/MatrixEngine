@@ -30,7 +30,8 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
                 v.push(1.0 / (now - latest).as_secs_f32());
 
                 if (now - latest_second).as_secs() > 0 {
-                    println!("fps: {:10.2}", v.iter().sum::<f32>() / v.len() as f32);
+                    let fps =v.iter().sum::<f32>() / v.len() as f32;
+                    println!("fps: {:10.5}, {:10.5}", fps, 1.0/fps);
                     latest_second = now;
                 }
                 latest = now;
