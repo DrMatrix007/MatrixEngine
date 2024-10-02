@@ -2,13 +2,9 @@ use std::time::Instant;
 
 use matrix_engine::{
     engine::{
-        events::{MatrixEvent, MatrixEventable},
-        plugins::{window_plugin::WindowPlugin, Plugin},
-        query::{ReadE, ReadSystemID, WriteE},
-        runtimes::single_threaded::SingleThreaded,
-        Engine, EngineArgs,
+        entity::Entity, events::{MatrixEvent, MatrixEventable}, plugins::{window_plugin::WindowPlugin, Plugin}, query::{ReadE, ReadSystemID, WriteC, WriteE}, runtimes::single_threaded::SingleThreaded, Engine, EngineArgs
     },
-    renderer::renderer_plugin::RendererPlugin,
+    renderer::{pipelines::models::square::Square, render_object::RenderObject, renderer_plugin::RendererPlugin},
 };
 use winit::keyboard::KeyCode;
 
@@ -30,8 +26,8 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
                 v.push(1.0 / (now - latest).as_secs_f32());
 
                 if (now - latest_second).as_secs() > 0 {
-                    let fps =v.iter().sum::<f32>() / v.len() as f32;
-                    println!("fps: {:10.5}, {:10.5}", fps, 1.0/fps);
+                    let fps = v.iter().sum::<f32>() / v.len() as f32;
+                    println!("fps: {:10.5}, {:10.5}", fps, 1.0 / fps);
                     latest_second = now;
                 }
                 latest = now;
@@ -41,6 +37,12 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
                 }
             },
         );
+        scene.add_send_startup_system(|data: &mut WriteC<RenderObject>| {
+            data.insert(
+                Entity::new(),
+                RenderObject::new(Square, "./img.jpg".to_string()),
+            );
+        });
     }
 }
 

@@ -11,6 +11,7 @@ use wgpu::{
 
 pub mod bind_groups;
 pub mod device_queue;
+pub mod models;
 pub mod shaders;
 pub mod textures;
 pub mod vertecies;
@@ -104,5 +105,19 @@ impl<Vertex: Vertexable, BindGroupGroup: MatrixBindGroupableGroupable>
         groups: BindGroupGroup::Groups<'_>,
     ) {
         BindGroupGroup::setup_pass(pass, groups);
+    }
+
+    pub fn layouts(&self) -> &BindGroupGroup::Layouts {
+        &self.layouts
+    }
+
+    pub(crate) fn setup_buffers(
+        &self,
+        render_pass: &mut wgpu::RenderPass<'_>,
+        vertex_buffer: &wgpu::Buffer,
+        index_buffer: &wgpu::Buffer,
+    ) {
+        render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+        render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
     }
 }

@@ -1,3 +1,5 @@
+use std::{fs, path::Path};
+
 use image::ImageError;
 use wgpu::{
     BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
@@ -73,6 +75,16 @@ impl MatrixTexture {
             view,
             sampler,
         })
+    }
+
+    pub(crate) fn from_path(
+        device_queue: &DeviceQueue,
+        texture_path: impl AsRef<Path>,
+    ) -> Result<MatrixTexture, ImageError> {
+        Self::new(
+            device_queue,
+            &fs::read(texture_path).expect("this file should exist"),
+        )
     }
 }
 

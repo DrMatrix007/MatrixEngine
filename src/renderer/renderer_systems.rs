@@ -10,20 +10,26 @@ use winit::window::{Window, WindowId};
 use crate::{
     engine::{
         events::{MatrixEvent, MatrixEventable},
-        query::{ReadE, ReadR, ReadSystemID, WriteE, WriteR},
+        query::{ReadC, ReadE, ReadR, ReadSystemID, WriteE, WriteR},
     },
     renderer::pipelines::{device_queue::DeviceQueue, shaders::MatrixShaders, MatrixPipelineArgs},
 };
 
-use super::pipelines::{vertecies::texture_vertex::TextureVertex, MatrixPipeline};
+use super::{
+    atlas::Atlas,
+    pipelines::{
+        textures::MatrixTexture, vertecies::texture_vertex::TextureVertex, MatrixPipeline,
+    },
+    render_object::RenderObject,
+};
 
 pub struct RendererResource {
-    pub(crate) device: Arc<Device>,
-    pub(crate) queue: Arc<Queue>,
+    pub(crate) device_queue: DeviceQueue,
     pub(crate) current_window_id: WindowId,
     pub(crate) surface: Surface<'static>,
     pub(crate) surface_config: SurfaceConfiguration,
-    pub(crate) pipeline: MatrixPipeline<TextureVertex, ()>,
+    pub(crate) pipeline: MatrixPipeline<TextureVertex, (MatrixTexture,)>,
+    pub(crate) atlas: Atlas,
 }
 
 fn create_render_resource(window: &Window) -> RendererResource {
@@ -98,11 +104,11 @@ fn create_render_resource(window: &Window) -> RendererResource {
     println!("created! - device name is {}", adapter.get_info().name);
     RendererResource {
         current_window_id: window.id(),
-        device,
-        queue,
+        device_queue: DeviceQueue::new(device, queue),
         surface,
         surface_config,
         pipeline,
+        atlas: Atlas::new(),
     }
 }
 fn block_on<T>(future: impl Future<Output = T>) -> T {
@@ -138,13 +144,14 @@ pub(crate) fn handle_resize<CustomEvents: MatrixEventable>(
             render.surface_config.height = new_size.height;
             render
                 .surface
-                .configure(&render.device, &render.surface_config);
+                .configure(&render.device_queue.device(), &render.surface_config);
         }
     }
 }
 
 pub(crate) fn renderer_system<CustomEvents: MatrixEventable>(
     renderer: &mut WriteR<RendererResource, CustomEvents>,
+    objects: &mut ReadC<RenderObject>,
 ) {
     if let Some(renderer) = renderer.get_mut() {
         let output = if let Ok(output) = renderer.surface.get_current_texture() {
@@ -156,11 +163,13 @@ pub(crate) fn renderer_system<CustomEvents: MatrixEventable>(
             .texture
             .create_view(&TextureViewDescriptor::default());
 
-        let mut encoder = renderer
-            .device
-            .create_command_encoder(&CommandEncoderDescriptor {
-                label: Some("main render encoder"),
-            });
+        let mut encoder =
+            renderer
+                .device_queue
+                .device()
+                .create_command_encoder(&CommandEncoderDescriptor {
+                    label: Some("main render encoder"),
+                });
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
@@ -181,16 +190,38 @@ pub(crate) fn renderer_system<CustomEvents: MatrixEventable>(
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });
-
             {
-                renderer.pipeline.setup_pass(&mut render_pass);
-                renderer.pipeline.setup_groups(&mut render_pass, ());
-                render_pass.draw(0..2, 0..1);
+                renderer.atlas.reset();
+
+                for (_, obj) in objects.iter() {
+                    renderer.atlas.write(
+                        &renderer.device_queue,
+                        obj,
+                        &renderer.pipeline.layouts().0,
+                    );
+                }
+                for instace in renderer.atlas.instances() {
+                    renderer.pipeline.setup_pass(&mut render_pass);
+                    renderer
+                        .pipeline
+                        .setup_groups(&mut render_pass, (instace.texture_group(),));
+                    renderer.pipeline.setup_buffers(
+                        &mut render_pass,
+                        instace.vertex_buffer(),
+                        instace.index_buffer(),
+                    );
+
+                    render_pass.draw_indexed(0..instace.num_indices(), 0, 0..1);
+                }
+                renderer.atlas.try_shrink(&renderer.device_queue);
             }
         }
 
         // submit will accept anything that implements IntoIter
-        renderer.queue.submit(std::iter::once(encoder.finish()));
+        renderer
+            .device_queue
+            .queue()
+            .submit(std::iter::once(encoder.finish()));
         output.present();
     }
 }
