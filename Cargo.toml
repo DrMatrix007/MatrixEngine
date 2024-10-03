@@ -3,7 +3,7 @@ name = "matrix_engine"
 version = "0.1.0"
 edition = "2021"
 description = "a small game engine developed by drmatrix"
-license = ""
+license = "MIT"
 
 
 [dependencies]
