@@ -14,8 +14,8 @@ pub struct Camera {
     pub eye: Vector3<f32>,
     pub dir: Vector3<f32>,
     pub up: Vector3<f32>,
-    pub aspect: f32,
     pub fovy: f32,
+    pub aspect: f32,
     pub znear: f32,
     pub zfar: f32,
 }
@@ -26,15 +26,16 @@ impl Camera {
 
         let proj = Matrix4::perspective(self.fovy, self.aspect, self.znear, self.zfar);
 
-        let opengl_to_wgpu = Matrix4::from_storage([
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 0.5, 0.5],
-            [0.0, 0.0, 0.0, 1.0],
-        ]);
+        // let opengl_to_wgpu = Matrix4::from_storage([
+        //     [1.0, 0.0, 0.0, 0.0],
+        //     [0.0, 1.0, 0.0, 0.0],
+        //     [0.0, 0.0, 0.5, 0.5],
+        //     [0.0, 0.0, 0.0, 1.0],
+        // ]);
 
-        &(&opengl_to_wgpu * &view) * &proj
-        // &view * &proj
+        // &opengl_to_wgpu * &(&view * &proj)
+        &view * &proj
+        // view
     }
 }
 

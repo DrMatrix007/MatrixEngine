@@ -9,8 +9,10 @@ use winit::window::{Window, WindowId};
 
 use crate::{
     engine::{
+        component_iters::IntoWrapper,
         events::{MatrixEvent, MatrixEventable},
         query::{ReadC, ReadE, ReadR, ReadSystemID, WriteE, WriteR},
+        transform::{Transform, TransformRaw},
     },
     renderer::pipelines::{device_queue::DeviceQueue, shaders::MatrixShaders, MatrixPipelineArgs},
 };
@@ -19,8 +21,10 @@ use super::{
     atlas::Atlas,
     camera::{Camera, CameraUniform},
     pipelines::{
-        bind_groups::bind_group::MatrixBindGroup, textures::MatrixTexture,
-        vertecies::texture_vertex::TextureVertex, MatrixPipeline,
+        bind_groups::bind_group::MatrixBindGroup,
+        textures::MatrixTexture,
+        vertecies::texture_vertex::{TextureVertex, TextureVertexBuffers},
+        MatrixPipeline,
     },
     render_object::RenderObject,
 };
@@ -30,7 +34,8 @@ pub struct RendererResource {
     pub(crate) current_window_id: WindowId,
     pub(crate) surface: Surface<'static>,
     pub(crate) surface_config: SurfaceConfiguration,
-    pub(crate) pipeline: MatrixPipeline<TextureVertex, (MatrixTexture, (CameraUniform,))>,
+    pub(crate) pipeline:
+        MatrixPipeline<(TextureVertex, TransformRaw), (MatrixTexture, (CameraUniform,))>,
     pub(crate) atlas: Atlas,
     pub(crate) camera_uniform: (CameraUniform,),
     pub(crate) camera_binding_group: MatrixBindGroup<(CameraUniform,)>,
@@ -97,13 +102,12 @@ fn create_render_resource(window: &Window) -> RendererResource {
 
     let device_queue = DeviceQueue::new(device.clone(), queue.clone());
 
-    let pipeline = MatrixPipeline::<TextureVertex, (MatrixTexture, (CameraUniform,))>::new(
-        MatrixPipelineArgs {
+    let pipeline =
+        MatrixPipeline::<_, (MatrixTexture, (CameraUniform,))>::new(MatrixPipelineArgs {
             shaders: MatrixShaders::new(&device_queue, include_str!("shaders.wgsl")),
             device_queue,
             surface_config: &surface_config,
-        },
-    );
+        });
 
     let device_queue = DeviceQueue::new(device, queue);
 
@@ -152,21 +156,30 @@ pub(crate) fn create_renderer_resource<CustomEvents: MatrixEventable>(
 pub(crate) fn handle_resize<CustomEvents: MatrixEventable>(
     events: &mut ReadE<CustomEvents>,
     renderer: &mut WriteR<RendererResource, CustomEvents>,
+    camera: &mut WriteR<Camera, CustomEvents>,
 ) {
-    if let (Some(new_size), Some(render)) = (events.new_inner_size(), renderer.get_mut()) {
+    if let (Some(new_size), Some(renderer)) = (events.new_inner_size(), renderer.get_mut()) {
         if new_size.width * new_size.height > 0 {
-            render.surface_config.width = new_size.width;
-            render.surface_config.height = new_size.height;
-            render
+            renderer.surface_config.width = new_size.width;
+            renderer.surface_config.height = new_size.height;
+            renderer
                 .surface
-                .configure(render.device_queue.device(), &render.surface_config);
+                .configure(renderer.device_queue.device(), &renderer.surface_config);
+            renderer
+                .pipeline
+                .configure_depth(&renderer.device_queue, &renderer.surface_config);
+        }
+        if let Some(camera) = camera.get_mut() {
+            camera.aspect =
+                renderer.surface_config.width as f32 / renderer.surface_config.height as f32
         }
     }
 }
 
 pub(crate) fn renderer_system<CustomEvents: MatrixEventable>(
     renderer: &mut WriteR<RendererResource, CustomEvents>,
-    objects: &mut ReadC<RenderObject>,
+    mut objects: &mut ReadC<RenderObject>,
+    mut transforms: &mut ReadC<Transform>,
     camera: &mut ReadR<Camera>,
 ) {
     if let Some(renderer) = renderer.get_mut() {
@@ -209,20 +222,35 @@ pub(crate) fn renderer_system<CustomEvents: MatrixEventable>(
                         store: wgpu::StoreOp::Store,
                     },
                 })],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: renderer.pipeline.depth_texture().view(),
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: wgpu::StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });
             {
                 renderer.atlas.reset();
 
-                for (_, obj) in objects.iter() {
-                    renderer.atlas.write(
-                        &renderer.device_queue,
-                        obj,
-                        &renderer.pipeline.layouts().0,
-                    );
+                // for (_, obj, transform) in objects
+                //     .iter()
+                //     .filter_map(|(e, obj)| transforms.get(e).map(move |t| (e, obj, t)))
+                {
+                    for (_, (obj, transform)) in (objects.iter(), transforms.iter()).into_wrapper()
+                    {
+                        renderer.atlas.write(
+                            &renderer.device_queue,
+                            obj,
+                            transform,
+                            &renderer.pipeline.layouts().0,
+                        );
+                    }
                 }
+                renderer.atlas.update_buffers(&renderer.device_queue);
                 for instace in renderer.atlas.instances() {
                     renderer.pipeline.setup_pass(&mut render_pass);
                     renderer.pipeline.setup_groups(
@@ -231,11 +259,16 @@ pub(crate) fn renderer_system<CustomEvents: MatrixEventable>(
                     );
                     renderer.pipeline.setup_buffers(
                         &mut render_pass,
-                        instace.vertex_buffer(),
-                        instace.index_buffer(),
+                        (
+                            TextureVertexBuffers {
+                                vertex_buffer: instace.vertex_buffer(),
+                                index_buffer: instace.index_buffer(),
+                            },
+                            instace.instance_buffer(),
+                        ),
                     );
 
-                    render_pass.draw_indexed(0..instace.num_indices(), 0, 0..1);
+                    render_pass.draw_indexed(0..instace.num_indices(), 0, 0..instace.instaces());
                 }
                 renderer.atlas.try_shrink(&renderer.device_queue);
             }

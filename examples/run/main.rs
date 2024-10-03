@@ -7,13 +7,12 @@ use matrix_engine::{
         plugins::{window_plugin::WindowPlugin, Plugin},
         query::{ReadE, ReadSystemID, WriteC, WriteE, WriteR},
         runtimes::single_threaded::SingleThreaded,
+        transform::Transform,
         Engine, EngineArgs,
     },
     math::matrix::{Vector3, Vector4},
     renderer::{
-        camera::Camera,
-        pipelines::models::{sphere::Sphere, square::Square},
-        render_object::RenderObject,
+        camera::Camera, pipelines::models::{cube::Cube, square::Square}, render_object::RenderObject,
         renderer_plugin::RendererPlugin,
     },
 };
@@ -49,15 +48,30 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
             },
         );
         scene.add_send_startup_system(
-            |data: &mut WriteC<RenderObject>, camera: &mut WriteR<Camera, CustomEvents>| {
-                data.insert(
-                    Entity::new(),
-                    RenderObject::new(Square, "./img.jpg".to_string()),
-                );
+            |render_objs: &mut WriteC<RenderObject>,
+             transforms: &mut WriteC<Transform>,
+             camera: &mut WriteR<Camera, CustomEvents>| {
+                for i in 0..100 {
+                    for y in 0..100 {
+                        for z in 0..100 {
+                            let e = Entity::new();
+                            render_objs
+                                .insert(e, RenderObject::new(Cube, "./img.jpg".to_string()));
+                            transforms.insert(
+                                e,
+                                Transform::new_position(Vector3::new(
+                                    5.0 * i as f32,
+                                    5.0 * y as f32,
+                                    5.0 * z as f32,
+                                )),
+                            );
+                        }
+                    }
+                }
 
                 camera.insert_and_notify(Camera {
                     eye: Vector3::new(0.0, 0.0, -1.),
-                    dir: Vector3::new(0., 0., 2.),
+                    dir: Vector3::new(1., 0., 0.),
                     up: Vector3::new(0., 1., 0.),
                     aspect: 1.,
                     fovy: PI / 4.,
@@ -74,7 +88,7 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
                 if let Some(camera) = camera.get_mut() {
                     let dt = events.dt();
                     let move_speed = dt * 3.;
-                    let rotation_speed = dt;
+                    let rotation_speed = dt * camera.fovy / PI;
 
                     // Get forward (z-axis), right (x-axis), and up (y-axis) direction vectors
                     let forward = camera.dir.normalized();

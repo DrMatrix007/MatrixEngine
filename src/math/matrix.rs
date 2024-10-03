@@ -75,11 +75,11 @@ impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, 
     }
 
     pub fn iter(&self) -> impl Iterator<Item = ((usize, usize), &T)> {
-        self.storage.iter()
+        self.storage.iter_pos()
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = ((usize, usize), &mut T)> {
-        self.storage.iter_mut()
+        self.storage.iter_pos_mut()
     }
 }
 

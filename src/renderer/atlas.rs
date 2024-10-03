@@ -5,13 +5,15 @@ use wgpu::{
     CommandEncoderDescriptor,
 };
 
+use crate::engine::transform::{Transform, TransformRaw};
+
 use super::{
     pipelines::{
         bind_groups::bind_group::{MatrixBindGroup, MatrixBindGroupLayout},
         device_queue::DeviceQueue,
         models::Model,
         textures::MatrixTexture,
-        vertecies::{texture_vertex::TextureVertex, Vertexable},
+        vertecies::{texture_vertex::TextureVertex, MatrixVertexBufferable},
     },
     render_object::RenderObject,
 };
@@ -19,7 +21,7 @@ use super::{
 #[derive(Debug)]
 struct InstanceVector<T> {
     buffer: Arc<Buffer>,
-    staging_buffer: Arc<Buffer>,
+    staging_vec: Vec<T>,
     size: usize,
     _marker: std::marker::PhantomData<T>,
 }
@@ -33,17 +35,11 @@ impl<T: bytemuck::Pod> InstanceVector<T> {
                 label: Some("Vector Buffer"),
                 size: (size * std::mem::size_of::<T>()) as u64,
                 usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::COPY_SRC,
-                mapped_at_creation: false,
+                mapped_at_creation: true,
             });
-        let staging_buffer = device_queue.device().create_buffer(&BufferDescriptor {
-            label: Some("Stage Buffer"),
-            size: std::mem::size_of::<T>() as BufferAddress,
-            usage: BufferUsages::COPY_DST | BufferUsages::COPY_SRC,
-            mapped_at_creation: false,
-        });
         Self {
             buffer: Arc::new(buffer),
-            staging_buffer: Arc::new(staging_buffer),
+            staging_vec: Vec::new(),
             size,
             _marker: std::marker::PhantomData,
         }
@@ -63,13 +59,17 @@ impl<T: bytemuck::Pod> InstanceVector<T> {
 
     fn clear(&mut self) {
         self.size = 0;
+        self.staging_vec.clear();
     }
 
-    pub fn push(&mut self, device_queue: &DeviceQueue, element: T) {
+    pub fn push(&mut self, element: T) {
+        self.staging_vec.push(element);
         // If the current size equals the capacity, we need to grow the buffer
-        if self.size == self.capacity() {
+    }
+    pub fn save_to_buffer(&mut self, device_queue: &DeviceQueue) {
+        if self.staging_vec.capacity() > self.capacity() {
             // Double the capacity or set it to 1 if it's 0
-            let new_size = if self.size == 0 { 1 } else { self.size * 2 };
+            let new_size = self.staging_vec.capacity();
 
             // Create a new buffer with the new size
             let new_buffer = device_queue
@@ -81,25 +81,6 @@ impl<T: bytemuck::Pod> InstanceVector<T> {
                     mapped_at_creation: false,
                 });
 
-            // Copy the existing buffer contents to the new buffer
-            let mut encoder =
-                device_queue
-                    .device()
-                    .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                        label: Some("Buffer Copy Encoder"),
-                    });
-
-            encoder.copy_buffer_to_buffer(
-                &self.buffer,
-                0,
-                &new_buffer,
-                0,
-                (self.size * std::mem::size_of::<T>()) as u64,
-            );
-
-            device_queue.queue().submit(Some(encoder.finish()));
-
-            // Replace the old buffer with the new buffer
             self.buffer = Arc::new(new_buffer);
         }
 
@@ -107,11 +88,11 @@ impl<T: bytemuck::Pod> InstanceVector<T> {
         device_queue.queue().write_buffer(
             &self.buffer,
             (self.size() * core::mem::size_of::<T>()) as BufferAddress,
-            bytemuck::bytes_of(&element),
+            bytemuck::cast_slice(self.staging_vec.as_slice()),
         );
 
         // Increment the size
-        self.size += 1;
+        self.size = self.staging_vec.len();
     }
 
     pub fn shrink_buffer(&mut self, device_queue: &DeviceQueue) {
@@ -120,7 +101,7 @@ impl<T: bytemuck::Pod> InstanceVector<T> {
             return;
         }
         // Shrink the buffer by half until it fits the current number of elements
-        while new_size > self.size {
+        while new_size > self.size * 2 {
             new_size /= 2;
         }
 
@@ -159,19 +140,19 @@ pub struct InstancedType {
 }
 
 impl InstancedType {
-    pub fn new<V: Vertexable>(texture_path: String, model: &dyn Model<V>) -> Self {
+    pub fn new(texture_path: String, model: TypeId) -> Self {
         Self {
             texture_path,
-            model: model.type_id(),
+            model,
         }
     }
     pub fn from_obj(obj: &RenderObject) -> Self {
-        Self::new(obj.texture_path.clone(), &*obj.model)
+        Self::new(obj.texture_path.clone(), obj.model_type_id)
     }
 }
 
 pub struct InstanceData {
-    transforms: InstanceVector<u8>,
+    transforms: InstanceVector<TransformRaw>,
     texture: MatrixTexture,
     texture_group: MatrixBindGroup<MatrixTexture>,
     vertex_buffer: Arc<Buffer>,
@@ -227,6 +208,14 @@ impl InstanceData {
     pub fn num_indices(&self) -> u32 {
         self.num_indices
     }
+
+    pub(crate) fn instance_buffer(&self) -> &Buffer {
+        self.transforms.buffer()
+    }
+
+    pub(crate) fn instaces(&self) -> u32 {
+        self.transforms.size() as _
+    }
 }
 
 pub(crate) struct Atlas {
@@ -256,20 +245,31 @@ impl Atlas {
         &mut self,
         device_queue: &DeviceQueue,
         obj: &RenderObject,
+        tranform: &Transform,
         texture_layout: &MatrixBindGroupLayout<MatrixTexture>,
     ) {
         let t = InstancedType::from_obj(obj);
-        self.data.entry(t).or_insert_with(|| {
-            InstanceData::new(
-                device_queue,
-                MatrixTexture::from_path(device_queue, &obj.texture_path).unwrap(),
-                texture_layout,
-                &*obj.model,
-            )
-        });
+        self.data
+            .entry(t)
+            .or_insert_with(|| {
+                InstanceData::new(
+                    device_queue,
+                    MatrixTexture::from_path(device_queue, &obj.texture_path).unwrap(),
+                    texture_layout,
+                    &*obj.model,
+                )
+            })
+            .transforms
+            .push(*tranform.raw());
     }
 
     pub(crate) fn instances(&self) -> impl Iterator<Item = &'_ InstanceData> {
         self.data.values()
+    }
+
+    pub(crate) fn update_buffers(&mut self, device_queue: &DeviceQueue) {
+        for i in self.data.values_mut() {
+            i.transforms.save_to_buffer(device_queue);
+        }
     }
 }

@@ -3,7 +3,7 @@ use std::fmt::Display;
 use num_traits::Float;
 
 use super::{
-    matrix::{Matrix4, Vector3},
+    matrix::{Matrix4, Vector3, Vector4},
     number::Number,
 };
 
@@ -51,5 +51,56 @@ impl<T: Number + Float + Display> Matrix4<T> {
             [c2r0, c2r1, c2r2, c2r3],
             [c3r0, c3r1, c3r2, c3r3],
         ])
+    }
+
+    pub fn from_position(position: &Vector3<T>) -> Self {
+        Self::from_storage([
+            [T::one(), T::zero(), T::zero(), T::zero()],
+            [T::zero(), T::one(), T::zero(), T::zero()],
+            [T::zero(), T::zero(), T::one(), T::zero()],
+            [*position.x(), *position.y(), *position.z(), T::one()],
+        ])
+    }
+
+    pub fn from_quaternion(quat: &Vector4<T>) -> Self {
+        let x2 = *quat.x() + *quat.x();
+        let y2 = *quat.y() + *quat.y();
+        let z2 = *quat.z() + *quat.z();
+
+        let xx2 = x2 * *quat.x();
+        let xy2 = x2 * *quat.y();
+        let xz2 = x2 * *quat.z();
+
+        let yy2 = y2 * *quat.y();
+        let yz2 = y2 * *quat.z();
+        let zz2 = z2 * *quat.z();
+
+        let sy2 = y2 * *quat.w(); // `w()` is the scalar part of the quaternion
+        let sz2 = z2 * *quat.w();
+        let sx2 = x2 * *quat.w();
+
+        // Use from_storage to construct the matrix from the array
+        Matrix4::from_storage([
+            [T::one() - yy2 - zz2, xy2 + sz2, xz2 - sy2, T::zero()],
+            [xy2 - sz2, T::one() - xx2 - zz2, yz2 + sx2, T::zero()],
+            [xz2 + sy2, yz2 - sx2, T::one() - xx2 - yy2, T::zero()],
+            [T::zero(), T::zero(), T::zero(), T::one()],
+        ])
+    }
+}
+
+impl<T: Number + Float> Vector4<T> {
+    pub fn from_euler_to_quaternion(src: &Vector3<T>) -> Self {
+        let half = num_traits::cast(1.0f64).unwrap();
+        let (s_x, c_x) = (*src.x() * half).sin_cos();
+        let (s_y, c_y) = (*src.y() * half).sin_cos();
+        let (s_z, c_z) = (*src.z() * half).sin_cos();
+
+        Vector4::new(
+            -s_x * s_y * s_z + c_x * c_y * c_z,
+            s_x * c_y * c_z + s_y * s_z * c_x,
+            -s_x * s_z * c_y + s_y * c_x * c_z,
+            s_x * s_y * c_z + s_z * c_x * c_y,
+        )
     }
 }

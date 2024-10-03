@@ -3,10 +3,11 @@ use std::marker::PhantomData;
 use bind_groups::bind_group_group::MatrixBindGroupableGroupable;
 use device_queue::DeviceQueue;
 use shaders::MatrixShaders;
-use vertecies::Vertexable;
+use textures::MatrixTexture;
+use vertecies::{MatrixVertexBufferable, MatrixVertexBufferableGroupable};
 use wgpu::{
-    BlendState, ColorTargetState, ColorWrites, PipelineCompilationOptions, RenderPipeline,
-    SurfaceConfiguration,
+    BlendState, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState,
+    PipelineCompilationOptions, RenderPipeline, StencilState, SurfaceConfiguration, TextureFormat,
 };
 
 pub mod bind_groups;
@@ -22,14 +23,18 @@ pub struct MatrixPipelineArgs<'a> {
     pub surface_config: &'a SurfaceConfiguration,
 }
 
-pub struct MatrixPipeline<Vertex: Vertexable, BindGroupGroup: MatrixBindGroupableGroupable> {
+pub struct MatrixPipeline<
+    Vertex: MatrixVertexBufferableGroupable,
+    BindGroupGroup: MatrixBindGroupableGroupable,
+> {
     device_queue: DeviceQueue,
     pipeline: RenderPipeline,
     layouts: BindGroupGroup::Layouts,
+    depth_texture: MatrixTexture,
     marker: PhantomData<(Vertex,)>,
 }
 
-impl<Vertex: Vertexable, BindGroupGroup: MatrixBindGroupableGroupable>
+impl<Vertex: MatrixVertexBufferableGroupable, BindGroupGroup: MatrixBindGroupableGroupable>
     MatrixPipeline<Vertex, BindGroupGroup>
 {
     pub fn new(args: MatrixPipelineArgs) -> Self {
@@ -46,6 +51,8 @@ impl<Vertex: Vertexable, BindGroupGroup: MatrixBindGroupableGroupable>
                     push_constant_ranges: &[],
                 });
 
+        let depth_texture = MatrixTexture::create_depth_texture(&device_queue, args.surface_config);
+
         let pipeline =
             device_queue
                 .device()
@@ -56,7 +63,7 @@ impl<Vertex: Vertexable, BindGroupGroup: MatrixBindGroupableGroupable>
                         module: args.shaders.module(),
                         entry_point: "vs_main",
                         compilation_options: PipelineCompilationOptions::default(),
-                        buffers: &[Vertex::vertex_buffer_layout()],
+                        buffers: &Vertex::vertex_buffer_layouts(),
                     },
                     primitive: wgpu::PrimitiveState {
                         topology: wgpu::PrimitiveTopology::TriangleList,
@@ -67,7 +74,13 @@ impl<Vertex: Vertexable, BindGroupGroup: MatrixBindGroupableGroupable>
                         polygon_mode: wgpu::PolygonMode::Fill,
                         conservative: false,
                     },
-                    depth_stencil: None,
+                    depth_stencil: Some(DepthStencilState {
+                        format: TextureFormat::Depth32Float,
+                        depth_write_enabled: true,
+                        depth_compare: CompareFunction::Less,
+                        stencil: StencilState::default(),
+                        bias: DepthBiasState::default(),
+                    }),
                     multisample: wgpu::MultisampleState {
                         count: 1,
                         mask: !0,
@@ -91,6 +104,7 @@ impl<Vertex: Vertexable, BindGroupGroup: MatrixBindGroupableGroupable>
             device_queue,
             pipeline,
             layouts,
+            depth_texture,
             marker: PhantomData,
         }
     }
@@ -113,11 +127,17 @@ impl<Vertex: Vertexable, BindGroupGroup: MatrixBindGroupableGroupable>
 
     pub(crate) fn setup_buffers(
         &self,
-        render_pass: &mut wgpu::RenderPass<'_>,
-        vertex_buffer: &wgpu::Buffer,
-        index_buffer: &wgpu::Buffer,
+        pass: &mut wgpu::RenderPass<'_>,
+        buffers: Vertex::Buffers<'_>,
     ) {
-        render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-        render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+        Vertex::setup_pass(pass, buffers);
+    }
+    
+    pub(crate) fn depth_texture(&self) -> &MatrixTexture{
+        &self.depth_texture
+    }
+    
+    pub(crate) fn configure_depth(&mut self, device_queue: &DeviceQueue, surface_config: &SurfaceConfiguration) {
+        self.depth_texture = MatrixTexture::create_depth_texture(device_queue, surface_config)
     }
 }

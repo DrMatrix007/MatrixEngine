@@ -10,6 +10,8 @@ pub mod runtimes;
 pub mod scene;
 pub mod systems;
 pub mod typeid;
+pub mod transform;
+pub mod component_iters;
 
 use std::marker::PhantomData;
 
