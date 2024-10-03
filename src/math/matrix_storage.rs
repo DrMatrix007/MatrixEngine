@@ -1,6 +1,8 @@
 use super::number::Number;
 
 pub trait MatrixStoragable<T: Number, const M: usize, const N: usize> {
+    type SelfWith<const A: usize, const B: usize>: MatrixStoragable<T, A, B>;
+
     fn zeros() -> Self;
     fn ones() -> Self;
     fn build_with(f: impl FnMut() -> T) -> Self;
@@ -45,4 +47,6 @@ impl<T: Number, const M: usize, const N: usize> MatrixStoragable<T, M, N> for [[
     fn get_mut(&mut self, (m, n): (usize, usize)) -> &mut T {
         &mut self[m][n]
     }
+    
+    type SelfWith<const A: usize, const B: usize> = [[T;B];A];
 }

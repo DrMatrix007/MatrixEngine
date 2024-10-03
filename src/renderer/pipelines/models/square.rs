@@ -27,6 +27,6 @@ impl Model<TextureVertex> for Square {
     }
 
     fn indexes(&self) -> &'static [u16] {
-        &[0, 2, 1, 2, 3, 0] // Two triangles forming the square
+        &[0, 2, 1, 2, 3, 0, 0, 1, 2, 2, 0, 3] // Two triangles forming the square
     }
 }

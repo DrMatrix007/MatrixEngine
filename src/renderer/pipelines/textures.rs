@@ -2,14 +2,11 @@ use std::{fs, path::Path};
 
 use image::ImageError;
 use wgpu::{
-    BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
-    BindGroupLayoutEntry, Extent3d, Sampler, ShaderStages, Texture, TextureView,
+    BindGroup, BindGroupDescriptor, BindGroupLayoutDescriptor, Extent3d, Sampler, Texture,
+    TextureView,
 };
 
-use super::{
-    bind_groups::{bind::MatrixBindable, bind_group::MatrixBindGroupable},
-    device_queue::DeviceQueue,
-};
+use super::{bind_groups::bind_group::MatrixBindGroupable, device_queue::DeviceQueue};
 
 pub struct MatrixTexture {
     texture: Texture,

@@ -1,15 +1,14 @@
-use std::{borrow::Cow, marker::PhantomData};
+use std::borrow::Cow;
 
 use wgpu::ShaderModule;
 
-use super::{device_queue::DeviceQueue, vertecies::Vertexable};
+use super::device_queue::DeviceQueue;
 
-pub struct MatrixShaders<Vertex: Vertexable> {
+pub struct MatrixShaders {
     module: ShaderModule,
-    marker: PhantomData<Vertex>,
 }
 
-impl<Vertex: Vertexable> MatrixShaders<Vertex> {
+impl MatrixShaders {
     pub fn new(device_queue: &DeviceQueue, shader: impl AsRef<str>) -> Self {
         Self {
             module: device_queue
@@ -18,7 +17,6 @@ impl<Vertex: Vertexable> MatrixShaders<Vertex> {
                     label: Some("matrix shaders"),
                     source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(shader.as_ref())),
                 }),
-            marker: PhantomData,
         }
     }
 

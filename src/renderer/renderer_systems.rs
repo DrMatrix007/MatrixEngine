@@ -2,8 +2,8 @@ use std::{future::Future, sync::Arc};
 
 use tokio::runtime::Builder;
 use wgpu::{
-    CommandEncoderDescriptor, Device, Instance, InstanceDescriptor, Queue, Surface,
-    SurfaceConfiguration, TextureViewDescriptor,
+    CommandEncoderDescriptor, Instance, InstanceDescriptor, Surface, SurfaceConfiguration,
+    TextureViewDescriptor,
 };
 use winit::window::{Window, WindowId};
 
@@ -17,8 +17,10 @@ use crate::{
 
 use super::{
     atlas::Atlas,
+    camera::{Camera, CameraUniform},
     pipelines::{
-        textures::MatrixTexture, vertecies::texture_vertex::TextureVertex, MatrixPipeline,
+        bind_groups::bind_group::MatrixBindGroup, textures::MatrixTexture,
+        vertecies::texture_vertex::TextureVertex, MatrixPipeline,
     },
     render_object::RenderObject,
 };
@@ -28,8 +30,10 @@ pub struct RendererResource {
     pub(crate) current_window_id: WindowId,
     pub(crate) surface: Surface<'static>,
     pub(crate) surface_config: SurfaceConfiguration,
-    pub(crate) pipeline: MatrixPipeline<TextureVertex, (MatrixTexture,)>,
+    pub(crate) pipeline: MatrixPipeline<TextureVertex, (MatrixTexture, (CameraUniform,))>,
     pub(crate) atlas: Atlas,
+    pub(crate) camera_uniform: (CameraUniform,),
+    pub(crate) camera_binding_group: MatrixBindGroup<(CameraUniform,)>,
 }
 
 fn create_render_resource(window: &Window) -> RendererResource {
@@ -68,9 +72,7 @@ fn create_render_resource(window: &Window) -> RendererResource {
     });
 
     let surface_caps = surface.get_capabilities(&adapter);
-    // Shader code in this tutorial assumes an sRGB surface texture. Using a different
-    // one will result in all the colors coming out darker. If you want to support non
-    // sRGB surfaces, you'll need to account for that when drawing to the frame.
+
     let surface_format = surface_caps
         .formats
         .iter()
@@ -95,20 +97,33 @@ fn create_render_resource(window: &Window) -> RendererResource {
 
     let device_queue = DeviceQueue::new(device.clone(), queue.clone());
 
-    let pipeline = MatrixPipeline::new(MatrixPipelineArgs {
-        shaders: MatrixShaders::new(&device_queue, include_str!("shaders.wgsl")),
-        device_queue,
-        surface_config: &surface_config,
-    });
+    let pipeline = MatrixPipeline::<TextureVertex, (MatrixTexture, (CameraUniform,))>::new(
+        MatrixPipelineArgs {
+            shaders: MatrixShaders::new(&device_queue, include_str!("shaders.wgsl")),
+            device_queue,
+            surface_config: &surface_config,
+        },
+    );
+
+    let device_queue = DeviceQueue::new(device, queue);
+
+    let camera_uniform = (CameraUniform::new(&device_queue),);
+
+    let camera_binding_group = pipeline
+        .layouts()
+        .1
+        .create_group(&device_queue, &camera_uniform);
 
     println!("created! - device name is {}", adapter.get_info().name);
     RendererResource {
         current_window_id: window.id(),
-        device_queue: DeviceQueue::new(device, queue),
+        camera_binding_group,
+        camera_uniform,
         surface,
         surface_config,
         pipeline,
         atlas: Atlas::new(),
+        device_queue,
     }
 }
 fn block_on<T>(future: impl Future<Output = T>) -> T {
@@ -144,7 +159,7 @@ pub(crate) fn handle_resize<CustomEvents: MatrixEventable>(
             render.surface_config.height = new_size.height;
             render
                 .surface
-                .configure(&render.device_queue.device(), &render.surface_config);
+                .configure(render.device_queue.device(), &render.surface_config);
         }
     }
 }
@@ -152,6 +167,7 @@ pub(crate) fn handle_resize<CustomEvents: MatrixEventable>(
 pub(crate) fn renderer_system<CustomEvents: MatrixEventable>(
     renderer: &mut WriteR<RendererResource, CustomEvents>,
     objects: &mut ReadC<RenderObject>,
+    camera: &mut ReadR<Camera>,
 ) {
     if let Some(renderer) = renderer.get_mut() {
         let output = if let Ok(output) = renderer.surface.get_current_texture() {
@@ -162,6 +178,13 @@ pub(crate) fn renderer_system<CustomEvents: MatrixEventable>(
         let view = output
             .texture
             .create_view(&TextureViewDescriptor::default());
+
+        if let Some(camera) = camera.get() {
+            renderer
+                .camera_uniform
+                .0
+                .update_view_proj(&renderer.device_queue, camera);
+        }
 
         let mut encoder =
             renderer
@@ -202,9 +225,10 @@ pub(crate) fn renderer_system<CustomEvents: MatrixEventable>(
                 }
                 for instace in renderer.atlas.instances() {
                     renderer.pipeline.setup_pass(&mut render_pass);
-                    renderer
-                        .pipeline
-                        .setup_groups(&mut render_pass, (instace.texture_group(),));
+                    renderer.pipeline.setup_groups(
+                        &mut render_pass,
+                        (instace.texture_group(), &renderer.camera_binding_group),
+                    );
                     renderer.pipeline.setup_buffers(
                         &mut render_pass,
                         instace.vertex_buffer(),

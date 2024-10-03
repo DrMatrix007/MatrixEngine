@@ -3,3 +3,4 @@ pub mod renderer_systems;
 pub mod pipelines;
 pub mod atlas;
 pub mod render_object;
+pub mod camera;

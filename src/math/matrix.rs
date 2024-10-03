@@ -4,9 +4,10 @@ use std::{
     ops::{Index, IndexMut},
 };
 
+use num_traits::Float;
+
 use super::{matrix_storage::MatrixStoragable, number::Number};
 
-#[derive(Debug, Clone)]
 pub struct Matrix<
     T: Number,
     const M: usize,
@@ -38,6 +39,13 @@ impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, 
 impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>>
     Matrix<T, M, N, Storage>
 {
+    pub fn from_storage(storage: Storage) -> Self {
+        Self {
+            storage,
+            marker: PhantomData,
+        }
+    }
+
     pub fn zeros() -> Self {
         Self {
             storage: Storage::zeros(),
@@ -62,6 +70,9 @@ impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, 
             marker: PhantomData,
         }
     }
+    pub fn into_storage(self) -> Storage {
+        self.storage
+    }
 }
 
 impl<T: Number + Display, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>>
@@ -83,30 +94,67 @@ impl<T: Number + Display, const M: usize, const N: usize, Storage: MatrixStoraga
 }
 
 mod ops {
-    use std::ops::{Add, Mul, Sub};
+    use std::ops::{Add, Div, Mul, Neg, Sub};
 
     use crate::math::{matrix_storage::MatrixStoragable, number::Number};
 
     use super::Matrix;
 
-    impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>> Add
+    impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>> Neg
+        for &Matrix<T, M, N, Storage>
+    {
+        type Output = Matrix<T, M, N, Storage>;
+
+        fn neg(self) -> Self::Output {
+            Self::Output::build_with_pos(|i, j| -self[(i, j)].clone())
+        }
+    }
+    impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>> Neg
         for Matrix<T, M, N, Storage>
     {
-        type Output = Self;
+        type Output = Matrix<T, M, N, Storage>;
+
+        fn neg(self) -> Self::Output {
+            -&self
+        }
+    }
+    impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>> Add
+        for &Matrix<T, M, N, Storage>
+    {
+        type Output = Matrix<T, M, N, Storage>;
 
         fn add(self, other: Self) -> Self::Output {
-            Self::build_with_pos(|i, j| self[(i, j)].clone() + other[(i, j)].clone())
+            Self::Output::build_with_pos(|i, j| self[(i, j)].clone() + other[(i, j)].clone())
         }
     }
 
     // Implement subtraction
     impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>> Sub
-        for Matrix<T, M, N, Storage>
+        for &Matrix<T, M, N, Storage>
     {
-        type Output = Self;
+        type Output = Matrix<T, M, N, Storage>;
 
         fn sub(self, other: Self) -> Self::Output {
-            Self::build_with_pos(|i, j| self[(i, j)].clone() - other[(i, j)].clone())
+            Self::Output::build_with_pos(|i, j| self[(i, j)].clone() - other[(i, j)].clone())
+        }
+    }
+
+    impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>> Mul<T>
+        for &Matrix<T, M, N, Storage>
+    {
+        type Output = Matrix<T, M, N, Storage>;
+
+        fn mul(self, other: T) -> Self::Output {
+            Self::Output::build_with_pos(|i, j| self[(i, j)].clone() * other.clone())
+        }
+    }
+    impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>> Div<T>
+        for &Matrix<T, M, N, Storage>
+    {
+        type Output = Matrix<T, M, N, Storage>;
+
+        fn div(self, other: T) -> Self::Output {
+            Self::Output::build_with_pos(|i, j| self[(i, j)].clone() / other.clone())
         }
     }
 
@@ -117,11 +165,11 @@ mod ops {
             const P: usize,
             StorageA: MatrixStoragable<T, M, N>,
             StorageB: MatrixStoragable<T, N, P>,
-        > Mul<Matrix<T, N, P, StorageB>> for Matrix<T, M, N, StorageA>
+        > Mul<&Matrix<T, N, P, StorageB>> for &Matrix<T, M, N, StorageA>
     {
-        type Output = Matrix<T, M, P>;
+        type Output = Matrix<T, M, P, StorageA::SelfWith<M, P>>;
 
-        fn mul(self, rhs: Matrix<T, N, P, StorageB>) -> Self::Output {
+        fn mul(self, rhs: &Matrix<T, N, P, StorageB>) -> Self::Output {
             Matrix::build_with_pos(|i, j| {
                 (0..N)
                     .map(|k| self[(i, k)].clone() * rhs[(k, j)].clone())
@@ -131,13 +179,47 @@ mod ops {
     }
 }
 
+pub type Vector<T, const M: usize> = Matrix<T, M, 1>;
+pub type Vector2<T> = Vector<T, 2>;
+pub type Vector3<T> = Vector<T, 3>;
+pub type Vector4<T> = Vector<T, 4>;
+
+pub type Matrix4<T> = Matrix<T, 4, 4>;
+
+impl<T: Number + Float, const M: usize> Vector<T, M> {
+    pub fn normalized(&self) -> Self {
+        self / (0..M)
+            .map(|x| self[(x, 0)] * self[(x, 0)])
+            .fold(T::zero(), |x, y| x + y)
+            .sqrt()
+    }
+
+    pub fn dot(&self, rhs: &Self) -> T {
+        (0..M)
+            .map(|m| self[(m, 0)] * rhs[(m, 0)])
+            .fold(T::zero(), |x, y| x + y)
+    }
+}
+
+impl<T: Number> Vector3<T> {
+    pub fn cross(&self, other: &Vector3<T>) -> Vector3<T> {
+        Vector3::from_storage([
+            [(self[(1, 0)].clone() * other[(2, 0)].clone())
+                - (self[(2, 0)].clone() * other[(1, 0)].clone())], // y * z - z * y
+            [(self[(2, 0)].clone() * other[(0, 0)].clone())
+                - (self[(0, 0)].clone() * other[(2, 0)].clone())], // z * x - x * z
+            [(self[(0, 0)].clone() * other[(1, 0)].clone())
+                - (self[(1, 0)].clone() * other[(0, 0)].clone())], // x * y - y * x
+        ])
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::Matrix;
 
     #[test]
     fn test_matrix_multiplication() {
-
         let mut matrix_a = Matrix::<i32, 3, 3>::zeros();
         let mut matrix_b = Matrix::<i32, 3, 3>::zeros();
 
@@ -173,7 +255,7 @@ mod tests {
         expected[(2, 1)] = 114;
         expected[(2, 2)] = 90;
 
-        let result = matrix_a * matrix_b;
+        let result = &matrix_a * &matrix_b;
 
         for i in 0..3 {
             for j in 0..3 {

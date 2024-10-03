@@ -16,9 +16,9 @@ pub mod shaders;
 pub mod textures;
 pub mod vertecies;
 
-pub struct MatrixPipelineArgs<'a, Vertex: Vertexable> {
+pub struct MatrixPipelineArgs<'a> {
     pub device_queue: DeviceQueue,
-    pub shaders: MatrixShaders<Vertex>,
+    pub shaders: MatrixShaders,
     pub surface_config: &'a SurfaceConfiguration,
 }
 
@@ -32,7 +32,7 @@ pub struct MatrixPipeline<Vertex: Vertexable, BindGroupGroup: MatrixBindGroupabl
 impl<Vertex: Vertexable, BindGroupGroup: MatrixBindGroupableGroupable>
     MatrixPipeline<Vertex, BindGroupGroup>
 {
-    pub fn new(args: MatrixPipelineArgs<Vertex>) -> Self {
+    pub fn new(args: MatrixPipelineArgs) -> Self {
         let device_queue = args.device_queue;
 
         let layouts = BindGroupGroup::create_layouts(&device_queue);
@@ -59,7 +59,7 @@ impl<Vertex: Vertexable, BindGroupGroup: MatrixBindGroupableGroupable>
                         buffers: &[Vertex::vertex_buffer_layout()],
                     },
                     primitive: wgpu::PrimitiveState {
-                        topology: wgpu::PrimitiveTopology::TriangleStrip,
+                        topology: wgpu::PrimitiveTopology::TriangleList,
                         strip_index_format: None,
                         front_face: wgpu::FrontFace::Ccw,
                         cull_mode: Some(wgpu::Face::Back),

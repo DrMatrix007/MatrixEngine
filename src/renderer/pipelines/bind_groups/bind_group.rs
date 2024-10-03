@@ -59,16 +59,19 @@ macro_rules! impl_group {
                         label: Some(Self::layout_name()),
                         entries: &[$($t,)*],
                     })
-             }
+            }
+
+            #[allow(non_snake_case)]
             fn create_group(&self,device_queue:&DeviceQueue, layout: &MatrixBindGroupLayout<Self>) -> BindGroup where Self:Sized {
-                #[allow(non_snake_case)]
                 let ($($t,)*) = self;
+                let mut i = 0;
+                $(let $t =$t.bind_entry({i+=1;i-1});)*
                 device_queue
                     .device()
                     .create_bind_group(&wgpu::BindGroupDescriptor {
                         label: Some(&Self::group_name()),
                         layout: layout.layout(),
-                        entries: &[$($t.bind_entry(),)*],
+                        entries: &[$($t,)*],
                     })
             }
         }
