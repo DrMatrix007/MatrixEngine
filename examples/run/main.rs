@@ -2,20 +2,22 @@ use std::{f32::consts::PI, time::Instant};
 
 use matrix_engine::{
     engine::{
+        component_iters::IntoWrapper,
         entity::Entity,
-        events::{MatrixEvent, MatrixEventable},
+        events::MatrixEventable,
         plugins::{window_plugin::WindowPlugin, Plugin},
-        query::{ReadE, ReadSystemID, WriteC, WriteE, WriteR},
+        query::{ReadC, ReadE, ReadSystemID, WriteC, WriteE, WriteR},
         runtimes::single_threaded::SingleThreaded,
         transform::Transform,
         Engine, EngineArgs,
     },
-    math::matrix::{Vector3, Vector4},
+    math::matrix::Vector3,
     renderer::{
-        camera::Camera, pipelines::models::{cube::Cube, square::Square}, render_object::RenderObject,
+        camera::Camera, pipelines::models::cube::Cube, render_object::RenderObject,
         renderer_plugin::RendererPlugin,
     },
 };
+use num_traits::Signed;
 use winit::keyboard::KeyCode;
 
 struct Example1;
@@ -41,10 +43,6 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
                     latest_second = now;
                 }
                 latest = now;
-
-                if events.is_just_pressed(KeyCode::KeyW) {
-                    write_events.send(MatrixEvent::DestroySystem(**id)).unwrap();
-                }
             },
         );
         scene.add_send_startup_system(
@@ -53,16 +51,15 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
              camera: &mut WriteR<Camera, CustomEvents>| {
                 for i in 0..100 {
                     for y in 0..100 {
-                        for z in 0..100 {
+                        for z in 0..10 {
                             let e = Entity::new();
-                            render_objs
-                                .insert(e, RenderObject::new(Cube, "./img.jpg".to_string()));
+                            render_objs.insert(e, RenderObject::new(Cube, "./img.jpg".to_string()));
                             transforms.insert(
                                 e,
                                 Transform::new_position(Vector3::new(
-                                    5.0 * i as f32,
-                                    5.0 * y as f32,
-                                    5.0 * z as f32,
+                                    5. * i as f32,
+                                    5. * y as f32,
+                                    5. * z as f32,
                                 )),
                             );
                         }
@@ -81,58 +78,49 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
             },
         );
 
-        let mut yaw = 0.0; // Horizontal rotation around the y-axis
-        let mut pitch = 0.0; // Vertical rotation
+        let mut yaw: f32 = 0.0; // Horizontal rotation around the y-axis
+        let mut pitch: f32 = 0.0; // Vertical rotation
         scene.add_send_system(
             move |camera: &mut WriteR<Camera, CustomEvents>, events: &mut ReadE<CustomEvents>| {
                 if let Some(camera) = camera.get_mut() {
                     let dt = events.dt();
-                    let move_speed = dt * 3.;
-                    let rotation_speed = dt * camera.fovy / PI;
+                    let move_speed = dt * 10.;
+                    let rotation_speed = 4. * dt * camera.fovy / PI;
 
                     // Get forward (z-axis), right (x-axis), and up (y-axis) direction vectors
                     let forward = camera.dir.normalized();
                     let right = forward.cross(&Vector3::unit_y()).normalized();
-                    let up = Vector3::unit_y();
+                    let up = right.cross(&forward);
 
-                    if events.is_pressed(KeyCode::KeyW) {
+                    if events.keyboard().is_pressed(KeyCode::KeyW) {
                         camera.eye += &forward * move_speed;
                     }
-                    if events.is_pressed(KeyCode::KeyS) {
+                    if events.keyboard().is_pressed(KeyCode::KeyS) {
                         camera.eye -= &forward * move_speed;
                     }
-                    if events.is_pressed(KeyCode::KeyA) {
+                    if events.keyboard().is_pressed(KeyCode::KeyA) {
                         camera.eye -= &right * move_speed;
                     }
-                    if events.is_pressed(KeyCode::KeyD) {
+                    if events.keyboard().is_pressed(KeyCode::KeyD) {
                         camera.eye += &right * move_speed;
                     }
-                    if events.is_pressed(KeyCode::Space) {
+                    if events.keyboard().is_pressed(KeyCode::Space) {
                         camera.eye += &up * move_speed;
                     }
-                    if events.is_pressed(KeyCode::ControlLeft) {
+                    if events.keyboard().is_pressed(KeyCode::ControlLeft) {
                         camera.eye -= &up * move_speed;
                     }
 
-                    if events.is_pressed(KeyCode::ArrowLeft) {
-                        yaw -= rotation_speed; // Rotate left
-                    }
-                    if events.is_pressed(KeyCode::ArrowRight) {
-                        yaw += rotation_speed; // Rotate right
-                    }
-                    if events.is_pressed(KeyCode::ArrowUp) {
-                        pitch += rotation_speed; // Look up
-                    }
-                    if events.is_pressed(KeyCode::ArrowDown) {
-                        pitch -= rotation_speed; // Look down
+                    match events.mouse_wheel_delta() {
+                        dx if dx != 0. => {
+                            camera.fovy *= if dx.is_positive() { 0.5 } else { 2. };
+                        }
+                        _ => (),
                     }
 
-                    if events.is_just_pressed(KeyCode::KeyE) {
-                        camera.fovy *= 2.0;
-                    }
-                    if events.is_just_pressed(KeyCode::KeyQ) {
-                        camera.fovy /= 2.0;
-                    }
+                    let (x, y) = events.mouse_dx();
+                    yaw += x * rotation_speed;
+                    pitch -= y * rotation_speed;
 
                     // Update the camera's direction (yaw and pitch)
                     let (sin_yaw, cos_yaw) = yaw.sin_cos();
@@ -143,6 +131,24 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
                         Vector3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw);
 
                     camera.dir = new_forward.normalized();
+                }
+            },
+        );
+        let mut is_on = false;
+        scene.add_send_system(
+            move |transforms: &mut WriteC<Transform>,
+                  obj: &mut ReadC<RenderObject>,
+                  events: &mut ReadE<CustomEvents>| {
+                if events.keyboard().is_just_pressed(KeyCode::KeyG) {
+                    is_on = !is_on;
+                    println!("started {}",is_on);
+                }
+                if is_on {
+                    for (_, (t, _)) in (transforms.iter_mut(), obj.iter()).into_wrapper() {
+                        *t.rotation.x_mut() += events.dt() * 10.;
+                        t.update_raw();
+                    }
+                    
                 }
             },
         );

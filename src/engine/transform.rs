@@ -1,7 +1,7 @@
 use wgpu::{vertex_attr_array, Buffer, VertexBufferLayout};
 
 use crate::{
-    math::matrix::{Matrix4, Vector3},
+    math::matrix::{Matrix4, Vector3, Vector4},
     renderer::pipelines::vertecies::MatrixVertexBufferable,
 };
 
@@ -29,8 +29,8 @@ impl Transform {
     }
     pub fn update_raw(&mut self) {
         self.raw = TransformRaw {
-            mat: (Matrix4::from_position(&self.position))
-                // * &Matrix4::from_quaternion(&Vector4::from_euler_to_quaternion(&self.rotation)))
+            mat: (&Matrix4::from_position(&self.position)
+                * &Matrix4::from_quaternion(&Vector4::from_euler_to_quaternion(&self.rotation)))
                 .into_storage(),
         }
     }

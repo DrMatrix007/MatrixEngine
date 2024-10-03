@@ -5,8 +5,6 @@ use winit::{
     event_loop::{ActiveEventLoop, EventLoopProxy},
 };
 
-
-
 use super::{
     components::ComponentRegistry,
     data_state::{DataState, DataStateAccessError, WriteDataState},
@@ -228,7 +226,6 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
         self.current_scene.events.consume_write(reg.events).unwrap();
         self.resources.consume_write(reg.resources).unwrap();
     }
-
     fn window_event(
         &mut self,
         event_loop: &winit::event_loop::ActiveEventLoop,
@@ -243,7 +240,6 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
             .get_mut()
             .expect("this should not be accessed now")
             .handle_window_event(&event);
-
 
         if event == winit::event::WindowEvent::RedrawRequested {
             let mut reg = SceneRegistryRefs {
@@ -266,8 +262,6 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
                 NonSendEngineArgs,
             );
 
-
-
             self.current_scene
                 .components
                 .consume_write(reg.components)
@@ -286,7 +280,6 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
                 .get_mut()
                 .expect("this should not be accessed now")
                 .reset();
-
         }
 
         // println!("event: {event:?}");
@@ -310,5 +303,20 @@ impl<CustomEvents: MatrixEventable> ApplicationHandler<MatrixEvent<CustomEvents>
             .get_mut()
             .expect("this should not be accessed now")
             .handle_matrix_event(event.clone());
+    }
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id: winit::event::DeviceId,
+        event: winit::event::DeviceEvent,
+    ) {
+        self.current_scene
+            .events
+            .get_mut()
+            .expect("this should not be accessed now")
+            .events()
+            .get_mut()
+            .expect("this should not be accessed now")
+            .handle_device_event(event)
     }
 }
