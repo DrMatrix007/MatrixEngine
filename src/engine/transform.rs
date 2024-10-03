@@ -29,8 +29,8 @@ impl Transform {
     }
     pub fn update_raw(&mut self) {
         self.raw = TransformRaw {
-            mat: (&Matrix4::from_position(&self.position)
-                * &Matrix4::from_quaternion(&Vector4::from_euler_to_quaternion(&self.rotation)))
+            mat: (&Matrix4::from_quaternion(&Vector4::from_euler_to_quaternion(&self.rotation))
+                * &Matrix4::from_position(&self.position))
                 .into_storage(),
         }
     }

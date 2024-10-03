@@ -18,6 +18,7 @@ use matrix_engine::{
     },
 };
 use num_traits::Signed;
+use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 use winit::keyboard::KeyCode;
 
 struct Example1;
@@ -141,14 +142,16 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
                   events: &mut ReadE<CustomEvents>| {
                 if events.keyboard().is_just_pressed(KeyCode::KeyG) {
                     is_on = !is_on;
-                    println!("started {}",is_on);
+                    println!("started {}", is_on);
                 }
                 if is_on {
-                    for (_, (t, _)) in (transforms.iter_mut(), obj.iter()).into_wrapper() {
-                        *t.rotation.x_mut() += events.dt() * 10.;
-                        t.update_raw();
-                    }
-                    
+                    let dt = events.dt();
+                    (transforms.iter_mut(), obj.iter())
+                        .into_wrapper()
+                        .for_each(|(_, (t, _))| {
+                            *t.rotation.x_mut() += dt * 5.;
+                            t.update_raw();
+                        });
                 }
             },
         );

@@ -117,6 +117,7 @@ pub struct ReadE<CustomEvents: MatrixEventable> {
     data: ReadDataState<Events<CustomEvents>>,
 }
 
+
 impl<CustomEvents: MatrixEventable> ReadE<CustomEvents> {
     fn new(data: ReadDataState<Events<CustomEvents>>) -> Self {
         Self { data }

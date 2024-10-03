@@ -17,6 +17,7 @@ lazy_static = "1.5.0"
 num-traits = "0.2.19"
 num_cpus = "1.16.0"
 paste = "1.0.15"
+rayon = "1.10.0"
 scoped_threadpool = "0.1.9"
 tokio = { version = "1", features = ["rt"] }
 wgpu = "22.1.0"
