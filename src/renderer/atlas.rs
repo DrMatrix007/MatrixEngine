@@ -189,7 +189,7 @@ impl InstanceData {
         let vertex_buffer = Arc::new(device_queue.device().create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("altas vertex buffer"),
-                contents: bytemuck::cast_slice(model.vertices()),
+                contents: bytemuck::cast_slice(model.vertices().as_slice()),
                 usage: BufferUsages::VERTEX,
             },
         ));
@@ -197,7 +197,7 @@ impl InstanceData {
         let index_buffer = Arc::new(device_queue.device().create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("altas index buffer"),
-                contents: bytemuck::cast_slice(indexes),
+                contents: bytemuck::cast_slice(indexes.as_slice()),
                 usage: BufferUsages::INDEX,
             },
         ));

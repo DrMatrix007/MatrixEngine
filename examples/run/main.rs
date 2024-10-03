@@ -11,7 +11,9 @@ use matrix_engine::{
     },
     math::matrix::{Vector3, Vector4},
     renderer::{
-        camera::Camera, pipelines::models::square::Square, render_object::RenderObject,
+        camera::Camera,
+        pipelines::models::{sphere::Sphere, square::Square},
+        render_object::RenderObject,
         renderer_plugin::RendererPlugin,
     },
 };
