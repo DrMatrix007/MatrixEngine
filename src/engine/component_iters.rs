@@ -5,9 +5,8 @@ use paste::paste;
 use crate::impl_all;
 
 use super::{
-    components::{self, Component, Iter, IterMut},
+    components::{self, Component},
     entity::Entity,
-    query::{ReadC, WriteC},
 };
 
 pub trait ComponentIterable<'a>: Iterator<Item = (&'a Entity, Self::C)> {

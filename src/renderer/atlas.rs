@@ -1,9 +1,6 @@
 use std::{any::TypeId, collections::HashMap, sync::Arc};
 
-use wgpu::{
-    util::DeviceExt, Buffer, BufferAddress, BufferDescriptor, BufferUsages,
-    CommandEncoderDescriptor,
-};
+use wgpu::{util::DeviceExt, Buffer, BufferAddress, BufferUsages, CommandEncoderDescriptor};
 
 use crate::engine::transform::{Transform, TransformRaw};
 
@@ -13,7 +10,7 @@ use super::{
         device_queue::DeviceQueue,
         models::Model,
         textures::MatrixTexture,
-        vertecies::{texture_vertex::TextureVertex, MatrixVertexBufferable},
+        vertecies::texture_vertex::TextureVertex,
     },
     render_object::RenderObject,
 };

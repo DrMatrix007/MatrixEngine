@@ -4,7 +4,7 @@ use bind_groups::bind_group_group::MatrixBindGroupableGroupable;
 use device_queue::DeviceQueue;
 use shaders::MatrixShaders;
 use textures::MatrixTexture;
-use vertecies::{MatrixVertexBufferable, MatrixVertexBufferableGroupable};
+use vertecies::MatrixVertexBufferableGroupable;
 use wgpu::{
     BlendState, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState,
     PipelineCompilationOptions, RenderPipeline, StencilState, SurfaceConfiguration, TextureFormat,
@@ -132,12 +132,16 @@ impl<Vertex: MatrixVertexBufferableGroupable, BindGroupGroup: MatrixBindGroupabl
     ) {
         Vertex::setup_pass(pass, buffers);
     }
-    
-    pub(crate) fn depth_texture(&self) -> &MatrixTexture{
+
+    pub(crate) fn depth_texture(&self) -> &MatrixTexture {
         &self.depth_texture
     }
-    
-    pub(crate) fn configure_depth(&mut self, device_queue: &DeviceQueue, surface_config: &SurfaceConfiguration) {
+
+    pub(crate) fn configure_depth(
+        &mut self,
+        device_queue: &DeviceQueue,
+        surface_config: &SurfaceConfiguration,
+    ) {
         self.depth_texture = MatrixTexture::create_depth_texture(device_queue, surface_config)
     }
 }

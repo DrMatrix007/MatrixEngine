@@ -178,8 +178,8 @@ pub(crate) fn handle_resize<CustomEvents: MatrixEventable>(
 
 pub(crate) fn renderer_system<CustomEvents: MatrixEventable>(
     renderer: &mut WriteR<RendererResource, CustomEvents>,
-    mut objects: &mut ReadC<RenderObject>,
-    mut transforms: &mut ReadC<Transform>,
+    objects: &mut ReadC<RenderObject>,
+    transforms: &mut ReadC<Transform>,
     camera: &mut ReadR<Camera>,
 ) {
     if let Some(renderer) = renderer.get_mut() {

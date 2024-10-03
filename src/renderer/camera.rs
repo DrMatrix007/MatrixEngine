@@ -1,6 +1,5 @@
-use std::{borrow::BorrowMut, sync::Arc};
+use std::sync::Arc;
 
-use lazy_static::lazy_static;
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
     BindGroupEntry, BindGroupLayoutEntry, Buffer, BufferUsages, ShaderStages,
