@@ -65,11 +65,14 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
             },
         );
 
+        let mut yaw = 0.0; // Horizontal rotation around the y-axis
+        let mut pitch = 0.0; // Vertical rotation
         scene.add_send_system(
-            |camera: &mut WriteR<Camera, CustomEvents>, events: &mut ReadE<CustomEvents>| {
+            move |camera: &mut WriteR<Camera, CustomEvents>, events: &mut ReadE<CustomEvents>| {
                 if let Some(camera) = camera.get_mut() {
                     let dt = events.dt();
-                    let move_speed = dt*3.;
+                    let move_speed = dt * 3.;
+                    let rotation_speed = dt;
 
                     // Get forward (z-axis), right (x-axis), and up (y-axis) direction vectors
                     let forward = camera.dir.normalized();
@@ -94,6 +97,36 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
                     if events.is_pressed(KeyCode::ControlLeft) {
                         camera.eye -= &up * move_speed;
                     }
+
+                    if events.is_pressed(KeyCode::ArrowLeft) {
+                        yaw -= rotation_speed; // Rotate left
+                    }
+                    if events.is_pressed(KeyCode::ArrowRight) {
+                        yaw += rotation_speed; // Rotate right
+                    }
+                    if events.is_pressed(KeyCode::ArrowUp) {
+                        pitch += rotation_speed; // Look up
+                    }
+                    if events.is_pressed(KeyCode::ArrowDown) {
+                        pitch -= rotation_speed; // Look down
+                    }
+
+                    if events.is_just_pressed(KeyCode::KeyE) {
+                        camera.fovy *= 2.0;
+                    }
+                    if events.is_just_pressed(KeyCode::KeyQ) {
+                        camera.fovy /= 2.0;
+                    }
+
+                    // Update the camera's direction (yaw and pitch)
+                    let (sin_yaw, cos_yaw) = yaw.sin_cos();
+                    let (sin_pitch, cos_pitch) = pitch.sin_cos();
+
+                    // Calculate the new forward direction after applying yaw and pitch
+                    let new_forward =
+                        Vector3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw);
+
+                    camera.dir = new_forward.normalized();
                 }
             },
         );
