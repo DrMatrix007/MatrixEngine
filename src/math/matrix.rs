@@ -73,6 +73,14 @@ impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, 
     pub fn into_storage(self) -> Storage {
         self.storage
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = ((usize, usize), &T)> {
+        self.storage.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = ((usize, usize), &mut T)> {
+        self.storage.iter_mut()
+    }
 }
 
 impl<T: Number + Display, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>>
@@ -94,7 +102,7 @@ impl<T: Number + Display, const M: usize, const N: usize, Storage: MatrixStoraga
 }
 
 mod ops {
-    use std::ops::{Add, Div, Mul, Neg, Sub};
+    use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
 
     use crate::math::{matrix_storage::MatrixStoragable, number::Number};
 
@@ -175,6 +183,33 @@ mod ops {
                     .map(|n| self[(i, n)].clone() * rhs[(n, j)].clone())
                     .fold(T::zero(), |a, b| a + b)
             })
+        }
+    }
+    impl<
+            T: Number + AddAssign<T>,
+            const M: usize,
+            const N: usize,
+            Storage: MatrixStoragable<T, M, N>,
+        > AddAssign for Matrix<T, M, N, Storage>
+    {
+        fn add_assign(&mut self, other: Self) {
+            self.iter_mut().for_each(|(i, val)| {
+                *val += other[i].clone();
+            });
+        }
+    }
+
+    impl<
+            T: Number + SubAssign<T>,
+            const M: usize,
+            const N: usize,
+            Storage: MatrixStoragable<T, M, N>,
+        > SubAssign for Matrix<T, M, N, Storage>
+    {
+        fn sub_assign(&mut self, other: Self) {
+            self.iter_mut().for_each(|(i, val)| {
+                *val -= other[i].clone();
+            });
         }
     }
 }

@@ -10,6 +10,10 @@ pub trait MatrixStoragable<T: Number, const M: usize, const N: usize> {
 
     fn get(&self, pos: (usize, usize)) -> &T;
     fn get_mut(&mut self, pos: (usize, usize)) -> &mut T;
+
+    fn iter(&self) -> impl Iterator<Item = ((usize, usize), &'_ T)>;
+
+    fn iter_mut(&mut self) -> impl Iterator<Item = ((usize, usize), &'_ mut T)>;
 }
 
 impl<T: Number, const M: usize, const N: usize> MatrixStoragable<T, M, N> for [[T; N]; M] {
@@ -47,6 +51,19 @@ impl<T: Number, const M: usize, const N: usize> MatrixStoragable<T, M, N> for [[
     fn get_mut(&mut self, (m, n): (usize, usize)) -> &mut T {
         &mut self[m][n]
     }
-    
-    type SelfWith<const A: usize, const B: usize> = [[T;B];A];
+
+    type SelfWith<const A: usize, const B: usize> = [[T; B]; A];
+
+    fn iter(&self) -> impl Iterator<Item = ((usize, usize), &'_ T)> {
+        (&self)
+            .into_iter()
+            .enumerate()
+            .flat_map(|(m, y)| y.into_iter().enumerate().map(move |(n, x)| ((m, n), x)))
+    }
+
+    fn iter_mut(&mut self) -> impl Iterator<Item = ((usize, usize), &'_ mut T)> {
+        self.into_iter()
+            .enumerate()
+            .flat_map(|(m, y)| y.into_iter().enumerate().map(move |(n, x)| ((m, n), x)))
+    }
 }

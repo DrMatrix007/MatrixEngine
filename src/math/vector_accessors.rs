@@ -32,6 +32,10 @@ impl<T: Number> Vector3<T> {
         Matrix::from_storage(storage)
     }
 
+    pub fn unit_y() -> Self {
+        Self::new(T::zero(),T::one(),T::zero())
+    }
+
     pub fn x(&self) -> &T {
         &self[(0, 0)]
     }

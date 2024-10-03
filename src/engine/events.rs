@@ -2,6 +2,7 @@ use std::{
     any::TypeId,
     collections::{HashSet, VecDeque},
     fmt::Debug,
+    time::Instant,
 };
 
 use winit::{
@@ -35,6 +36,8 @@ pub struct Events<CustomEvents: MatrixEventable> {
     close_requested: bool,
     matrix_events: VecDeque<MatrixEvent<CustomEvents>>,
     new_inner_size: Option<PhysicalSize<u32>>,
+    start_frame: Instant,
+    dt: f32,
 }
 
 impl<CustomEvents: MatrixEventable> Default for Events<CustomEvents> {
@@ -52,6 +55,8 @@ impl<CustomEvents: MatrixEventable> Events<CustomEvents> {
             matrix_events: VecDeque::new(),
             close_requested: false,
             new_inner_size: None,
+            dt: 0.,
+            start_frame: Instant::now(),
         }
     }
 
@@ -88,6 +93,10 @@ impl<CustomEvents: MatrixEventable> Events<CustomEvents> {
         self.just_released.clear();
         self.close_requested = false;
         self.new_inner_size = None;
+
+        let now = Instant::now();
+        self.dt = (now - self.start_frame).as_secs_f32();
+        self.start_frame = now;
     }
 
     pub fn new_inner_size(&self) -> Option<&PhysicalSize<u32>> {
@@ -124,6 +133,10 @@ impl<CustomEvents: MatrixEventable> Events<CustomEvents> {
 
     pub fn close_requested(&self) -> bool {
         self.close_requested
+    }
+
+    pub fn dt(&self) -> f32 {
+        self.dt
     }
 }
 

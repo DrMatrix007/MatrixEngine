@@ -55,7 +55,7 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
 
                 camera.insert_and_notify(Camera {
                     eye: Vector3::new(0.0, 0.0, -1.),
-                    target: Vector3::new(0., 0., 2.),
+                    dir: Vector3::new(0., 0., 2.),
                     up: Vector3::new(0., 1., 0.),
                     aspect: 1.,
                     fovy: PI / 4.,
@@ -68,29 +68,32 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
         scene.add_send_system(
             |camera: &mut WriteR<Camera, CustomEvents>, events: &mut ReadE<CustomEvents>| {
                 if let Some(camera) = camera.get_mut() {
+                    let dt = events.dt();
+                    let move_speed = dt*3.;
+
+                    // Get forward (z-axis), right (x-axis), and up (y-axis) direction vectors
+                    let forward = camera.dir.normalized();
+                    let right = forward.cross(&Vector3::unit_y()).normalized();
+                    let up = Vector3::unit_y();
+
                     if events.is_pressed(KeyCode::KeyW) {
-                        *camera.eye.z_mut() += 1. / 2000.;
+                        camera.eye += &forward * move_speed;
                     }
                     if events.is_pressed(KeyCode::KeyS) {
-                        *camera.eye.z_mut() -= 1. / 2000.;
+                        camera.eye -= &forward * move_speed;
                     }
                     if events.is_pressed(KeyCode::KeyA) {
-                        *camera.eye.x_mut() -= 1. / 2000.;
+                        camera.eye -= &right * move_speed;
                     }
                     if events.is_pressed(KeyCode::KeyD) {
-                        *camera.eye.x_mut() += 1. / 2000.;
+                        camera.eye += &right * move_speed;
                     }
                     if events.is_pressed(KeyCode::Space) {
-                        *camera.eye.y_mut() += 1. / 2000.;
+                        camera.eye += &up * move_speed;
                     }
                     if events.is_pressed(KeyCode::ControlLeft) {
-                        *camera.eye.y_mut() -= 1. / 2000.;
+                        camera.eye -= &up * move_speed;
                     }
-                    println!(
-                        "{:5.2}\n",
-                        &camera.build_view_projection_matrix()
-                            // * &Vector4::<f32>::new(-0.5, 0.5, 0., 1.)
-                    );
                 }
             },
         );

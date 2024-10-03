@@ -12,7 +12,7 @@ use super::pipelines::{bind_groups::bind::MatrixBindable, device_queue::DeviceQu
 
 pub struct Camera {
     pub eye: Vector3<f32>,
-    pub target: Vector3<f32>,
+    pub dir: Vector3<f32>,
     pub up: Vector3<f32>,
     pub aspect: f32,
     pub fovy: f32,
@@ -22,7 +22,7 @@ pub struct Camera {
 
 impl Camera {
     pub fn build_view_projection_matrix(&self) -> Matrix4<f32> {
-        let view = Matrix4::look_to_rh(&self.eye, &self.target, &self.up);
+        let view = Matrix4::look_to_rh(&self.eye, &self.dir, &self.up);
 
         let proj = Matrix4::perspective(self.fovy, self.aspect, self.znear, self.zfar);
 
