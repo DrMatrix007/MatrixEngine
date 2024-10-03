@@ -172,7 +172,7 @@ mod ops {
         fn mul(self, rhs: &Matrix<T, N, P, StorageB>) -> Self::Output {
             Matrix::build_with_pos(|i, j| {
                 (0..N)
-                    .map(|k| self[(i, k)].clone() * rhs[(k, j)].clone())
+                    .map(|n| self[(i, n)].clone() * rhs[(n, j)].clone())
                     .fold(T::zero(), |a, b| a + b)
             })
         }

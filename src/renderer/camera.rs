@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{borrow::BorrowMut, sync::Arc};
 
 use lazy_static::lazy_static;
 use wgpu::{
@@ -19,22 +19,22 @@ pub struct Camera {
     pub znear: f32,
     pub zfar: f32,
 }
-lazy_static! {
-    static ref OPENGL_TO_WGPU_MATRIX: Matrix4<f32> = Matrix4::from_storage([
-        [1.0, 0.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0, 0.0],
-        [0.0, 0.0, 0.5, 0.5],
-        [0.0, 0.0, 0.0, 1.0],
-    ]);
-}
 
 impl Camera {
     pub fn build_view_projection_matrix(&self) -> Matrix4<f32> {
-        let view = Matrix4::look_at_rh(&self.eye, &self.target, &self.up);
+        let view = Matrix4::look_to_rh(&self.eye, &self.target, &self.up);
 
         let proj = Matrix4::perspective(self.fovy, self.aspect, self.znear, self.zfar);
 
-        &((&OPENGL_TO_WGPU_MATRIX as &Matrix4<f32>) * &proj) * &view
+        let opengl_to_wgpu = Matrix4::from_storage([
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.5, 0.5],
+            [0.0, 0.0, 0.0, 1.0],
+        ]);
+
+        &(&opengl_to_wgpu * &view) * &proj
+        // &view * &proj
     }
 }
 

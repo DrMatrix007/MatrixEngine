@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Display;
 
 use num_traits::Float;
 
@@ -8,22 +8,21 @@ use super::{
 };
 
 impl<T: Number + Float + Display> Matrix4<T> {
-    pub fn look_at_rh(eye: &Vector3<T>, center: &Vector3<T>, up: &Vector3<T>) -> Matrix4<T> {
-        let dir = center - eye;
+    pub fn look_to_rh(eye: &Vector3<T>, dir: &Vector3<T>, up: &Vector3<T>) -> Matrix4<T> {
         let f = dir.normalized();
         let s = f.cross(up).normalized();
         let u = s.cross(&f);
-
-        Matrix4::from_storage([
+        let x = Matrix4::from_storage([
             [*s.x(), *u.x(), -*f.x(), T::zero()],
             [*s.y(), *u.y(), -*f.y(), T::zero()],
             [*s.z(), *u.z(), -*f.z(), T::zero()],
             [-eye.dot(&s), -eye.dot(&u), eye.dot(&f), T::one()],
-        ])
+        ]);
+        x
     }
 
     pub fn perspective(fovy_rad: T, aspect: T, znear: T, zfar: T) -> Matrix4<T> {
-        let two: T = T::one() + T::one();
+        let two: T = num_traits::cast(2.0).unwrap();
         let f = T::one() / (fovy_rad / two).tan();
 
         let c0r0 = f / aspect;

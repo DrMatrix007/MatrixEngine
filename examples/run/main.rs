@@ -54,24 +54,46 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
                 );
 
                 camera.insert_and_notify(Camera {
-                    eye: Vector3::new(0.0, 0.5, -0.5),
-                    target: Vector3::new(0., 1., 2.),
-                    up: Vector3::new(0., 0., 1.),
+                    eye: Vector3::new(0.0, 0.0, -1.),
+                    target: Vector3::new(0., 0., 2.),
+                    up: Vector3::new(0., 1., 0.),
                     aspect: 1.,
-                    fovy: PI / 2.,
+                    fovy: PI / 4.,
                     znear: 0.1,
-                    zfar: 100.,
+                    zfar: 1000.,
                 });
-                println!(
-                    "{}",
-                    &camera.get().unwrap().build_view_projection_matrix()
-                        * &Vector4::<f32>::new(1.0, 1., 1., 1.)
-                );
-
             },
         );
 
-        scene.add_send_system(|camera:WriteR<Camera>,events:ReadE<CustomEvents>|);
+        scene.add_send_system(
+            |camera: &mut WriteR<Camera, CustomEvents>, events: &mut ReadE<CustomEvents>| {
+                if let Some(camera) = camera.get_mut() {
+                    if events.is_pressed(KeyCode::KeyW) {
+                        *camera.eye.z_mut() += 1. / 2000.;
+                    }
+                    if events.is_pressed(KeyCode::KeyS) {
+                        *camera.eye.z_mut() -= 1. / 2000.;
+                    }
+                    if events.is_pressed(KeyCode::KeyA) {
+                        *camera.eye.x_mut() -= 1. / 2000.;
+                    }
+                    if events.is_pressed(KeyCode::KeyD) {
+                        *camera.eye.x_mut() += 1. / 2000.;
+                    }
+                    if events.is_pressed(KeyCode::Space) {
+                        *camera.eye.y_mut() += 1. / 2000.;
+                    }
+                    if events.is_pressed(KeyCode::ControlLeft) {
+                        *camera.eye.y_mut() -= 1. / 2000.;
+                    }
+                    println!(
+                        "{:5.2}\n",
+                        &camera.build_view_projection_matrix()
+                            // * &Vector4::<f32>::new(-0.5, 0.5, 0., 1.)
+                    );
+                }
+            },
+        );
     }
 }
 

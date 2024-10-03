@@ -227,7 +227,7 @@ impl<R: Resource, CustomEvents: MatrixEventable> Query<SceneRegistryRefs<CustomE
     }
 }
 
-pub struct WriteR<R: Resource, CustomEvents: MatrixEventable = ()> {
+pub struct WriteR<R: Resource, CustomEvents: MatrixEventable> {
     data: WriteDataState<ResourceHolder<R>>,
     proxy: ReadDataState<EventWriter<CustomEvents>>,
 }
