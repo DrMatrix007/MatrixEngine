@@ -1,4 +1,7 @@
-use std::{f32::consts::PI, time::Instant};
+use std::{
+    f32::consts::{E, PI},
+    time::Instant,
+};
 
 use matrix_engine::{
     engine::{
@@ -6,7 +9,7 @@ use matrix_engine::{
         entity::Entity,
         events::MatrixEventable,
         plugins::{window_plugin::WindowPlugin, Plugin},
-        query::{ReadC, ReadE, ReadSystemID, WriteC, WriteE, WriteR},
+        query::{ReadC, ReadE, WriteC, WriteR},
         runtimes::single_threaded::SingleThreaded,
         transform::Transform,
         Engine, EngineArgs,
@@ -18,7 +21,6 @@ use matrix_engine::{
     },
 };
 use num_traits::Signed;
-use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 use winit::keyboard::KeyCode;
 
 struct Example1;
@@ -28,30 +30,24 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
         let mut latest = Instant::now();
         let mut v = Vec::<f32>::new();
         let mut latest_second = Instant::now();
-        scene.add_send_system(
-            move |(events, write_events, id): &mut (
-                ReadE<CustomEvents>,
-                WriteE<CustomEvents>,
-                ReadSystemID,
-            )| {
-                let now = Instant::now();
+        scene.add_send_system(move |(): &mut ()| {
+            let now = Instant::now();
 
-                v.push(1.0 / (now - latest).as_secs_f32());
+            v.push(1.0 / (now - latest).as_secs_f32());
 
-                if (now - latest_second).as_secs() > 0 {
-                    let fps = v.iter().sum::<f32>() / v.len() as f32;
-                    println!("fps: {:10.5}, {:10.5}", fps, 1.0 / fps);
-                    latest_second = now;
-                }
-                latest = now;
-            },
-        );
+            if (now - latest_second).as_secs() > 0 {
+                let fps = v.iter().sum::<f32>() / v.len() as f32;
+                println!("fps: {:10.5}, {:10.5}", fps, 1.0 / fps);
+                latest_second = now;
+            }
+            latest = now;
+        });
         scene.add_send_startup_system(
             |render_objs: &mut WriteC<RenderObject>,
              transforms: &mut WriteC<Transform>,
              camera: &mut WriteR<Camera, CustomEvents>| {
-                for i in 0..100 {
-                    for y in 0..100 {
+                for i in 0..10 {
+                    for y in 0..10 {
                         for z in 0..10 {
                             let e = Entity::new();
                             render_objs.insert(e, RenderObject::new(Cube, "./img.jpg".to_string()));
@@ -73,7 +69,7 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
                     up: Vector3::new(0., 1., 0.),
                     aspect: 1.,
                     fovy: PI / 4.,
-                    znear: 0.1,
+                    znear: 0.001,
                     zfar: 1000.,
                 });
             },
@@ -81,12 +77,13 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
 
         let mut yaw: f32 = 0.0; // Horizontal rotation around the y-axis
         let mut pitch: f32 = 0.0; // Vertical rotation
+        let mut x = 0.;
         scene.add_send_system(
             move |camera: &mut WriteR<Camera, CustomEvents>, events: &mut ReadE<CustomEvents>| {
                 if let Some(camera) = camera.get_mut() {
                     let dt = events.dt();
                     let move_speed = dt * 10.;
-                    let rotation_speed = 4. * dt * camera.fovy / PI;
+                    let rotation_speed = dt * 4. * camera.fovy / PI;
 
                     // Get forward (z-axis), right (x-axis), and up (y-axis) direction vectors
                     let forward = camera.dir.normalized();
@@ -114,7 +111,8 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
 
                     match events.mouse_wheel_delta() {
                         dx if dx != 0. => {
-                            camera.fovy *= if dx.is_positive() { 0.5 } else { 2. };
+                            x += dx;
+                            camera.fovy = PI / (1. + E.powf(x))
                         }
                         _ => (),
                     }
@@ -122,7 +120,8 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
                     let (x, y) = events.mouse_dx();
                     yaw += x * rotation_speed;
                     pitch -= y * rotation_speed;
-
+                    
+                    pitch = pitch.clamp(-PI/2.+0.01, PI/2.-0.01);
                     // Update the camera's direction (yaw and pitch)
                     let (sin_yaw, cos_yaw) = yaw.sin_cos();
                     let (sin_pitch, cos_pitch) = pitch.sin_cos();
@@ -149,7 +148,7 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
                     (transforms.iter_mut(), obj.iter())
                         .into_wrapper()
                         .for_each(|(_, (t, _))| {
-                            *t.rotation.x_mut() += dt * 5.;
+                            *t.rotation.x_mut() += dt * 1.;
                             t.update_raw();
                         });
                 }

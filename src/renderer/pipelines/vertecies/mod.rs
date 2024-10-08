@@ -8,7 +8,7 @@ pub trait MatrixVertexBufferable: 'static {
     type Buffer<'a>;
     fn setup_pass(pass: &mut RenderPass<'_>, index: u32, buffer: Self::Buffer<'_>);
 
-    const ATTRS: &[VertexAttribute];
+    const ATTRS: &'static [VertexAttribute];
     fn vertex_buffer_layout() -> VertexBufferLayout<'static>;
 }
 

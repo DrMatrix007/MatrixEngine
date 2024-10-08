@@ -15,7 +15,8 @@ pub struct TextureVertexBuffers<'a> {
 }
 
 impl MatrixVertexBufferable for TextureVertex {
-    const ATTRS: &[VertexAttribute] = &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3];
+    const ATTRS: &'static [VertexAttribute] =
+        &wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3];
 
     fn vertex_buffer_layout() -> VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {

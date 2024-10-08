@@ -8,7 +8,6 @@ license = "MIT"
 
 [dependencies]
 bytemuck = { version = "1.18.0", features = ["derive"] }
-
 image = { version = "0.25.2", default-features = false, features = [
     "png",
     "jpeg",
@@ -16,6 +15,7 @@ image = { version = "0.25.2", default-features = false, features = [
 lazy_static = "1.5.0"
 num-traits = "0.2.19"
 num_cpus = "1.16.0"
+overload = "0.1.1"
 paste = "1.0.15"
 rayon = "1.10.0"
 scoped_threadpool = "0.1.9"
@@ -23,6 +23,8 @@ tokio = { version = "1", features = ["rt"] }
 wgpu = "22.1.0"
 winit = "0.30.5"
 
+[profile.release]
+opt-level = 3
 
 [[example]]
 name = "run"

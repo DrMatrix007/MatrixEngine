@@ -85,14 +85,6 @@ impl<CustomEvents: MatrixEventable> Events<CustomEvents> {
             WindowEvent::CursorMoved { position, .. } => {
                 self.mouse_pos = (position.x as _, position.y as _);
             }
-            WindowEvent::MouseWheel { delta, .. } => match delta {
-                MouseScrollDelta::LineDelta(_, y) => {
-                    self.mouse_wheel_delta = *y;
-                }
-                MouseScrollDelta::PixelDelta(pos) => {
-                    self.mouse_wheel_delta = pos.y as f32;
-                }
-            },
             WindowEvent::CloseRequested => {
                 self.close_requested = true;
             }
@@ -109,6 +101,12 @@ impl<CustomEvents: MatrixEventable> Events<CustomEvents> {
     pub(crate) fn handle_device_event(&mut self, event: DeviceEvent) {
         match event {
             DeviceEvent::MouseMotion { delta: (x, y) } => self.mouse_dx = (x as _, y as _),
+            DeviceEvent::MouseWheel { delta } => {
+                self.mouse_wheel_delta = match delta {
+                    MouseScrollDelta::LineDelta(x, y) => y,
+                    MouseScrollDelta::PixelDelta(physical_position) => physical_position.y as _,
+                }
+            }
             DeviceEvent::Added => {
                 println!("added device");
             }

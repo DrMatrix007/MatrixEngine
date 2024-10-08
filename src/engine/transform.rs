@@ -46,7 +46,7 @@ pub struct TransformRaw {
 }
 
 impl MatrixVertexBufferable for TransformRaw {
-    const ATTRS: &[wgpu::VertexAttribute] =
+    const ATTRS: &'static [wgpu::VertexAttribute] =
         &vertex_attr_array![2=>Float32x4,3=>Float32x4,4=>Float32x4,5=>Float32x4];
 
     fn vertex_buffer_layout() -> wgpu::VertexBufferLayout<'static> {
@@ -63,3 +63,4 @@ impl MatrixVertexBufferable for TransformRaw {
         pass.set_vertex_buffer(index, buffer.slice(..));
     }
 }
+

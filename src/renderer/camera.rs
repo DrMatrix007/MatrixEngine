@@ -33,7 +33,7 @@ impl Camera {
         // ]);
 
         // &opengl_to_wgpu * &(&view * &proj)
-        &view * &proj
+        view * proj
         // view
     }
 }

@@ -102,89 +102,59 @@ impl<T: Number + Display, const M: usize, const N: usize, Storage: MatrixStoraga
 }
 
 mod ops {
-    use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
+    use std::ops::{AddAssign, SubAssign};
 
-    use crate::math::{matrix_storage::MatrixStoragable, number::Number};
+    use crate::{
+        impl_ops_binary,
+        math::{matrix_storage::MatrixStoragable, number::Number},
+    };
 
     use super::Matrix;
 
-    impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>> Neg
-        for &Matrix<T, M, N, Storage>
-    {
-        type Output = Matrix<T, M, N, Storage>;
+    // impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>> Neg
+    //     for &Matrix<T, M, N, Storage>
+    // {
+    //     type Output = Matrix<T, M, N, Storage>;
 
-        fn neg(self) -> Self::Output {
-            Self::Output::build_with_pos(|i, j| -self[(i, j)].clone())
-        }
-    }
-    impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>> Neg
-        for Matrix<T, M, N, Storage>
-    {
-        type Output = Matrix<T, M, N, Storage>;
+    //     fn neg(self) -> Self::Output {
+    //         Self::Output::build_with_pos(|i, j| -self[(i, j)].clone())
+    //     }
+    // }
+    // #[opimps::impl_uni_ops(Neg)]
+    // fn neg<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>>(
+    //     m: &Matrix<T, M, N, Storage>,
+    // ) -> Matrix<T, M, N, Storage> {
+    //     Matrix::build_with_pos(|i, j| -m[(i, j)].clone())
+    // }
+    // gen_ops!{
+    //     <T, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>>;
+    //     types Matrix<T,M,N,Storage>, Matrix<T,M,N,Storage> => Matrix<T,M,N,Storage>;
+    //     for + call |m: &Matrix<T, M, N, Storage>,m2: &Matrix<T, M, N, Storage>| {add(m,m2)};
+    //     (where T:Number)
 
-        fn neg(self) -> Self::Output {
-            -&self
-        }
-    }
-    impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>> Add
-        for &Matrix<T, M, N, Storage>
-    {
-        type Output = Matrix<T, M, N, Storage>;
+    //     for - call |m: &Matrix<T, M, N, Storage>,m2: &Matrix<T, M, N, Storage>| {add(m,m2)};
+    //     (where T:Number)
 
-        fn add(self, other: Self) -> Self::Output {
-            Self::Output::build_with_pos(|i, j| self[(i, j)].clone() + other[(i, j)].clone())
-        }
-    }
+    //     where T:Number
+    // };
 
-    // Implement subtraction
-    impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>> Sub
-        for &Matrix<T, M, N, Storage>
-    {
-        type Output = Matrix<T, M, N, Storage>;
+    impl_ops_binary!(+ |a1:?Matrix<T, M, N, Storage>,a2:?Matrix<T, M, N, Storage>| -> Matrix<T, M, N, Storage> {
+                            Matrix::build_with_pos(|i, j| a1[(i, j)].clone()+a2[(i,j)].clone())
+                        } generic(<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>>));
 
-        fn sub(self, other: Self) -> Self::Output {
-            Self::Output::build_with_pos(|i, j| self[(i, j)].clone() - other[(i, j)].clone())
-        }
-    }
+    impl_ops_binary!(* |a1:?Matrix<T, M, N, Storage1>,a2:?Matrix<T, N, P, Storage2>| -> Matrix<T, M, P, Storage1::SelfWith<M,P>> {
+                            Matrix::build_with_pos(|m,p|{
+                                (0..N).map(|n|a1[(m,n)].clone()*a2[(n,p)].clone()).fold(T::zero(), |a,b|a+b)
+                            })
+                        } generic(<T: Number, const M: usize, const N: usize,const P:usize, Storage1: MatrixStoragable<T, M, N>,Storage2:MatrixStoragable<T,N,P>>));
+    impl_ops_binary!(/ |a1:?Matrix<T, M, N, Storage>,a2: ?T| -> Matrix<T, M, N, Storage> {
+                            Matrix::build_with_pos(|i, j| a1[(i, j)].clone() / a2.clone())
+                        } generic(<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>>));
 
-    impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>> Mul<T>
-        for &Matrix<T, M, N, Storage>
-    {
-        type Output = Matrix<T, M, N, Storage>;
-
-        fn mul(self, other: T) -> Self::Output {
-            Self::Output::build_with_pos(|i, j| self[(i, j)].clone() * other.clone())
-        }
-    }
-    impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>> Div<T>
-        for &Matrix<T, M, N, Storage>
-    {
-        type Output = Matrix<T, M, N, Storage>;
-
-        fn div(self, other: T) -> Self::Output {
-            Self::Output::build_with_pos(|i, j| self[(i, j)].clone() / other.clone())
-        }
-    }
-
-    impl<
-            T: Number,
-            const M: usize,
-            const N: usize,
-            const P: usize,
-            StorageA: MatrixStoragable<T, M, N>,
-            StorageB: MatrixStoragable<T, N, P>,
-        > Mul<&Matrix<T, N, P, StorageB>> for &Matrix<T, M, N, StorageA>
-    {
-        type Output = Matrix<T, M, P, StorageA::SelfWith<M, P>>;
-
-        fn mul(self, rhs: &Matrix<T, N, P, StorageB>) -> Self::Output {
-            Matrix::build_with_pos(|i, j| {
-                (0..N)
-                    .map(|n| self[(i, n)].clone() * rhs[(n, j)].clone())
-                    .fold(T::zero(), |a, b| a + b)
-            })
-        }
-    }
+    impl_ops_binary!(* |a1:?Matrix<T, M, N, Storage>,a2: ?T| -> Matrix<T, M, N, Storage> {
+                            Matrix::build_with_pos(|i, j| a1[(i, j)].clone() * a2.clone())
+                        } generic(<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>>));
+    
     impl<
             T: Number + AddAssign<T>,
             const M: usize,
