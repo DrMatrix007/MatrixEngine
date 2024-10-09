@@ -8,6 +8,7 @@ use num_traits::Float;
 
 use super::{matrix_storage::MatrixStoragable, number::Number};
 
+#[derive(Debug, Clone)]
 pub struct Matrix<
     T: Number,
     const M: usize,
@@ -80,6 +81,10 @@ impl<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, 
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = ((usize, usize), &mut T)> {
         self.storage.iter_pos_mut()
+    }
+
+    pub(crate) fn ones() -> Self {
+        Self::build_with(T::one)
     }
 }
 
@@ -154,7 +159,7 @@ mod ops {
     impl_ops_binary!(* |a1:?Matrix<T, M, N, Storage>,a2: ?T| -> Matrix<T, M, N, Storage> {
                             Matrix::build_with_pos(|i, j| a1[(i, j)].clone() * a2.clone())
                         } generic(<T: Number, const M: usize, const N: usize, Storage: MatrixStoragable<T, M, N>>));
-    
+
     impl<
             T: Number + AddAssign<T>,
             const M: usize,

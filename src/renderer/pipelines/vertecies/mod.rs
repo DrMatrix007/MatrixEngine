@@ -4,6 +4,7 @@ use wgpu::{RenderPass, VertexAttribute, VertexBufferLayout};
 
 use crate::impl_all;
 
+
 pub trait MatrixVertexBufferable: 'static {
     type Buffer<'a>;
     fn setup_pass(pass: &mut RenderPass<'_>, index: u32, buffer: Self::Buffer<'_>);

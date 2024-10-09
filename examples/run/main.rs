@@ -46,9 +46,9 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
             |render_objs: &mut WriteC<RenderObject>,
              transforms: &mut WriteC<Transform>,
              camera: &mut WriteR<Camera, CustomEvents>| {
-                for i in 0..10 {
-                    for y in 0..10 {
-                        for z in 0..10 {
+                for i in 0..100 {
+                    for y in 0..100 {
+                        for z in 0..100 {
                             let e = Entity::new();
                             render_objs.insert(e, RenderObject::new(Cube, "./img.jpg".to_string()));
                             transforms.insert(
@@ -149,7 +149,6 @@ impl<CustomEvents: MatrixEventable> Plugin<CustomEvents> for Example1 {
                         .into_wrapper()
                         .for_each(|(_, (t, _))| {
                             *t.rotation.x_mut() += dt * 1.;
-                            t.update_raw();
                         });
                 }
             },

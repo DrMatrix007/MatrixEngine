@@ -12,9 +12,12 @@ use crate::{
         component_iters::IntoWrapper,
         events::{MatrixEvent, MatrixEventable},
         query::{ReadC, ReadE, ReadR, ReadSystemID, WriteE, WriteR},
-        transform::{Transform, TransformRaw},
+        transform::{Transform, TransformMat},
     },
-    renderer::pipelines::{device_queue::DeviceQueue, shaders::MatrixShaders, MatrixPipelineArgs},
+    renderer::pipelines::{
+        device_queue::DeviceQueue, render_pipeline::MatrixRenderPipelineArgs,
+        shaders::MatrixShaders,
+    },
 };
 
 use super::{
@@ -22,9 +25,9 @@ use super::{
     camera::{Camera, CameraUniform},
     pipelines::{
         bind_groups::bind_group::MatrixBindGroup,
+        render_pipeline::MatrixRenderPipeline,
         textures::MatrixTexture,
         vertecies::texture_vertex::{TextureVertex, TextureVertexBuffers},
-        MatrixPipeline,
     },
     render_object::RenderObject,
 };
@@ -35,7 +38,7 @@ pub struct RendererResource {
     pub(crate) surface: Surface<'static>,
     pub(crate) surface_config: SurfaceConfiguration,
     pub(crate) pipeline:
-        MatrixPipeline<(TextureVertex, TransformRaw), (MatrixTexture, (CameraUniform,))>,
+        MatrixRenderPipeline<(TextureVertex, TransformMat), (MatrixTexture, (CameraUniform,))>,
     pub(crate) atlas: Atlas,
     pub(crate) camera_uniform: (CameraUniform,),
     pub(crate) camera_binding_group: MatrixBindGroup<(CameraUniform,)>,
@@ -102,12 +105,14 @@ fn create_render_resource(window: &Window) -> RendererResource {
 
     let device_queue = DeviceQueue::new(device.clone(), queue.clone());
 
-    let pipeline =
-        MatrixPipeline::<_, (MatrixTexture, (CameraUniform,))>::new(MatrixPipelineArgs {
+    let pipeline = MatrixRenderPipeline::<_, (MatrixTexture, (CameraUniform,))>::new(
+        MatrixRenderPipelineArgs {
+            label: "main render pipeline",
             shaders: MatrixShaders::new(&device_queue, include_str!("shaders.wgsl")),
             device_queue,
             surface_config: &surface_config,
-        });
+        },
+    );
 
     let device_queue = DeviceQueue::new(device, queue);
 
@@ -126,7 +131,7 @@ fn create_render_resource(window: &Window) -> RendererResource {
         surface,
         surface_config,
         pipeline,
-        atlas: Atlas::new(),
+        atlas: Atlas::new(&device_queue),
         device_queue,
     }
 }

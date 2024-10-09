@@ -14,6 +14,7 @@ pub trait MatrixStoragable<T: Number, const M: usize, const N: usize> {
     fn iter_pos(&self) -> impl Iterator<Item = ((usize, usize), &'_ T)>;
 
     fn iter_pos_mut(&mut self) -> impl Iterator<Item = ((usize, usize), &'_ mut T)>;
+
 }
 
 impl<T: Number, const M: usize, const N: usize> MatrixStoragable<T, M, N> for [[T; N]; M] {

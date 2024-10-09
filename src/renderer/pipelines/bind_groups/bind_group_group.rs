@@ -1,4 +1,4 @@
-use wgpu::{BindGroupLayout, RenderPass};
+use wgpu::{BindGroupLayout, ComputePass, RenderPass};
 
 use crate::{impl_all, renderer::pipelines::device_queue::DeviceQueue};
 
@@ -12,7 +12,8 @@ pub trait MatrixBindGroupableGroupable {
 
     type Groups<'a>;
 
-    fn setup_pass(pass: &mut RenderPass, groups: Self::Groups<'_>);
+    fn setup_render_pass(pass: &mut RenderPass, groups: Self::Groups<'_>);
+    fn setup_compute_pass(pass: &mut ComputePass, groups: Self::Groups<'_>);
 }
 
 macro_rules! impl_group_group {
@@ -33,12 +34,18 @@ macro_rules! impl_group_group {
             type Groups<'a> = ($(&'a MatrixBindGroup<$t>,)*);
 
             #[allow(non_snake_case)]
-            fn setup_pass(pass: &mut RenderPass, groups: Self::Groups<'_>) {
+            fn setup_render_pass(pass: &mut RenderPass, groups: Self::Groups<'_>) {
                 let mut i = 0;
                 let ($($t,)*) = groups;
                 $(pass.set_bind_group({i+=1;i-1},$t.group(),&[]);)*
             }
 
+            #[allow(non_snake_case)]
+            fn setup_compute_pass(pass: &mut ComputePass, groups: Self::Groups<'_>) {
+                let mut i = 0;
+                let ($($t,)*) = groups;
+                $(pass.set_bind_group({i+=1;i-1},$t.group(),&[]);)*
+            }
         }
     }
 }
@@ -53,7 +60,8 @@ impl MatrixBindGroupableGroupable for () {
 
     type Groups<'a> = ();
 
-    fn setup_pass(_pass: &mut RenderPass, _groups: Self::Groups<'_>) {}
+    fn setup_render_pass(_pass: &mut RenderPass, _groups: Self::Groups<'_>) {}
+    fn setup_compute_pass(pass: &mut ComputePass, groups: Self::Groups<'_>) {}
 }
 
 impl_all!(impl_group_group);
