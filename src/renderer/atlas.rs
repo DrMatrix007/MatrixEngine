@@ -5,10 +5,7 @@ use wgpu::{
     ComputePassDescriptor, ShaderStages,
 };
 
-use crate::{
-    engine::transform::{Transform, TransformMat, TransformRaw},
-    math::matrix::Matrix,
-};
+use crate::engine::transform::{Transform, TransformMat, TransformRaw};
 
 use super::{
     pipelines::{

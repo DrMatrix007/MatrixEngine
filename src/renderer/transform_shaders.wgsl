@@ -52,10 +52,11 @@ fn scale_matrix(scale: vec4<f32>) -> mat4x4<f32> {
     );
 }
 
-@compute @workgroup_size(256,1,1)
+@compute @workgroup_size(256)
 fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
-    let transform = buffer[id.x];
+    let index = id.x;
 
+    let transform = buffer[index];
 
     let rotation = rotation_matrix_z(transform[1].z) * rotation_matrix_y(transform[1].y) * rotation_matrix_x(transform[1].x);
 
@@ -67,6 +68,6 @@ fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
     let modelMatrix = rotation ;
 
     // Store the result in the outputBuffer
-    buffer[id.x] = translation * rotation;
-    buffer[id.x] = buffer[id.x];
+    buffer[index] = translation * rotation;
+    // buffer[id.x] = buffer[index];
 }
