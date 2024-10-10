@@ -1,10 +1,9 @@
 use super::bind_groups::bind_group_group::MatrixBindGroupableGroupable;
 use super::device_queue::DeviceQueue;
 use super::shaders::MatrixShaders;
-use super::textures::MatrixTexture;
 use std::marker::PhantomData;
 use wgpu::{
-    ComputePipeline, PipelineCompilationOptions, PipelineLayoutDescriptor, SurfaceConfiguration,
+    ComputePipeline, PipelineCompilationOptions, PipelineLayoutDescriptor,
 };
 
 pub struct MatrixComputePipelineArgs<'a> {

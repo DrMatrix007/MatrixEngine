@@ -1,9 +1,6 @@
-use wgpu::{vertex_attr_array, Buffer, ShaderStages, VertexBufferLayout};
+use wgpu::{vertex_attr_array, Buffer, VertexBufferLayout};
 
-use crate::{
-    math::matrix::{Matrix4, Vector3, Vector4},
-    renderer::pipelines::{bind_groups::bind::MatrixBindable, vertecies::MatrixVertexBufferable},
-};
+use crate::{math::matrix::Vector3, renderer::pipelines::vertecies::MatrixVertexBufferable};
 
 #[derive(Debug)]
 pub struct Transform {
@@ -25,10 +22,27 @@ impl Transform {
     }
     pub fn raw(&self) -> TransformRaw {
         TransformRaw {
-            position: [*self.position.x(), *self.position.y(), *self.position.z()],
-            rotation: [*self.rotation.x(), *self.rotation.y(), *self.rotation.z()],
-            scale: [*self.scale.x(), *self.scale.y(), *self.scale.z()],
-            extra: [0.0; 12],
+            mat: [
+                [
+                    *self.position.x(),
+                    *self.position.y(),
+                    *self.position.z(),
+                    0., // Padding or unused element
+                ],
+                [
+                    *self.rotation.x(),
+                    *self.rotation.y(),
+                    *self.rotation.z(),
+                    0., // Padding or unused element
+                ],
+                [
+                    *self.scale.x(),
+                    *self.scale.y(),
+                    *self.scale.z(),
+                    0., // Padding or unused element
+                ],
+                [0., 0., 0., 1.], // Last row for homogeneous coordinates
+            ], // other: [0.; 3],
         }
     }
 }
@@ -36,10 +50,8 @@ impl Transform {
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct TransformRaw {
-    pub position: [f32; 3],
-    pub rotation: [f32; 3],
-    pub scale: [f32; 3],
-    pub extra: [f32; 12],
+    // saves position, rotation and scale in different row
+    pub mat: [[f32; 4]; 4],
 }
 
 #[repr(C)]

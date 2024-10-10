@@ -61,7 +61,7 @@ impl MatrixBindGroupableGroupable for () {
     type Groups<'a> = ();
 
     fn setup_render_pass(_pass: &mut RenderPass, _groups: Self::Groups<'_>) {}
-    fn setup_compute_pass(pass: &mut ComputePass, groups: Self::Groups<'_>) {}
+    fn setup_compute_pass(_pass: &mut ComputePass, _groups: Self::Groups<'_>) {}
 }
 
 impl_all!(impl_group_group);

@@ -32,11 +32,12 @@ pub struct InstanceVector<T> {
     staging_vec: Vec<T>,
     size: usize,
     is_recreated: bool,
+    is_uniform: bool,
     _marker: std::marker::PhantomData<T>,
 }
 
 impl<T: bytemuck::Pod> InstanceVector<T> {
-    pub fn new(device_queue: &DeviceQueue) -> Self {
+    pub fn new(device_queue: &DeviceQueue, is_uniform: bool) -> Self {
         let size = 1;
         let buffer = device_queue
             .device()
@@ -53,6 +54,7 @@ impl<T: bytemuck::Pod> InstanceVector<T> {
             buffer: Arc::new(buffer),
             staging_vec: Vec::new(),
             size,
+            is_uniform,
             is_recreated: true,
             _marker: std::marker::PhantomData,
         }
@@ -94,7 +96,11 @@ impl<T: bytemuck::Pod> InstanceVector<T> {
                     usage: BufferUsages::VERTEX
                         | BufferUsages::COPY_DST
                         | BufferUsages::COPY_SRC
-                        | BufferUsages::STORAGE,
+                        | if self.is_uniform {
+                            BufferUsages::UNIFORM
+                        } else {
+                            BufferUsages::STORAGE
+                        },
                     mapped_at_creation: false,
                 });
             self.is_recreated = true;
@@ -127,7 +133,15 @@ impl<T: bytemuck::Pod> InstanceVector<T> {
             .create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Shrinking Buffer"),
                 size: (new_size * std::mem::size_of::<T>()) as u64,
-                usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::COPY_SRC,
+                usage: BufferUsages::VERTEX
+                    | BufferUsages::COPY_DST
+                    | BufferUsages::COPY_SRC
+                    | if self.is_uniform {
+                        BufferUsages::UNIFORM
+                    } else {
+                        BufferUsages::STORAGE
+                    },
+
                 mapped_at_creation: false,
             });
         self.is_recreated = true;
@@ -226,10 +240,8 @@ impl MatrixBindable for Transforms {
     }
 }
 pub struct InstanceData {
-    transforms: (Transforms,),
-    transforms_raw: (TransformsRaw,),
-    transforms_raw_group: MatrixBindGroup<(TransformsRaw,)>,
-    transforms_group: MatrixBindGroup<(Transforms,)>,
+    transforms: Transforms,
+    transforms_group: MatrixBindGroup<Transforms>,
     texture: MatrixTexture,
     texture_group: MatrixBindGroup<MatrixTexture>,
     vertex_buffer: Arc<Buffer>,
@@ -242,8 +254,7 @@ impl InstanceData {
         device_queue: &DeviceQueue,
         texture: MatrixTexture,
         texture_layout: &MatrixBindGroupLayout<MatrixTexture>,
-        transforms_raw_layout: &MatrixBindGroupLayout<(TransformsRaw,)>,
-        transforms_layout: &MatrixBindGroupLayout<(Transforms,)>,
+        transforms_layout: &MatrixBindGroupLayout<Transforms>,
         model: &dyn Model<TextureVertex>,
     ) -> Self {
         let vertex_buffer = Arc::new(device_queue.device().create_buffer_init(
@@ -261,17 +272,12 @@ impl InstanceData {
                 usage: BufferUsages::INDEX,
             },
         ));
-        let transforms_raw = (TransformsRaw {
-            transforms_raw: InstanceVector::new(device_queue),
-        },);
-        let transforms = (Transforms {
-            transforms: InstanceVector::new(device_queue),
-        },);
+        let transforms = Transforms {
+            transforms: InstanceVector::new(device_queue, false),
+        };
         Self {
             transforms_group: transforms_layout.create_group(device_queue, &transforms),
             transforms,
-            transforms_raw_group: transforms_raw_layout.create_group(device_queue, &transforms_raw),
-            transforms_raw,
             texture_group: texture_layout.create_group(device_queue, &texture),
             texture,
             vertex_buffer,
@@ -297,17 +303,17 @@ impl InstanceData {
     }
 
     pub(crate) fn instance_buffer(&self) -> &Buffer {
-        self.transforms.0.transforms.buffer()
+        self.transforms.transforms.buffer()
     }
 
     pub(crate) fn instaces(&self) -> u32 {
-        self.transforms.0.transforms.size() as _
+        self.transforms.transforms.size() as _
     }
 }
 
 pub(crate) struct Atlas {
     data: HashMap<InstancedType, InstanceData>,
-    compute_pipeline: MatrixComputePipeline<((TransformsRaw,), (Transforms,))>,
+    compute_pipeline: MatrixComputePipeline<(Transforms,)>,
 }
 
 impl Atlas {
@@ -324,18 +330,13 @@ impl Atlas {
 
     pub(crate) fn reset(&mut self) {
         for k in self.data.values_mut() {
-            k.transforms.0.transforms.clear();
-            k.transforms_raw.0.transforms_raw.clear();
+            k.transforms.transforms.clear();
         }
     }
 
     pub(crate) fn try_shrink(&mut self, device_queue: &DeviceQueue) {
         for k in self.data.values_mut() {
-            k.transforms.0.transforms.shrink_buffer(device_queue);
-            k.transforms_raw
-                .0
-                .transforms_raw
-                .shrink_buffer(device_queue);
+            k.transforms.transforms.shrink_buffer(device_queue);
         }
     }
 
@@ -353,14 +354,12 @@ impl Atlas {
                 MatrixTexture::from_path(device_queue, &obj.texture_path).unwrap(),
                 texture_layout,
                 &self.compute_pipeline.layouts().0,
-                &self.compute_pipeline.layouts().1,
                 &*obj.model,
             )
         });
-        state.transforms.0.transforms.push(TransformMat {
-            mat: Matrix::zeros().into_storage(),
+        state.transforms.transforms.push(TransformMat {
+            mat: tranform.raw().mat,
         });
-        state.transforms_raw.0.transforms_raw.push(tranform.raw());
     }
 
     pub(crate) fn instances(&self) -> impl Iterator<Item = &'_ InstanceData> {
@@ -369,7 +368,7 @@ impl Atlas {
 
     pub(crate) fn update_buffers(&mut self, device_queue: &DeviceQueue) {
         for i in self.data.values_mut() {
-            i.transforms.0.transforms.save_to_buffer(device_queue);
+            i.transforms.transforms.save_to_buffer(device_queue);
         }
 
         let mut command_encoder =
@@ -387,25 +386,21 @@ impl Atlas {
             for i in self.data.values_mut() {
                 self.compute_pipeline.setup_pass(&mut compute_pass);
 
-                if i.transforms_raw.0.transforms_raw.is_recreated() {
-                    i.transforms_raw_group = self
-                        .compute_pipeline
-                        .layouts()
-                        .0
-                        .create_group(device_queue, &i.transforms_raw);
+                if i.transforms.transforms.is_recreated() {
                     i.transforms_group = self
                         .compute_pipeline
                         .layouts()
-                        .1
+                        .0
                         .create_group(device_queue, &i.transforms);
                 }
 
-                self.compute_pipeline.setup_groups(
-                    &mut compute_pass,
-                    (&i.transforms_raw_group, &i.transforms_group),
-                );
-                compute_pass.dispatch_workgroups(i.instaces(), 1, 1);
+                self.compute_pipeline
+                    .setup_groups(&mut compute_pass, (&i.transforms_group,));
+                compute_pass.dispatch_workgroups((i.instaces() + 256 - 1) / 256, 1, 1);
             }
         }
+        device_queue
+            .queue()
+            .submit(core::iter::once(command_encoder.finish()));
     }
 }

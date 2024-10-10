@@ -103,7 +103,7 @@ impl<CustomEvents: MatrixEventable> Events<CustomEvents> {
             DeviceEvent::MouseMotion { delta: (x, y) } => self.mouse_dx = (x as _, y as _),
             DeviceEvent::MouseWheel { delta } => {
                 self.mouse_wheel_delta = match delta {
-                    MouseScrollDelta::LineDelta(x, y) => y,
+                    MouseScrollDelta::LineDelta(_x, y) => y,
                     MouseScrollDelta::PixelDelta(physical_position) => physical_position.y as _,
                 }
             }
