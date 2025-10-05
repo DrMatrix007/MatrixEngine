@@ -1,9 +1,16 @@
 use std::cell::UnsafeCell;
 
+#[derive(Debug, Clone, Copy)]
 pub enum LockableState {
     Available,
     Read(usize),
     Write,
+}
+
+impl Default for LockableState {
+    fn default() -> Self {
+        Self::Available
+    }
 }
 
 impl LockableState {
@@ -45,6 +52,7 @@ impl LockableState {
 pub struct LockableWriteGuard<T> {
     data: *mut T,
 }
+unsafe impl<T:Send> Send for LockableWriteGuard<T> {}
 
 impl<T> LockableWriteGuard<T> {
     pub(crate) fn new(data: *mut T) -> Self {
@@ -64,9 +72,11 @@ impl<T> AsRef<T> for LockableWriteGuard<T> {
     }
 }
 
+
 pub struct LockableReadGuard<T> {
     data: *const T,
 }
+unsafe impl<T:Send> Send for LockableReadGuard<T> {}
 
 impl<T> LockableReadGuard<T> {
     pub(crate) fn new(data: *const T) -> Self {
@@ -80,6 +90,7 @@ impl<T> AsRef<T> for LockableReadGuard<T> {
     }
 }
 
+#[derive(Default, Debug)]
 pub struct Lockable<T> {
     state: LockableState,
     data: Box<UnsafeCell<T>>,
@@ -112,4 +123,20 @@ impl<T> Lockable<T> {
     pub fn consume_write(&mut self, _: LockableWriteGuard<T>) -> Result<(), ()> {
         self.state.consume_write()
     }
+
+
+    pub fn can_read(&self) -> bool {
+        match self.state {
+            LockableState::Available | LockableState::Read(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn can_write(&self) -> bool {
+        match self.state {
+            LockableState::Available => true,
+            _ => false,
+        }
+    }
+
 }
