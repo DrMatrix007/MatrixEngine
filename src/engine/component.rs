@@ -10,7 +10,7 @@ use crate::{
 
 pub trait Component: Send + Sync + 'static {}
 
-impl<T: Send + Sync + 'static> Component for T {}
+// impl<T: Send + Sync + 'static> Component for T {}
 
 pub struct ComponentCollection<T: Component> {
     components: Vec<Option<Box<T>>>,
@@ -43,11 +43,11 @@ impl<T: Component> ComponentCollection<T> {
             .as_ref()
             .map(|x| x.as_ref())
     }
-    pub fn get_mut(&self, entity: &Entity) -> Option<&T> {
+    pub fn get_mut(&mut self, entity: &Entity) -> Option<&mut T> {
         self.components
-            .get(entity.id())?
-            .as_ref()
-            .map(|x| x.as_ref())
+            .get_mut(entity.id())?
+            .as_mut()
+            .map(|x| x.as_mut())
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (Entity, &T)> {
@@ -153,7 +153,7 @@ impl Default for ComponentRegistry {
 impl ComponentRegistry {
     pub fn read_components<T: Component>(
         &mut self,
-    ) -> Option<LockableReadGuard<ComponentCollection<T>>> {
+    ) -> Result<LockableReadGuard<ComponentCollection<T>>, LockableError> {
         self.components
             .entry::<Lockable<ComponentCollection<T>>>()
             .or_insert_with(Default::default)
@@ -162,7 +162,7 @@ impl ComponentRegistry {
 
     pub fn write_components<T: Component>(
         &mut self,
-    ) -> Option<LockableWriteGuard<ComponentCollection<T>>> {
+    ) -> Result<LockableWriteGuard<ComponentCollection<T>>, LockableError> {
         self.components
             .entry::<Lockable<ComponentCollection<T>>>()
             .or_insert_with(Default::default)

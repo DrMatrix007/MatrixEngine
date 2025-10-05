@@ -8,6 +8,7 @@ use crate::engine::{
     systems::{QuerySystem, QuerySystemHolder},
 };
 
+pub mod commands;
 pub mod component;
 pub mod entity;
 pub mod query;
@@ -25,6 +26,7 @@ pub struct Scene {
     pub registry: SceneRegistry,
     pub systems: SystemRegistry<SceneRegistry>,
     pub running: bool,
+    pub entity_counter: usize,
 }
 
 impl Scene {
@@ -33,6 +35,7 @@ impl Scene {
             registry: Default::default(),
             systems: Default::default(),
             running: true,
+            entity_counter: 0
         }
     }
 

@@ -1,140 +1,183 @@
-use std::cell::UnsafeCell;
+use std::{
+    ops::{Deref, DerefMut},
+    sync::Arc,
+};
 
-#[derive(Debug, Clone, Copy)]
-pub enum LockableState {
-    Available,
-    Read(usize),
+#[derive(Debug)]
+pub enum LockableState<T> {
+    Available(Arc<T>),
+    Read(Arc<T>),
     Write,
 }
 
-impl Default for LockableState {
-    fn default() -> Self {
-        Self::Available
-    }
-}
-
+#[derive(Debug)]
 pub enum LockableError {
     NotAvailable,
+    CantConsume,
 }
+impl<T> LockableState<T> {
+    pub fn read(&mut self) -> Result<Arc<T>, LockableError> {
+        match std::mem::replace(self, LockableState::Write) {
+            LockableState::Available(data) => {
+                *self = LockableState::Read(data.clone());
+                Ok(data)
+            }
+            LockableState::Read(arc) => {
+                *self = LockableState::Read(arc.clone());
+                Ok(arc)
+            }
+            LockableState::Write => {
+                *self = LockableState::Write;
+                Err(LockableError::NotAvailable)
+            }
+        }
+    }
 
-impl LockableState {
-    pub fn read(&mut self) -> Result<(), LockableError> {
-        match self {
-            LockableState::Available => *self = Self::Read(1),
-            LockableState::Read(reads) => *reads += 1,
-            LockableState::Write => return Err(LockableError::NotAvailable),
-        };
+    pub fn consume_read(&mut self, arc: Arc<T>) -> Result<(), LockableError> {
+        if Arc::strong_count(&arc) == 1 {
+            match std::mem::replace(self, LockableState::Write) {
+                LockableState::Read(current) => {
+                    if Arc::ptr_eq(&arc, &current) {
+                        *self = LockableState::Available(current);
+                        return Ok(());
+                    }
+                }
+                data => {
+                    *self = data;
+                }
+            }
+        }
         Ok(())
     }
 
-    pub fn consume_read(&mut self) -> Result<(), LockableError> {
-        match self {
-            LockableState::Read(1) => *self = Self::Available,
-            LockableState::Read(data) => *data -= 1,
-            _ => return Err(LockableError::NotAvailable),
-        };
-        Ok(())
+    pub fn write(&mut self) -> Result<Arc<T>, LockableError> {
+        match std::mem::replace(self, LockableState::Write) {
+            LockableState::Available(data) => Ok(data),
+            LockableState::Read(arc) => {
+                *self = LockableState::Read(arc);
+                Err(LockableError::NotAvailable)
+            }
+            LockableState::Write => {
+                *self = LockableState::Write;
+                Err(LockableError::NotAvailable)
+            }
+        }
     }
 
-    pub fn write(&mut self) -> Result<(), LockableError> {
-        match self {
-            LockableState::Available => *self = Self::Write,
-            _ => return Err(LockableError::NotAvailable),
-        };
-        Ok(())
-    }
-
-    pub fn consume_write(&mut self) -> Result<(), LockableError> {
-        match self {
-            LockableState::Write => *self = Self::Available,
-            _ => return Err(LockableError::NotAvailable),
-        };
-        Ok(())
+    pub fn consume_write(&mut self, data: Arc<T>) -> Result<(), LockableError> {
+        if let LockableState::Write = self {
+            *self = LockableState::Available(data);
+            Ok(())
+        } else {
+            Err(LockableError::CantConsume)
+        }
     }
 }
 
 pub struct LockableWriteGuard<T> {
-    data: *mut T,
+    data: Arc<T>,
 }
-unsafe impl<T:Send> Send for LockableWriteGuard<T> {}
+unsafe impl<T: Send> Send for LockableWriteGuard<T> {}
 
 impl<T> LockableWriteGuard<T> {
-    pub(crate) fn new(data: *mut T) -> Self {
+    pub(crate) fn new(data: Arc<T>) -> Self {
         Self { data }
+    }
+}
+impl<T> AsRef<T> for LockableWriteGuard<T> {
+    fn as_ref(&self) -> &T {
+        self.data.as_ref()
     }
 }
 
 impl<T> AsMut<T> for LockableWriteGuard<T> {
     fn as_mut(&mut self) -> &mut T {
-        unsafe { &mut *self.data }
+        Arc::get_mut(&mut self.data).unwrap()
     }
 }
 
-impl<T> AsRef<T> for LockableWriteGuard<T> {
-    fn as_ref(&self) -> &T {
-        unsafe { &*self.data }
+impl<T> DerefMut for LockableWriteGuard<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        self.as_mut()
     }
 }
 
+impl<T> Deref for LockableWriteGuard<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        self.as_ref()
+    }
+}
 
 pub struct LockableReadGuard<T> {
-    data: *const T,
+    data: Arc<T>,
 }
-unsafe impl<T:Send> Send for LockableReadGuard<T> {}
+
+unsafe impl<T: Send> Send for LockableReadGuard<T> {}
 
 impl<T> LockableReadGuard<T> {
-    pub(crate) fn new(data: *const T) -> Self {
+    pub(crate) fn new(data: Arc<T>) -> Self {
         Self { data }
+    }
+}
+
+impl<T> Deref for LockableReadGuard<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
     }
 }
 
 impl<T> AsRef<T> for LockableReadGuard<T> {
     fn as_ref(&self) -> &T {
-        unsafe { &*self.data }
+        self.data.as_ref()
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct Lockable<T> {
-    state: LockableState,
-    data: Box<UnsafeCell<T>>,
+    state: LockableState<T>,
+}
+
+impl<T: Default> Default for Lockable<T> {
+    fn default() -> Self {
+        Self {
+            state: LockableState::Available(Arc::new(Default::default())),
+        }
+    }
 }
 
 impl<T> Lockable<T> {
     pub fn new(data: T) -> Self {
         Self {
-            state: LockableState::Available,
-            data: Box::new(UnsafeCell::new(data)),
+            state: LockableState::Available(Arc::new(data)),
         }
     }
-    pub fn read(&mut self) -> Option<LockableReadGuard<T>> {
-        self.state
-            .read()
-            .ok()
-            .map(|_| LockableReadGuard::new(self.data.get()))
+    pub fn read(&mut self) -> Result<LockableReadGuard<T>, LockableError> {
+        self.state.read().map(|arc| LockableReadGuard::new(arc))
     }
-    pub fn write(&mut self) -> Option<LockableWriteGuard<T>> {
-        self.state
-            .write()
-            .ok()
-            .map(|_| LockableWriteGuard::new(self.data.get()))
+    pub fn write(&mut self) -> Result<LockableWriteGuard<T>, LockableError> {
+        self.state.write().map(|arc| LockableWriteGuard::new(arc))
     }
 
-    pub fn consume_read(&mut self, _: LockableReadGuard<T>) -> Result<(), LockableError> {
-        self.state.consume_read()
+    pub fn consume_read(&mut self, guard: LockableReadGuard<T>) -> Result<(), LockableError> {
+        self.state.consume_read(guard.data)
     }
 
-    pub fn consume_write(&mut self, _: LockableWriteGuard<T>) -> Result<(), LockableError> {
-        self.state.consume_write()
+    pub fn consume_write(&mut self, guard: LockableWriteGuard<T>) -> Result<(), LockableError> {
+        self.state.consume_write(guard.data)
     }
-
 
     pub fn can_read(&self) -> bool {
-        matches!(self.state, LockableState::Available | LockableState::Read(_))
+        matches!(
+            self.state,
+            LockableState::Available(_) | LockableState::Read(_)
+        )
     }
 
     pub fn can_write(&self) -> bool {
-        matches!(self.state, LockableState::Available)
+        matches!(self.state, LockableState::Available(_))
     }
-
 }

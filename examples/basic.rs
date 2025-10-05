@@ -1,20 +1,22 @@
 use matrix_engine::engine::{
-    entity::Entity, query::{Read, Write}, runtime::SingleThreadedRuntime, system_registries::Stage, Engine
+    component::Component, entity::Entity, query::{Read, Write}, runtime::SingleThreadedRuntime, system_registries::Stage, Engine
 };
 
-fn start(data: &mut Write<usize>) {
-    data.insert(&Entity::new(), 5);
+#[derive(Debug)]
+struct A;
+
+impl Component for A {}
+
+fn start(data: &mut Write<A>) {
 }
 
-fn modify(data: &mut Write<usize>) {
-    for (_, v) in data.iter_mut() {
-        *v += 1;
-    }
+fn modify(data: &mut Write<A>) {
+
 }
 
-fn prints(data: &mut Read<usize>) {
+fn prints(data: &mut Read<A>) {
     for (_, v) in data.iter() {
-        println!("{}", v);
+        println!("{:?}", v);
     }
     println!("=======");
 }
