@@ -2,7 +2,11 @@ use std::iter::Peekable;
 
 use anymap::AnyMap;
 
-use crate::{engine::{component, entity::Entity}, impl_all, lockable::{Lockable, LockableReadGuard, LockableWriteGuard}};
+use crate::{
+    engine::entity::Entity,
+    impl_all,
+    lockable::{Lockable, LockableError, LockableReadGuard, LockableWriteGuard},
+};
 
 pub trait Component: Send + Sync + 'static {}
 
@@ -14,7 +18,9 @@ pub struct ComponentCollection<T: Component> {
 
 impl<T: Component> Default for ComponentCollection<T> {
     fn default() -> Self {
-        Self { components: Default::default() }
+        Self {
+            components: Default::default(),
+        }
     }
 }
 
@@ -95,8 +101,7 @@ macro_rules! impl_join {
                         let max_entity = {
                             $(let $name = $name.peek();)*
 
-                            $(if $name.is_none() { return None; })*
-                            $(let $name = $name.unwrap();)*
+                            $(let $name = $name?;)*
 
                             {
                                 let mut max = None;
@@ -132,41 +137,55 @@ macro_rules! impl_join {
 // expand for tuple arities you want
 impl_all!(impl_join);
 
-
 #[derive(Debug)]
-pub struct ComponentRegistry
-{
+pub struct ComponentRegistry {
     components: AnyMap,
-    
 }
 
 impl Default for ComponentRegistry {
     fn default() -> Self {
-        Self { components: AnyMap::new() }
+        Self {
+            components: AnyMap::new(),
+        }
     }
 }
 
 impl ComponentRegistry {
-    pub fn read_components<T: Component>(&mut self) -> Option<LockableReadGuard<ComponentCollection<T>>>
-    {
-        self.components.entry::<Lockable<ComponentCollection<T>>>().or_insert_with(Default::default).read()
+    pub fn read_components<T: Component>(
+        &mut self,
+    ) -> Option<LockableReadGuard<ComponentCollection<T>>> {
+        self.components
+            .entry::<Lockable<ComponentCollection<T>>>()
+            .or_insert_with(Default::default)
+            .read()
     }
 
-    pub fn write_components<T: Component>(&mut self) -> Option<LockableWriteGuard<ComponentCollection<T>>>
-    {
-        self.components.entry::<Lockable<ComponentCollection<T>>>().or_insert_with(Default::default).write()
+    pub fn write_components<T: Component>(
+        &mut self,
+    ) -> Option<LockableWriteGuard<ComponentCollection<T>>> {
+        self.components
+            .entry::<Lockable<ComponentCollection<T>>>()
+            .or_insert_with(Default::default)
+            .write()
     }
 
-    pub fn read_components_consume<T: Component>(&mut self, data: LockableReadGuard<ComponentCollection<T>>) -> Result<(),()>
-    {
-        self.components.entry::<Lockable<ComponentCollection<T>>>().or_insert_with(Default::default).consume_read(data)
+    pub fn read_components_consume<T: Component>(
+        &mut self,
+        data: LockableReadGuard<ComponentCollection<T>>,
+    ) -> Result<(), LockableError> {
+        self.components
+            .entry::<Lockable<ComponentCollection<T>>>()
+            .or_insert_with(Default::default)
+            .consume_read(data)
     }
 
-    pub fn write_components_consume<T: Component>(&mut self, data: LockableWriteGuard<ComponentCollection<T>>) -> Result<(),()>
-    {
-        self.components.entry::<Lockable<ComponentCollection<T>>>().or_insert_with(Default::default).consume_write(data)
+    pub fn write_components_consume<T: Component>(
+        &mut self,
+        data: LockableWriteGuard<ComponentCollection<T>>,
+    ) -> Result<(), LockableError> {
+        self.components
+            .entry::<Lockable<ComponentCollection<T>>>()
+            .or_insert_with(Default::default)
+            .consume_write(data)
     }
-
-
-
 }

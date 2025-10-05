@@ -10,10 +10,8 @@ pub trait System: Send {
     fn consume_args(&mut self, registry: &mut Self::Registry) -> Result<(), QueryError>;
 }
 
-pub trait QuerySystem<Args: Query<Registry = Self::Registry>>: Send {
-    type Registry;
-
-    fn prepare_args(&mut self, registry: &mut Self::Registry) -> Result<Args, QueryError> {
+pub trait QuerySystem<Args: Query>: Send {
+    fn prepare_args(&mut self, registry: &mut Args::Registry) -> Result<Args, QueryError> {
         Args::prepare(registry)
     }
 
@@ -21,28 +19,26 @@ pub trait QuerySystem<Args: Query<Registry = Self::Registry>>: Send {
 
     fn consume_args(
         &mut self,
-        registry: &mut Self::Registry,
+        registry: &mut Args::Registry,
         args: Args,
     ) -> Result<(), QueryError> {
         args.consume(registry)
     }
 }
 
-pub struct QuerySystemHolder<Q: Query, QSystem: QuerySystem<Q, Registry = Q::Registry>> {
+pub struct QuerySystemHolder<Q: Query, QSystem: QuerySystem<Q>> {
     system: QSystem,
     args: Option<Q>,
 }
 
-impl<Q: Query, QSystem: QuerySystem<Q, Registry = Q::Registry>> QuerySystemHolder<Q, QSystem> {
+impl<Q: Query, QSystem: QuerySystem<Q>> QuerySystemHolder<Q, QSystem> {
     pub fn new(system: QSystem) -> Self {
         Self { system, args: None }
     }
 }
 
-impl<Q: Query, QSystem: QuerySystem<Q, Registry = Q::Registry>> System
-    for QuerySystemHolder<Q, QSystem>
-{
-    type Registry = QSystem::Registry;
+impl<Q: Query, QSystem: QuerySystem<Q>> System for QuerySystemHolder<Q, QSystem> {
+    type Registry = Q::Registry;
 
     fn prepare_args(&mut self, registry: &mut Self::Registry) -> Result<(), QueryError> {
         self.args = Some(self.system.prepare_args(registry)?);
@@ -65,8 +61,6 @@ impl<Q: Query, QSystem: QuerySystem<Q, Registry = Q::Registry>> System
 }
 
 impl<Q: Query, F: FnMut(&mut Q) + Send> QuerySystem<Q> for F {
-    type Registry = Q::Registry;
-
     fn run(&mut self, args: &mut Q) {
         self(args)
     }

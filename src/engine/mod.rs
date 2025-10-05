@@ -1,9 +1,11 @@
+use ::winit::window::WindowId;
+
 use crate::engine::{
     component::ComponentRegistry,
     query::Query,
-    runtime::{RUNTIME_STAGES, Runtime, RuntimeContainer, Stage},
-    system_registries::SystemRegistry,
-    systems::{QuerySystem, QuerySystemHolder, System},
+    runtime::{Runtime, RuntimeContainer},
+    system_registries::{Stage, SystemRegistry},
+    systems::{QuerySystem, QuerySystemHolder},
 };
 
 pub mod component;
@@ -12,6 +14,7 @@ pub mod query;
 pub mod runtime;
 pub mod system_registries;
 pub mod systems;
+pub mod winit;
 
 #[derive(Default)]
 pub struct SceneRegistry {
@@ -20,19 +23,15 @@ pub struct SceneRegistry {
 
 pub struct Scene {
     pub registry: SceneRegistry,
-    pub systems: Vec<SystemRegistry<SceneRegistry>>,
-    pub startup_systems: Option<SystemRegistry<SceneRegistry>>,
+    pub systems: SystemRegistry<SceneRegistry>,
     pub running: bool,
 }
 
 impl Scene {
     pub fn new() -> Self {
-        let mut systems = Vec::<SystemRegistry<SceneRegistry>>::new();
-        systems.resize_with(RUNTIME_STAGES.len(), Default::default);
         Self {
             registry: Default::default(),
-            systems,
-            startup_systems: Some(SystemRegistry::default()),
+            systems: Default::default(),
             running: true,
         }
     }
@@ -40,16 +39,16 @@ impl Scene {
     pub fn add_system<Args: Query<Registry = SceneRegistry> + 'static>(
         &mut self,
         stage: Stage,
-        system: impl QuerySystem<Args, Registry = SceneRegistry> + 'static,
+        system: impl QuerySystem<Args> + 'static,
     ) {
         let system = QuerySystemHolder::new(system);
-        match stage {
-            Stage::Startup => self
-                .startup_systems
-                .get_or_insert_default()
-                .add_system(system),
-            stage @ _ => self.systems[stage as usize].add_system(system),
-        }
+        self.systems.add_system(stage, system);
+    }
+}
+
+impl Default for Scene {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -66,21 +65,31 @@ impl Engine {
         }
     }
 
-    pub fn run(&mut self) {
-        if let Some(startup_systems) = self.scene.startup_systems.as_mut() {
-            self.runtime
-                .run(&mut self.scene.registry, startup_systems, Stage::Startup);
-        }
+    pub fn startup(&mut self) {
+        self.runtime.run(
+            &mut self.scene.registry,
+            self.scene.systems.startup_systems_mut(),
+            Stage::Startup,
+        );
+    }
 
-        while self.scene.running {
-            for stage in RUNTIME_STAGES {
-                self.runtime.run(
-                    &mut self.scene.registry,
-                    &mut self.scene.systems[*stage as usize],
-                    *stage,
-                );
-            }
+    pub fn frame_update(&mut self) {
+        let stages = [Stage::PreUpdate, Stage::Update, Stage::PostUpdate];
+        self.run_stages(&stages);
+    }
+
+    fn run_stages(&mut self, stages: &[Stage]) {
+        for stage in stages {
+            self.runtime.run(
+                &mut self.scene.registry,
+                self.scene.systems.get_system_collection(stage),
+                *stage,
+            );
         }
+    }
+
+    pub fn frame_render(&mut self, id: &WindowId) {
+        self.run_stages(&[Stage::PreRender(*id), Stage::Render(*id)]);
     }
 
     pub fn scene_mut(&mut self) -> &mut Scene {

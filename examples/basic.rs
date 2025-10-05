@@ -1,9 +1,5 @@
 use matrix_engine::engine::{
-    Engine, SceneRegistry,
-    entity::Entity,
-    query::{Read, Write},
-    runtime::{SingleThreadedRuntime, Stage},
-    systems::QuerySystem,
+    entity::Entity, query::{Read, Write}, runtime::SingleThreadedRuntime, system_registries::Stage, Engine
 };
 
 fn start(data: &mut Write<usize>) {
@@ -18,7 +14,7 @@ fn modify(data: &mut Write<usize>) {
 
 fn prints(data: &mut Read<usize>) {
     for (_, v) in data.iter() {
-        println!("{}",v);
+        println!("{}", v);
     }
     println!("=======");
 }
@@ -30,5 +26,5 @@ fn main() {
     engine.scene_mut().add_system(Stage::Update, modify);
     engine.scene_mut().add_system(Stage::PostUpdate, prints);
 
-    engine.run();
+    engine.startup();
 }

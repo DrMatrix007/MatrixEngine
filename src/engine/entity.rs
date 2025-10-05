@@ -1,4 +1,4 @@
-use std::{sync::atomic::AtomicUsize, usize};
+use std::{sync::atomic::AtomicUsize};
 
 type EntityId = usize;
 
@@ -13,11 +13,18 @@ impl Entity {
     pub fn new() -> Self {
         Self::from_id(COUNTER.fetch_add(1, std::sync::atomic::Ordering::AcqRel))
     }
+
     pub fn from_id(id: EntityId) -> Self {
         Self { id }
     }
 
     pub fn id(&self) -> EntityId {
         self.id
+    }
+}
+
+impl Default for Entity {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -1,30 +1,11 @@
-use crate::engine::{Scene, SceneRegistry, system_registries::SystemRegistry};
+use crate::engine::system_registries::{Stage, SystemCollection};
 
-#[derive(Debug, Clone, Copy)]
-#[repr(usize)]
-pub enum Stage {
-    PreUpdate = 0,
-    Update,
-    PostUpdate,
-    PreRender,
-    Render,
-
-    Startup,
-}
-
-pub static RUNTIME_STAGES: &[Stage] = &[
-    Stage::PreUpdate,
-    Stage::Update,
-    Stage::PostUpdate,
-    Stage::PreRender,
-    Stage::Render,
-];
 
 pub trait Runtime<Registry> {
     fn run(
         &mut self,
         registry: &mut Registry,
-        systems: &mut SystemRegistry<Registry>,
+        systems: &mut SystemCollection<Registry>,
         stage: Stage,
     );
 }
@@ -32,7 +13,7 @@ pub trait Runtime<Registry> {
 pub struct SingleThreadedRuntime;
 
 impl<Registry> Runtime<Registry> for SingleThreadedRuntime {
-    fn run(&mut self, registry: &mut Registry, systems: &mut SystemRegistry<Registry>, _: Stage) {
+    fn run(&mut self, registry: &mut Registry, systems: &mut SystemCollection<Registry>, _: Stage) {
         while let Some(mut system) = systems.take_out_system() {
             system.prepare_args(registry).unwrap();
             system.run();
@@ -58,7 +39,7 @@ impl<Registry> RuntimeContainer<Registry> {
     pub fn run(
         &mut self,
         registry: &mut Registry,
-        systems: &mut SystemRegistry<Registry>,
+        systems: &mut SystemCollection<Registry>,
         stage: Stage,
     ) {
         self.runtime.run(registry, systems, stage);

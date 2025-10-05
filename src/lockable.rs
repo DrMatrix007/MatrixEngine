@@ -13,37 +13,41 @@ impl Default for LockableState {
     }
 }
 
+pub enum LockableError {
+    NotAvailable,
+}
+
 impl LockableState {
-    pub fn read(&mut self) -> Result<(), ()> {
+    pub fn read(&mut self) -> Result<(), LockableError> {
         match self {
             LockableState::Available => *self = Self::Read(1),
             LockableState::Read(reads) => *reads += 1,
-            LockableState::Write => return Err(()),
+            LockableState::Write => return Err(LockableError::NotAvailable),
         };
         Ok(())
     }
 
-    pub fn consume_read(&mut self) -> Result<(), ()> {
+    pub fn consume_read(&mut self) -> Result<(), LockableError> {
         match self {
             LockableState::Read(1) => *self = Self::Available,
             LockableState::Read(data) => *data -= 1,
-            _ => return Err(()),
+            _ => return Err(LockableError::NotAvailable),
         };
         Ok(())
     }
 
-    pub fn write(&mut self) -> Result<(), ()> {
+    pub fn write(&mut self) -> Result<(), LockableError> {
         match self {
             LockableState::Available => *self = Self::Write,
-            _ => return Err(()),
+            _ => return Err(LockableError::NotAvailable),
         };
         Ok(())
     }
 
-    pub fn consume_write(&mut self) -> Result<(), ()> {
+    pub fn consume_write(&mut self) -> Result<(), LockableError> {
         match self {
             LockableState::Write => *self = Self::Available,
-            _ => return Err(()),
+            _ => return Err(LockableError::NotAvailable),
         };
         Ok(())
     }
@@ -116,27 +120,21 @@ impl<T> Lockable<T> {
             .map(|_| LockableWriteGuard::new(self.data.get()))
     }
 
-    pub fn consume_read(&mut self, _: LockableReadGuard<T>) -> Result<(), ()> {
+    pub fn consume_read(&mut self, _: LockableReadGuard<T>) -> Result<(), LockableError> {
         self.state.consume_read()
     }
 
-    pub fn consume_write(&mut self, _: LockableWriteGuard<T>) -> Result<(), ()> {
+    pub fn consume_write(&mut self, _: LockableWriteGuard<T>) -> Result<(), LockableError> {
         self.state.consume_write()
     }
 
 
     pub fn can_read(&self) -> bool {
-        match self.state {
-            LockableState::Available | LockableState::Read(_) => true,
-            _ => false,
-        }
+        matches!(self.state, LockableState::Available | LockableState::Read(_))
     }
 
     pub fn can_write(&self) -> bool {
-        match self.state {
-            LockableState::Available => true,
-            _ => false,
-        }
+        matches!(self.state, LockableState::Available)
     }
 
 }

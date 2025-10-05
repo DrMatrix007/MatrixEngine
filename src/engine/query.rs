@@ -70,7 +70,7 @@ impl<T: Component> Query for Read<T> {
     }
 }
 
-impl<'a, T: Component> Query for Write<T> {
+impl<T: Component> Query for Write<T> {
     type Registry = SceneRegistry;
 
     fn prepare(reg: &mut Self::Registry) -> Result<Self, QueryError> {
