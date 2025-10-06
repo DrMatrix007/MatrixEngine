@@ -43,14 +43,12 @@ pub enum CommandError {
     UnknownError
 }
 
-impl<T> Query for CommandBuffer<T> {
-    type Registry = T;
-
-    fn prepare(_: &mut Self::Registry) -> Result<Self, super::query::QueryError> {
+impl<T> Query<T> for CommandBuffer<T> {
+    fn prepare(_: &mut T) -> Result<Self, super::query::QueryError> {
         Ok(Self::new())
     }
 
-    fn consume(mut self, registry: &mut Self::Registry) -> Result<(), super::query::QueryError> {
+    fn consume(mut self, registry: &mut T) -> Result<(), super::query::QueryError> {
         for mut command in self.drain() {
             command
                 .run(registry)

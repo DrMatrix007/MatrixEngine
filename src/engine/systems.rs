@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use crate::{
     engine::query::{Query, QueryError},
     impl_all,
@@ -14,35 +16,44 @@ pub trait System: Send {
     fn consume_args(&mut self, registry: &mut Self::Registry) -> Result<(), QueryError>;
 }
 
-pub trait QuerySystem<Args: Query>: Send {
-    fn prepare_args(&mut self, registry: &mut Args::Registry) -> Result<Args, QueryError> {
+pub trait QuerySystem<Registry, Args: Query<Registry>>: Send {
+    fn prepare_args(&mut self, registry: &mut Registry) -> Result<Args, QueryError> {
         Args::prepare(registry)
     }
 
     fn run(&mut self, args: &mut Args);
 
-    fn consume_args(
-        &mut self,
-        registry: &mut Args::Registry,
-        args: Args,
-    ) -> Result<(), QueryError> {
+    fn consume_args(&mut self, registry: &mut Registry, args: Args) -> Result<(), QueryError> {
         args.consume(registry)
     }
 }
 
-pub struct QuerySystemHolder<Q: Query, QSystem: QuerySystem<Q>> {
+pub struct QuerySystemHolder<Registry, Q: Query<Registry>, QSystem: QuerySystem<Registry, Q>> {
     system: QSystem,
     args: Option<Q>,
+    phantom: PhantomData<Registry>,
+}
+unsafe impl<Registry, Q: Query<Registry> + Send, QSystem: QuerySystem<Registry, Q> + Send> Send
+    for QuerySystemHolder<Registry, Q, QSystem>
+{
 }
 
-impl<Q: Query, QSystem: QuerySystem<Q>> QuerySystemHolder<Q, QSystem> {
+impl<Registry, Q: Query<Registry>, QSystem: QuerySystem<Registry, Q>>
+    QuerySystemHolder<Registry, Q, QSystem>
+{
     pub fn new(system: QSystem) -> Self {
-        Self { system, args: None }
+        Self {
+            system,
+            args: None,
+            phantom: PhantomData,
+        }
     }
 }
 
-impl<Q: Query, QSystem: QuerySystem<Q>> System for QuerySystemHolder<Q, QSystem> {
-    type Registry = Q::Registry;
+impl<Registry, Q: Query<Registry>, QSystem: QuerySystem<Registry, Q>> System
+    for QuerySystemHolder<Registry, Q, QSystem>
+{
+    type Registry = Registry;
 
     fn prepare_args(&mut self, registry: &mut Self::Registry) -> Result<(), QueryError> {
         self.args = Some(self.system.prepare_args(registry)?);
@@ -67,7 +78,7 @@ impl<Q: Query, QSystem: QuerySystem<Q>> System for QuerySystemHolder<Q, QSystem>
 macro_rules! impl_fn_query {
     ($($t:ident),+) => {
         #[allow(non_snake_case)]
-        impl<Reg,$($t: Query<Registry = Reg>),+, Function: FnMut($(&mut $t),+) + Send> QuerySystem<($($t,)+)> for Function {
+        impl<Reg,$($t: Query<Reg>),+, Function: FnMut($(&mut $t),+) + Send> QuerySystem<Reg, ($($t,)+)> for Function {
             fn run(&mut self, args: &mut ($($t,)+)) {
                 let ($($t,)+) = args;
                 self($($t,)+);
@@ -77,3 +88,9 @@ macro_rules! impl_fn_query {
 }
 
 impl_all!(impl_fn_query);
+
+impl<Reg, Function: FnMut() + Send> QuerySystem<Reg, ()> for Function {
+    fn run(&mut self, _: &mut ()) {
+        self()
+    }
+}

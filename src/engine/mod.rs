@@ -44,10 +44,10 @@ impl Scene {
         }
     }
 
-    pub fn add_system<Args: Query<Registry = EngineState> + 'static>(
+    pub fn add_system<Args: Query<EngineState> + 'static>(
         &mut self,
         stage: StageDescriptor,
-        system: impl QuerySystem<Args> + 'static,
+        system: impl QuerySystem<EngineState, Args> + 'static,
     ) {
         let system = QuerySystemHolder::new(system);
         self.systems.add_system(stage, system);

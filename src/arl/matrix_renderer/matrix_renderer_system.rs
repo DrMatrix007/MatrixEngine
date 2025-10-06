@@ -7,8 +7,13 @@ use wgpu::{
 use winit::{event::WindowEvent, window::Window};
 
 use crate::{
+    arl::{
+        device_queue::DeviceQueue,
+        matrix_renderer::matrix_vertex::MatrixVertex,
+        render_pipelines::{RenderPipeline, RenderPipelineArgs},
+        shaders::{Shaders, ShadersArgs},
+    },
     engine::{query::Res, system_registries::Stage},
-    renderer::device_queue::DeviceQueue,
 };
 
 pub struct MatrixRenderInstance {
@@ -17,6 +22,8 @@ pub struct MatrixRenderInstance {
     surface: Surface<'static>,
     surface_config: SurfaceConfiguration,
     is_surface_updated: bool,
+    _shaders: Shaders,
+    pipeline: RenderPipeline<MatrixVertex>,
 }
 
 impl MatrixRenderInstance {
@@ -83,8 +90,8 @@ pub fn matrix_renderer(
         Err(SurfaceError::Outdated | SurfaceError::Lost) => {
             instance.is_surface_updated = false;
             return;
-        },
-        err=> panic!("surface error: {err:?}")
+        }
+        err => panic!("surface error: {err:?}"),
     };
 
     let view = output
@@ -98,7 +105,7 @@ pub fn matrix_renderer(
     );
 
     {
-        let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Render Pass"),
             color_attachments: &[Some(RenderPassColorAttachment {
                 view: &view,
@@ -118,6 +125,9 @@ pub fn matrix_renderer(
             occlusion_query_set: None,
             timestamp_writes: None,
         });
+
+        render_pass.set_pipeline(instance.pipeline.raw()); // 2.
+        render_pass.draw(0..3, 0..1); // 3.
     }
 
     instance
@@ -192,7 +202,7 @@ pub fn create_matrix_instance(window: &mut Res<Window>, res: &mut Res<MatrixRend
         .find(|f| f.is_srgb())
         .copied()
         .unwrap_or(surface_caps.formats[0]);
-    let config = wgpu::SurfaceConfiguration {
+    let mut config = wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
         format: surface_format,
         width: size.width,
@@ -203,12 +213,37 @@ pub fn create_matrix_instance(window: &mut Res<Window>, res: &mut Res<MatrixRend
         desired_maximum_frame_latency: 2,
     };
 
+    config.present_mode = wgpu::PresentMode::AutoNoVsync;
+
+    let device_queue = DeviceQueue::new(Arc::new(device), Arc::new(queue));
+
+    let shaders = Shaders::new(
+        "matrix shaders",
+        ShadersArgs {
+            fragment_entry: Some("fs_main".into()),
+            vertex_entry: "vs_main".into(),
+            shaders: include_str!("shaders.wgsl").into(),
+        },
+        &device_queue,
+    );
+
+    let pipeline = RenderPipeline::new(
+        "matrix pipeline",
+        RenderPipelineArgs {
+            shaders: &shaders,
+            surface_config: &config,
+        },
+        &device_queue,
+    );
+
     res.replace(MatrixRenderInstance {
-        device_queue: DeviceQueue::new(Arc::new(device), Arc::new(queue)),
+        device_queue,
         wgpu_instance: instance,
         surface,
         surface_config: config,
         is_surface_updated: false,
+        _shaders: shaders,
+        pipeline,
     });
 }
 

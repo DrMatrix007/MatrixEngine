@@ -48,17 +48,13 @@ pub enum QueryError {
     TupleError,
 }
 
-pub trait Query: Send + Sized {
-    type Registry;
-
-    fn prepare(reg: &mut Self::Registry) -> Result<Self, QueryError>;
-    fn consume(self, reg: &mut Self::Registry) -> Result<(), QueryError>;
+pub trait Query<Registry>: Send + Sized {
+    fn prepare(reg: &mut Registry) -> Result<Self, QueryError>;
+    fn consume(self, reg: &mut Registry) -> Result<(), QueryError>;
 }
 
-impl<T: Component> Query for Read<T> {
-    type Registry = EngineState;
-
-    fn prepare(reg: &mut Self::Registry) -> Result<Self, QueryError> {
+impl<T: Component> Query<EngineState> for Read<T> {
+    fn prepare(reg: &mut EngineState) -> Result<Self, QueryError> {
         let guard = reg
             .registry
             .components
@@ -67,7 +63,7 @@ impl<T: Component> Query for Read<T> {
         Ok(Self { guard })
     }
 
-    fn consume(self, reg: &mut Self::Registry) -> Result<(), QueryError> {
+    fn consume(self, reg: &mut EngineState) -> Result<(), QueryError> {
         reg.registry
             .components
             .read_consume(self.guard)
@@ -75,10 +71,8 @@ impl<T: Component> Query for Read<T> {
     }
 }
 
-impl<T: Component> Query for Write<T> {
-    type Registry = EngineState;
-
-    fn prepare(reg: &mut Self::Registry) -> Result<Self, QueryError> {
+impl<T: Component> Query<EngineState> for Write<T> {
+    fn prepare(reg: &mut EngineState) -> Result<Self, QueryError> {
         Ok(Self {
             guard: reg
                 .registry
@@ -88,7 +82,7 @@ impl<T: Component> Query for Write<T> {
         })
     }
 
-    fn consume(self, reg: &mut Self::Registry) -> Result<(), QueryError> {
+    fn consume(self, reg: &mut EngineState) -> Result<(), QueryError> {
         reg.registry
             .components
             .write_consume(self.guard)
@@ -116,10 +110,8 @@ impl<T: Resource> Res<T> {
     }
 }
 
-impl<T: Resource + 'static> Query for Res<T> {
-    type Registry = EngineState;
-
-    fn prepare(reg: &mut Self::Registry) -> Result<Self, QueryError> {
+impl<T: Resource + 'static> Query<EngineState> for Res<T> {
+    fn prepare(reg: &mut EngineState) -> Result<Self, QueryError> {
         Ok(Self::new(
             reg.resources
                 .write::<T>()
@@ -127,7 +119,7 @@ impl<T: Resource + 'static> Query for Res<T> {
         ))
     }
 
-    fn consume(self, reg: &mut Self::Registry) -> Result<(), QueryError> {
+    fn consume(self, reg: &mut EngineState) -> Result<(), QueryError> {
         reg.resources
             .write_consume(self.guard)
             .map_err(QueryError::LockableError)?;
@@ -136,14 +128,22 @@ impl<T: Resource + 'static> Query for Res<T> {
     }
 }
 
-impl Query for Stage {
-    type Registry = EngineState;
-
-    fn prepare(reg: &mut Self::Registry) -> Result<Self, QueryError> {
+impl Query<EngineState> for Stage {
+    fn prepare(reg: &mut EngineState) -> Result<Self, QueryError> {
         Ok(reg.stage.clone())
     }
 
-    fn consume(self, _: &mut Self::Registry) -> Result<(), QueryError> {
+    fn consume(self, _: &mut EngineState) -> Result<(), QueryError> {
+        Ok(())
+    }
+}
+
+impl<T> Query<T> for () {
+    fn prepare(_: &mut T) -> Result<Self, QueryError> {
+        Ok(())
+    }
+
+    fn consume(self, _: &mut T) -> Result<(), QueryError> {
         Ok(())
     }
 }
@@ -151,10 +151,8 @@ impl Query for Stage {
 macro_rules! impl_tuple_query {
     ($($t:ident),+) => {
         #[allow(non_snake_case)]
-        impl<Reg,$($t: Query<Registry = Reg>),+> Query for ($($t,)+) {
-            type Registry = Reg;
-
-            fn prepare(reg: &mut Self::Registry) -> Result<Self, QueryError> {
+        impl<Reg,$($t: Query<Reg>),+> Query<Reg> for ($($t,)+) {
+            fn prepare(reg: &mut Reg) -> Result<Self, QueryError> {
                 let ($($t,)+) = ($($t::prepare(reg),)+);
 
                 match ($($t,)+) {
@@ -168,7 +166,7 @@ macro_rules! impl_tuple_query {
                 }
             }
 
-            fn consume(self, reg: &mut Self::Registry) -> Result<(), QueryError> {
+            fn consume(self, reg: &mut Reg) -> Result<(), QueryError> {
                 let ($($t,)+) = self;
                 $($t.consume(reg).map_err(|_|QueryError::TupleError)?;)+
                 Ok(())

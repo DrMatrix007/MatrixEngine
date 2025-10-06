@@ -790,6 +790,7 @@ name = "matrix_engine"
 version = "0.1.0"
 dependencies = [
  "anymap",
+ "bytemuck",
  "tokio",
  "wgpu",
  "winit",
