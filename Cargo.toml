@@ -3,6 +3,7 @@ name = "matrix_engine"
 version = "0.1.0"
 edition = "2024"
 
+
 [dependencies]
 anymap = "0.12.1"
 winit = "0.30.12"

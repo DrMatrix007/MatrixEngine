@@ -1,4 +1,4 @@
-use crate::engine::query::{Query, QueryError};
+use crate::{engine::query::{Query, QueryError}, lockable::LockableError};
 
 pub trait System: Send {
     type Registry;
@@ -55,7 +55,7 @@ impl<Q: Query, QSystem: QuerySystem<Q>> System for QuerySystemHolder<Q, QSystem>
             self.system.consume_args(registry, args)?;
             Ok(())
         } else {
-            Err(QueryError::ConsumableIsEmpty)
+            Err(QueryError::LockableError(LockableError::NotAvailable))
         }
     }
 }

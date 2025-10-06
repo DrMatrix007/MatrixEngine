@@ -1,32 +1,31 @@
 use matrix_engine::engine::{
-    component::Component, entity::Entity, query::{Read, Write}, runtime::SingleThreadedRuntime, system_registries::Stage, Engine
+    Engine,
+    commands::{CommandBuffer, add_entity_command::AddEntityCommand},
+    component::Component,
+    runtime::SingleThreadedRuntime,
+    system_registries::StageDescriptor,
 };
+use winit::event_loop::EventLoop;
 
 #[derive(Debug)]
 struct A;
 
 impl Component for A {}
 
-fn start(data: &mut Write<A>) {
-}
-
-fn modify(data: &mut Write<A>) {
-
-}
-
-fn prints(data: &mut Read<A>) {
-    for (_, v) in data.iter() {
-        println!("{:?}", v);
-    }
-    println!("=======");
+fn start(commands: &mut CommandBuffer) {
+    commands.add_command(AddEntityCommand::new().with(A).unwrap());
 }
 
 fn main() {
+    let event_loop = EventLoop::new().unwrap();
+
+    event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
+
     let mut engine = Engine::new(SingleThreadedRuntime);
 
-    engine.scene_mut().add_system(Stage::Startup, start);
-    engine.scene_mut().add_system(Stage::Update, modify);
-    engine.scene_mut().add_system(Stage::PostUpdate, prints);
+    engine
+        .scene_mut()
+        .add_system(StageDescriptor::Startup, start);
 
-    engine.startup();
+    event_loop.run_app(&mut engine).unwrap();
 }

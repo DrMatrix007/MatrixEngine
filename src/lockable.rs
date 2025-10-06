@@ -10,7 +10,7 @@ pub enum LockableState<T> {
     Write,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum LockableError {
     NotAvailable,
     CantConsume,
@@ -92,6 +92,8 @@ impl<T> AsRef<T> for LockableWriteGuard<T> {
 
 impl<T> AsMut<T> for LockableWriteGuard<T> {
     fn as_mut(&mut self) -> &mut T {
+        // TODO: change back to the unsafe 
+        // unsafe { Arc::get_mut_unchecked(&mut self.data) }.unwrap()
         Arc::get_mut(&mut self.data).unwrap()
     }
 }

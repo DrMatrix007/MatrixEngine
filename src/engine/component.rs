@@ -151,7 +151,7 @@ impl Default for ComponentRegistry {
 }
 
 impl ComponentRegistry {
-    pub fn read_components<T: Component>(
+    pub fn read<T: Component>(
         &mut self,
     ) -> Result<LockableReadGuard<ComponentCollection<T>>, LockableError> {
         self.components
@@ -160,7 +160,7 @@ impl ComponentRegistry {
             .read()
     }
 
-    pub fn write_components<T: Component>(
+    pub fn write<T: Component>(
         &mut self,
     ) -> Result<LockableWriteGuard<ComponentCollection<T>>, LockableError> {
         self.components
@@ -169,7 +169,7 @@ impl ComponentRegistry {
             .write()
     }
 
-    pub fn read_components_consume<T: Component>(
+    pub fn read_consume<T: Component>(
         &mut self,
         data: LockableReadGuard<ComponentCollection<T>>,
     ) -> Result<(), LockableError> {
@@ -179,7 +179,7 @@ impl ComponentRegistry {
             .consume_read(data)
     }
 
-    pub fn write_components_consume<T: Component>(
+    pub fn write_consume<T: Component>(
         &mut self,
         data: LockableWriteGuard<ComponentCollection<T>>,
     ) -> Result<(), LockableError> {

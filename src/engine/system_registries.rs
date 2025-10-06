@@ -1,20 +1,38 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    mem::swap,
-};
+use std::{collections::VecDeque, mem::swap};
 
 use winit::window::WindowId;
 
 use crate::engine::systems::System;
 
 #[derive(Debug, Clone, Copy)]
-#[repr(usize)]
 pub enum Stage {
-    PreUpdate = 0,
+    PreUpdate,
     Update,
     PostUpdate,
     PreRender(WindowId),
     Render(WindowId),
+
+    Startup,
+}
+impl Stage {
+    pub fn to_descriptor(&self) -> StageDescriptor {
+        match self {
+            Stage::PreUpdate => StageDescriptor::PreUpdate,
+            Stage::Update => StageDescriptor::Update,
+            Stage::PostUpdate => StageDescriptor::PostUpdate,
+            Stage::PreRender(_) => StageDescriptor::PreRender,
+            Stage::Render(_) => StageDescriptor::Render,
+            Stage::Startup => StageDescriptor::Startup,
+        }
+    }
+}
+
+pub enum StageDescriptor {
+    PreUpdate,
+    Update,
+    PostUpdate,
+    PreRender,
+    Render,
 
     Startup,
 }
@@ -67,8 +85,8 @@ pub struct SystemRegistry<Registry> {
     pre_update_systems: SystemCollection<Registry>,
     update_systems: SystemCollection<Registry>,
     post_update_systems: SystemCollection<Registry>,
-    pre_render_systems: HashMap<WindowId, SystemCollection<Registry>>,
-    render_systems: HashMap<WindowId, SystemCollection<Registry>>,
+    pre_render_systems: SystemCollection<Registry>,
+    render_systems: SystemCollection<Registry>,
 }
 
 impl<Registry> Default for SystemRegistry<Registry> {
@@ -101,25 +119,24 @@ impl<Registry> SystemRegistry<Registry> {
         &mut self.post_update_systems
     }
 
-    pub fn render_systems_mut(&mut self, id: &WindowId) -> &mut SystemCollection<Registry> {
-        self.render_systems.entry(*id).or_default()
-    }
-
-    pub fn pre_render_systems_mut(&mut self, id: &WindowId) -> &mut SystemCollection<Registry> {
-        self.pre_render_systems.entry(*id).or_default()
-    }
-
-    pub fn add_system(&mut self, stage: Stage, system: impl System<Registry = Registry> + 'static) {
+    pub fn add_system(
+        &mut self,
+        stage: StageDescriptor,
+        system: impl System<Registry = Registry> + 'static,
+    ) {
         self.get_system_collection(&stage).add_system(system);
     }
-    pub fn get_system_collection(&mut self, stage: &Stage) -> &mut SystemCollection<Registry> {
+    pub fn get_system_collection(
+        &mut self,
+        stage: &StageDescriptor,
+    ) -> &mut SystemCollection<Registry> {
         match stage {
-            Stage::PreUpdate => &mut self.pre_update_systems,
-            Stage::Update => &mut self.update_systems,
-            Stage::PostUpdate => &mut self.post_update_systems,
-            Stage::PreRender(window_id) => self.pre_render_systems_mut(window_id),
-            Stage::Render(window_id) => self.render_systems_mut(window_id),
-            Stage::Startup => &mut self.startup_systems,
+            StageDescriptor::PreUpdate => &mut self.pre_update_systems,
+            StageDescriptor::Update => &mut self.update_systems,
+            StageDescriptor::PostUpdate => &mut self.post_update_systems,
+            StageDescriptor::PreRender => &mut self.pre_render_systems,
+            StageDescriptor::Render => &mut self.render_systems,
+            StageDescriptor::Startup => &mut self.startup_systems,
         }
     }
 }

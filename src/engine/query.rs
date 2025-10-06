@@ -2,10 +2,13 @@ use std::ops::{Deref, DerefMut};
 
 use crate::{
     engine::{
-        SceneRegistry,
+        EngineState,
+        commands::CommandError,
         component::{Component, ComponentCollection},
+        resources::{Resource, ResourceHolder},
+        system_registries::Stage,
     },
-    lockable::{LockableReadGuard, LockableWriteGuard},
+    lockable::{LockableError, LockableReadGuard, LockableWriteGuard},
 };
 
 pub struct Read<T: Component> {
@@ -39,9 +42,8 @@ impl<T: Component> DerefMut for Write<T> {
 
 #[derive(Debug)]
 pub enum QueryError {
-    NotAvailable,
-    CantConsume,
-    ConsumableIsEmpty,
+    LockableError(LockableError),
+    CommandError(CommandError),
 }
 
 pub trait Query: Send + Sized {
@@ -52,38 +54,89 @@ pub trait Query: Send + Sized {
 }
 
 impl<T: Component> Query for Read<T> {
-    type Registry = SceneRegistry;
+    type Registry = EngineState;
 
     fn prepare(reg: &mut Self::Registry) -> Result<Self, QueryError> {
         let guard = reg
+            .registry
             .components
-            .read_components()
-            .map_err(|_| QueryError::NotAvailable)?;
+            .read()
+            .map_err(QueryError::LockableError)?;
         Ok(Self { guard })
     }
 
     fn consume(self, reg: &mut Self::Registry) -> Result<(), QueryError> {
-        reg.components
-            .read_components_consume(self.guard)
-            .map_err(|_| QueryError::CantConsume)
+        reg.registry
+            .components
+            .read_consume(self.guard)
+            .map_err(QueryError::LockableError)
     }
 }
 
 impl<T: Component> Query for Write<T> {
-    type Registry = SceneRegistry;
+    type Registry = EngineState;
 
     fn prepare(reg: &mut Self::Registry) -> Result<Self, QueryError> {
         Ok(Self {
             guard: reg
+                .registry
                 .components
-                .write_components()
-                .map_err(|_| QueryError::NotAvailable)?,
+                .write()
+                .map_err(QueryError::LockableError)?,
         })
     }
 
     fn consume(self, reg: &mut Self::Registry) -> Result<(), QueryError> {
-        reg.components
-            .write_components_consume(self.guard)
-            .map_err(|_| QueryError::CantConsume)
+        reg.registry
+            .components
+            .write_consume(self.guard)
+            .map_err(QueryError::LockableError)
     }
+}
+
+pub struct Res<T: Resource> {
+    guard: LockableWriteGuard<ResourceHolder<T>>,
+}
+
+impl<T: Resource> Res<T> {
+    pub fn new(data: LockableWriteGuard<ResourceHolder<T>>) -> Self {
+        Self { guard: data }
+    }
+    pub fn as_ref(&self) -> Option<&T> {
+        self.guard.as_ref().as_ref()
+    }
+
+    pub fn as_mut(&mut self) -> Option<&mut T> {
+        self.guard.as_mut().as_mut()
+    }
+}
+
+impl<T: Resource + 'static> Query for Res<T> {
+    type Registry = EngineState;
+
+    fn prepare(reg: &mut Self::Registry) -> Result<Self, QueryError> {
+        Ok(Self::new(
+            reg.resources
+                .write::<T>()
+                .map_err(QueryError::LockableError)?,
+        ))
+    }
+
+    fn consume(self, reg: &mut Self::Registry) -> Result<(), QueryError> {
+        reg.resources
+            .write_consume(self.guard)
+            .map_err(QueryError::LockableError)?;
+
+        Ok(())
+    }
+}
+
+impl Query for Stage {
+    type Registry = EngineState;
+
+    fn prepare(reg: &mut Self::Registry) -> Result<Self, QueryError> {
+        Ok(reg.stage)
+    }
+
+    fn consume(self, _: &mut Self::Registry) -> Result<(), QueryError> {Ok(())}
 }
