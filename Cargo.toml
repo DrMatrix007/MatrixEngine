@@ -6,4 +6,6 @@ edition = "2024"
 
 [dependencies]
 anymap = "0.12.1"
+tokio = { version = "1.47.1", features = ["rt"] }
+wgpu = "27.0.1"
 winit = "0.30.12"

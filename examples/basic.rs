@@ -1,7 +1,6 @@
 use matrix_engine::engine::{
     Engine,
     commands::{CommandBuffer, add_entity_command::AddEntityCommand},
-    component::Component,
     query::Read,
     runtime::SingleThreadedRuntime,
     system_registries::StageDescriptor,
@@ -11,7 +10,6 @@ use winit::event_loop::EventLoop;
 #[derive(Debug)]
 struct A;
 
-impl Component for A {}
 
 fn start(commands: &mut CommandBuffer, _: &mut Read<A>) {
     commands.add_command(AddEntityCommand::new().with(A).unwrap());

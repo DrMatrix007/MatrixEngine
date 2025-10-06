@@ -111,6 +111,9 @@ impl<T: Resource> Res<T> {
     pub fn as_mut(&mut self) -> Option<&mut T> {
         self.guard.as_mut().as_mut()
     }
+    pub fn replace(&mut self, data: T) -> Option<T> {
+        self.guard.replace(data)
+    }
 }
 
 impl<T: Resource + 'static> Query for Res<T> {
@@ -137,7 +140,7 @@ impl Query for Stage {
     type Registry = EngineState;
 
     fn prepare(reg: &mut Self::Registry) -> Result<Self, QueryError> {
-        Ok(reg.stage)
+        Ok(reg.stage.clone())
     }
 
     fn consume(self, _: &mut Self::Registry) -> Result<(), QueryError> {

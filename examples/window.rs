@@ -1,6 +1,14 @@
-use matrix_engine::{engine::{
-    commands::{add_window_resource_command::AddWindowResourceCommand, CommandBuffer}, runtime::SingleThreadedRuntime, system_registries::StageDescriptor, Engine
-}, renderer::renderer_system::matrix_renderer};
+use matrix_engine::{
+    engine::{
+        Engine,
+        commands::{CommandBuffer, add_window_resource_command::AddWindowResourceCommand},
+        runtime::SingleThreadedRuntime,
+        system_registries::StageDescriptor,
+    },
+    renderer::matrix_renderer_system::{
+        create_matrix_instance, matrix_renderer, update_surface_size,
+    },
+};
 use winit::{event_loop::EventLoop, window::WindowAttributes};
 
 fn start(commands: &mut CommandBuffer) {
@@ -19,7 +27,15 @@ fn main() {
 
     engine
         .scene_mut()
+        .add_system(StageDescriptor::Startup, create_matrix_instance);
+
+    engine
+        .scene_mut()
         .add_system(StageDescriptor::Render, matrix_renderer);
+
+    engine
+        .scene_mut()
+        .add_system(StageDescriptor::WindowEvent, update_surface_size);
 
     event_loop.run_app(&mut engine).unwrap();
 }

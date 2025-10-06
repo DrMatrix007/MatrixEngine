@@ -1,16 +1,17 @@
 use std::{collections::VecDeque, mem::swap};
 
-use winit::window::WindowId;
+use winit::{event::WindowEvent, window::WindowId};
 
 use crate::engine::systems::System;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Stage {
     PreUpdate,
     Update,
     PostUpdate,
     PreRender(WindowId),
     Render(WindowId),
+    WindowEvent(WindowEvent),
 
     Startup,
 }
@@ -22,6 +23,7 @@ impl Stage {
             Stage::PostUpdate => StageDescriptor::PostUpdate,
             Stage::PreRender(_) => StageDescriptor::PreRender,
             Stage::Render(_) => StageDescriptor::Render,
+            Stage::WindowEvent(_) => StageDescriptor::WindowEvent,
             Stage::Startup => StageDescriptor::Startup,
         }
     }
@@ -33,6 +35,7 @@ pub enum StageDescriptor {
     PostUpdate,
     PreRender,
     Render,
+    WindowEvent,
 
     Startup,
 }
@@ -87,6 +90,7 @@ pub struct SystemRegistry<Registry> {
     post_update_systems: SystemCollection<Registry>,
     pre_render_systems: SystemCollection<Registry>,
     render_systems: SystemCollection<Registry>,
+    window_event_systems: SystemCollection<Registry>,
 }
 
 impl<Registry> Default for SystemRegistry<Registry> {
@@ -98,6 +102,7 @@ impl<Registry> Default for SystemRegistry<Registry> {
             post_update_systems: Default::default(),
             pre_render_systems: Default::default(),
             render_systems: Default::default(),
+            window_event_systems: Default::default()
         }
     }
 }
@@ -136,7 +141,9 @@ impl<Registry> SystemRegistry<Registry> {
             StageDescriptor::PostUpdate => &mut self.post_update_systems,
             StageDescriptor::PreRender => &mut self.pre_render_systems,
             StageDescriptor::Render => &mut self.render_systems,
+            StageDescriptor::WindowEvent => &mut self.window_event_systems,
             StageDescriptor::Startup => &mut self.startup_systems,
+
         }
     }
 }

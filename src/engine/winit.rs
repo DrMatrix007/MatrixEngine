@@ -3,11 +3,11 @@ use winit::{
     window::WindowId,
 };
 
-use crate::engine::Engine;
+use crate::engine::{Engine, system_registries::Stage};
 
 impl ApplicationHandler for Engine {
     fn resumed(&mut self, active_event_loop: &ActiveEventLoop) {
-        self.startup(active_event_loop);
+        self.run_stages(&[Stage::Startup], active_event_loop);
     }
 
     fn window_event(
@@ -17,10 +17,18 @@ impl ApplicationHandler for Engine {
         event: WindowEvent,
     ) {
         if event == WindowEvent::RedrawRequested {
-            self.frame_render(&window_id, active_event_loop);
+            self.run_stages(
+                &[Stage::PreRender(window_id), Stage::Render(window_id)],
+                active_event_loop,
+            );
         }
+        let stage = Stage::WindowEvent(event);
+        self.run_stages(&[stage], active_event_loop);
     }
     fn about_to_wait(&mut self, active_event_loop: &ActiveEventLoop) {
-        self.frame_update(active_event_loop);
+        self.run_stages(
+            &[Stage::PreUpdate, Stage::Update, Stage::PostUpdate],
+            active_event_loop,
+        );
     }
 }

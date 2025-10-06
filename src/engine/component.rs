@@ -10,7 +10,7 @@ use crate::{
 
 pub trait Component: Send + Sync + 'static {}
 
-// impl<T: Send + Sync + 'static> Component for T {}
+impl<T: Send + Sync + 'static> Component for T {}
 
 pub struct ComponentCollection<T: Component> {
     components: Vec<Option<Box<T>>>,

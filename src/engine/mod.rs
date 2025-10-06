@@ -1,4 +1,4 @@
-use ::winit::{event_loop::ActiveEventLoop, window::WindowId};
+use ::winit::event_loop::ActiveEventLoop;
 
 use crate::{
     engine::{
@@ -106,35 +106,21 @@ impl Engine {
         Ok(())
     }
 
-    pub fn startup(&mut self, active_event_loop: &ActiveEventLoop) {
-        self.run_stages(&[Stage::Startup], active_event_loop);
-    }
-
-    pub fn frame_update(&mut self, active_event_loop: &ActiveEventLoop) {
-        let stages = [Stage::PreUpdate, Stage::Update, Stage::PostUpdate];
-        self.run_stages(&stages, active_event_loop);
-    }
-
     fn run_stages(&mut self, stages: &[Stage], active_event_loop: &ActiveEventLoop) {
         for stage in stages {
-            let mut args = self.prepare_state(active_event_loop, *stage).unwrap();
+            let mut args = self
+                .prepare_state(active_event_loop, stage.clone())
+                .unwrap();
             self.runtime.run(
                 &mut args,
                 self.registry
                     .scene
                     .systems
                     .get_system_collection(&stage.to_descriptor()),
-                *stage,
+                stage.clone(),
             );
             self.consume_state(args).unwrap();
         }
-    }
-
-    pub fn frame_render(&mut self, id: &WindowId, active_event_loop: &ActiveEventLoop) {
-        self.run_stages(
-            &[Stage::PreRender(*id), Stage::Render(*id)],
-            active_event_loop,
-        );
     }
 
     pub fn scene_mut(&mut self) -> &mut Scene {

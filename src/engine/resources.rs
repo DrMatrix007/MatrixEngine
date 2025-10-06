@@ -1,9 +1,9 @@
 use anymap::AnyMap;
-use winit::window::Window;
 
 use crate::lockable::{Lockable, LockableError, LockableWriteGuard};
 
 pub trait Resource: Send {}
+impl<T: Send + 'static> Resource for T {}
 
 pub struct ResourceHolder<T> {
     data: Option<T>,
@@ -53,9 +53,9 @@ impl ResourceRegistry {
         let mut guard = self.write::<T>()?;
 
         let res = guard.replace(data);
-        
+
         self.write_consume(guard)?;
-        
+
         Ok(res)
     }
 
@@ -78,6 +78,3 @@ impl ResourceRegistry {
             .consume_write(data)
     }
 }
-
-
-impl Resource for Window {}
