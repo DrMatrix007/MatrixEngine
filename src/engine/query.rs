@@ -8,6 +8,7 @@ use crate::{
         resources::{Resource, ResourceHolder},
         system_registries::Stage,
     },
+    impl_all,
     lockable::{LockableError, LockableReadGuard, LockableWriteGuard},
 };
 
@@ -44,6 +45,7 @@ impl<T: Component> DerefMut for Write<T> {
 pub enum QueryError {
     LockableError(LockableError),
     CommandError(CommandError),
+    TupleError,
 }
 
 pub trait Query: Send + Sized {
@@ -138,5 +140,38 @@ impl Query for Stage {
         Ok(reg.stage)
     }
 
-    fn consume(self, _: &mut Self::Registry) -> Result<(), QueryError> {Ok(())}
+    fn consume(self, _: &mut Self::Registry) -> Result<(), QueryError> {
+        Ok(())
+    }
 }
+
+macro_rules! impl_tuple_query {
+    ($($t:ident),+) => {
+        #[allow(non_snake_case)]
+        impl<Reg,$($t: Query<Registry = Reg>),+> Query for ($($t,)+) {
+            type Registry = Reg;
+
+            fn prepare(reg: &mut Self::Registry) -> Result<Self, QueryError> {
+                let ($($t,)+) = ($($t::prepare(reg),)+);
+
+                match ($($t,)+) {
+                    ($(Ok($t),)+) => {Ok(($($t,)+))}
+                    ($($t,)+)=> {
+                        $(if let Ok($t) = $t {
+                            $t::consume($t, reg)?;
+                        })+ ;
+                        Err(QueryError::TupleError)
+                    }
+                }
+            }
+
+            fn consume(self, reg: &mut Self::Registry) -> Result<(), QueryError> {
+                let ($($t,)+) = self;
+                $($t.consume(reg).map_err(|_|QueryError::TupleError)?;)+
+                Ok(())
+            }
+        }
+    };
+}
+
+impl_all!(impl_tuple_query);

@@ -1,4 +1,8 @@
-use crate::{engine::query::{Query, QueryError}, lockable::LockableError};
+use crate::{
+    engine::query::{Query, QueryError},
+    impl_all,
+    lockable::LockableError,
+};
 
 pub trait System: Send {
     type Registry;
@@ -60,8 +64,16 @@ impl<Q: Query, QSystem: QuerySystem<Q>> System for QuerySystemHolder<Q, QSystem>
     }
 }
 
-impl<Q: Query, F: FnMut(&mut Q) + Send> QuerySystem<Q> for F {
-    fn run(&mut self, args: &mut Q) {
-        self(args)
-    }
+macro_rules! impl_fn_query {
+    ($($t:ident),+) => {
+        #[allow(non_snake_case)]
+        impl<Reg,$($t: Query<Registry = Reg>),+, Function: FnMut($(&mut $t),+) + Send> QuerySystem<($($t,)+)> for Function {
+            fn run(&mut self, args: &mut ($($t,)+)) {
+                let ($($t,)+) = args;
+                self($($t,)+);
+            }
+        }
+    };
 }
+
+impl_all!(impl_fn_query);
