@@ -2,20 +2,22 @@ use std::marker::PhantomData;
 
 use wgpu::SurfaceConfiguration;
 
-use crate::arl::{device_queue::DeviceQueue, shaders::Shaders, vertex_buffer::VertexBufferGroup};
+use crate::arl::{
+    device_queue::DeviceQueue, passable::Passable, shaders::Shaders, vertex::VertexGroup,
+};
 
 pub struct RenderPipelineArgs<'a, 'b> {
     pub shaders: &'a Shaders,
     pub surface_config: &'b SurfaceConfiguration,
 }
 
-pub struct RenderPipeline<VertexBuffers: VertexBufferGroup> {
+pub struct RenderPipeline<VertexBuffers: VertexGroup> {
     pipeline: wgpu::RenderPipeline,
     _pipeline_layout: wgpu::PipelineLayout,
-    phantom: PhantomData<VertexBuffers>
+    marker: PhantomData<VertexBuffers>,
 }
 
-impl<VertexBuffers: VertexBufferGroup> RenderPipeline<VertexBuffers> {
+impl<VertexBuffers: VertexGroup> RenderPipeline<VertexBuffers> {
     pub fn new(label: &str, args: RenderPipelineArgs<'_, '_>, device_queue: &DeviceQueue) -> Self {
         let pipeline_layout =
             device_queue
@@ -26,6 +28,8 @@ impl<VertexBuffers: VertexBufferGroup> RenderPipeline<VertexBuffers> {
                     push_constant_ranges: &[],
                 });
 
+        let buffer_attrs = VertexBuffers::attrs();
+        let buffer_attrs = VertexBuffers::desc(&buffer_attrs);
         let pipeline =
             device_queue
                 .device()
@@ -36,7 +40,7 @@ impl<VertexBuffers: VertexBufferGroup> RenderPipeline<VertexBuffers> {
                         module: args.shaders.raw(),
                         entry_point: Some(args.shaders.vertex_entry()),
                         compilation_options: Default::default(),
-                        buffers: &[],
+                        buffers: &buffer_attrs,
                     },
                     fragment: Some(wgpu::FragmentState {
                         module: args.shaders.raw(),
@@ -70,11 +74,17 @@ impl<VertexBuffers: VertexBufferGroup> RenderPipeline<VertexBuffers> {
         Self {
             _pipeline_layout: pipeline_layout,
             pipeline,
-            phantom: PhantomData
+            marker: PhantomData,
         }
     }
-    
+
     pub fn raw(&self) -> &wgpu::RenderPipeline {
         &self.pipeline
+    }
+}
+
+impl<VGroup: VertexGroup> Passable for RenderPipeline<VGroup> {
+    fn apply<'a>(&self, pass: &mut wgpu::RenderPass<'a>) {
+        pass.set_pipeline(&self.pipeline);
     }
 }

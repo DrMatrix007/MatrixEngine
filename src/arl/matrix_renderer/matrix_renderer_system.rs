@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{any::TypeId, sync::Arc};
 
 use wgpu::{
     Instance, RenderPassColorAttachment, Surface, SurfaceConfiguration, SurfaceError,
@@ -8,8 +8,10 @@ use winit::{event::WindowEvent, window::Window};
 
 use crate::{
     arl::{
+        atlas::Atlas,
         device_queue::DeviceQueue,
         matrix_renderer::matrix_vertex::MatrixVertex,
+        passable::Passable,
         render_pipelines::{RenderPipeline, RenderPipelineArgs},
         shaders::{Shaders, ShadersArgs},
     },
@@ -23,7 +25,8 @@ pub struct MatrixRenderInstance {
     surface_config: SurfaceConfiguration,
     is_surface_updated: bool,
     _shaders: Shaders,
-    pipeline: RenderPipeline<MatrixVertex>,
+    pipeline: RenderPipeline<(MatrixVertex,)>,
+    atlas: Atlas<TypeId, u16, (MatrixVertex,)>,
 }
 
 impl MatrixRenderInstance {
@@ -112,9 +115,9 @@ pub fn matrix_renderer(
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: 0.1,
+                        r: 0.2,
                         g: 0.2,
-                        b: 0.3,
+                        b: 0.2,
                         a: 1.0,
                     }),
                     store: wgpu::StoreOp::Store,
@@ -126,8 +129,9 @@ pub fn matrix_renderer(
             timestamp_writes: None,
         });
 
-        render_pass.set_pipeline(instance.pipeline.raw()); // 2.
-        render_pass.draw(0..3, 0..1); // 3.
+        instance.pipeline.apply(&mut render_pass);
+        // render_pass.set_pipeline(instance.pipeline.raw()); // 2.
+        // render_pass.draw(0..3, 0..1); // 3.
     }
 
     instance
@@ -244,6 +248,7 @@ pub fn create_matrix_instance(window: &mut Res<Window>, res: &mut Res<MatrixRend
         is_surface_updated: false,
         _shaders: shaders,
         pipeline,
+        atlas: Atlas::default(),
     });
 }
 

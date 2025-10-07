@@ -1,13 +1,13 @@
-use crate::arl::vertex_buffer::VertexBuffer;
+use crate::arl::vertex::Vertex;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct MatrixVertex {
-    position: [f32; 3],
-    color: [f32; 3],
+    pub position: [f32; 3],
+    pub color: [f32; 3],
 }
 
-impl VertexBuffer for MatrixVertex {
+impl Vertex for MatrixVertex {
     fn desc() -> (wgpu::VertexStepMode, Vec<wgpu::VertexFormat>) {
         (
             wgpu::VertexStepMode::Vertex,

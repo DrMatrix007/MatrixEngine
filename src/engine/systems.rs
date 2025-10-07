@@ -31,7 +31,7 @@ pub trait QuerySystem<Registry, Args: Query<Registry>>: Send {
 pub struct QuerySystemHolder<Registry, Q: Query<Registry>, QSystem: QuerySystem<Registry, Q>> {
     system: QSystem,
     args: Option<Q>,
-    phantom: PhantomData<Registry>,
+    marker: PhantomData<Registry>,
 }
 unsafe impl<Registry, Q: Query<Registry> + Send, QSystem: QuerySystem<Registry, Q> + Send> Send
     for QuerySystemHolder<Registry, Q, QSystem>
@@ -45,7 +45,7 @@ impl<Registry, Q: Query<Registry>, QSystem: QuerySystem<Registry, Q>>
         Self {
             system,
             args: None,
-            phantom: PhantomData,
+            marker: PhantomData,
         }
     }
 }
