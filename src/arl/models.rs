@@ -3,12 +3,19 @@ use core::marker::PhantomData;
 use crate::arl::{
     buffers::Buffer,
     device_queue::DeviceQueue,
-    id::ID,
+    id::IDable,
     passable::Passable,
-    vertex::{vertex_buffers::VertexBufferGroup, vertexable::{VertexIndexer, VertexableGroup}},
+    vertex::{
+        vertex_buffers::VertexBufferGroup,
+        vertexable::{VertexIndexer, VertexableGroup},
+    },
 };
 
-pub trait Model<ModelID: ID> {
+pub trait ModelIDable: IDable {}
+
+impl<T: IDable> ModelIDable for T {}
+
+pub trait Model<ModelID: ModelIDable> {
     type VGroup: VertexableGroup;
     type I: VertexIndexer;
     fn id(&self) -> ModelID;
@@ -19,20 +26,22 @@ pub trait Model<ModelID: ID> {
     fn indecies(&self) -> &[Self::I];
 }
 
-pub struct ModelBuffer<ModelID: ID, I: VertexIndexer, VGroup: VertexableGroup> {
+pub struct ModelBuffer<ModelID: ModelIDable, I: VertexIndexer, VGroup: VertexableGroup> {
     index_buffer: Buffer<I>,
     vertex_buffers: VGroup::BufferGroup,
     marker: PhantomData<(ModelID, I, VGroup)>,
 }
 
-impl<ModelID: ID, I: VertexIndexer, VGroup: VertexableGroup> Passable for ModelBuffer<ModelID, I, VGroup> {
+impl<ID: ModelIDable, I: VertexIndexer, VGroup: VertexableGroup> Passable
+    for ModelBuffer<ID, I, VGroup>
+{
     fn apply<'a>(&self, pass: &mut wgpu::RenderPass<'a>) {
         self.vertex_buffers.apply(pass);
         pass.set_index_buffer(self.index_buffer.raw().slice(..), I::format());
     }
 }
 
-impl<ModelID: ID, I: VertexIndexer, VGroup: VertexableGroup> ModelBuffer<ModelID, I, VGroup> {
+impl<ID: ModelIDable, I: VertexIndexer, VGroup: VertexableGroup> ModelBuffer<ID, I, VGroup> {
     pub fn new_from_raw(
         vertex_raw: <VGroup::BufferGroup as VertexBufferGroup>::Raw<'_>,
         indexes: &[I],

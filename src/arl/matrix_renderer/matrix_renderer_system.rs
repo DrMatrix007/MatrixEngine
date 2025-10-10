@@ -1,5 +1,3 @@
-use std::{any::TypeId, sync::Arc};
-
 use wgpu::{
     Instance, RenderPassColorAttachment, Surface, SurfaceConfiguration, SurfaceError,
     TextureViewDescriptor,
@@ -8,11 +6,12 @@ use winit::{event::WindowEvent, window::Window};
 
 use crate::{
     arl::{
-        atlas::Atlas,
         device_queue::DeviceQueue,
-        matrix_renderer::{matrix_render_object::MatrixRenderObject, matrix_vertex::MatrixVertex},
-        passable::Passable,
-        render_pipelines::{RenderPipeline, RenderPipelineArgs},
+        matrix_renderer::{
+            matrix_render_object::MatrixRenderObject, matrix_vertex::MatrixVertex,
+            pentagon::MatrixModelID,
+        },
+        render_pipeline::{RenderPipeline, RenderPipelineArgs},
         shaders::{Shaders, ShadersArgs},
     },
     engine::{
@@ -28,8 +27,7 @@ pub struct MatrixRenderInstance {
     surface_config: SurfaceConfiguration,
     is_surface_updated: bool,
     _shaders: Shaders,
-    pipeline: RenderPipeline<(MatrixVertex,)>,
-    atlas: Atlas<TypeId, u16, (MatrixVertex,)>,
+    pipeline: RenderPipeline<MatrixModelID, u16, (MatrixVertex,), ()>,
 }
 
 impl MatrixRenderInstance {
@@ -113,7 +111,8 @@ pub fn matrix_renderer(
 
     for (_, o) in objects.iter() {
         instance
-            .atlas
+            .pipeline
+            .atlas_mut()
             .try_insert_model(o.object(), &instance.device_queue);
     }
 
@@ -139,8 +138,8 @@ pub fn matrix_renderer(
             timestamp_writes: None,
         });
 
-        instance.pipeline.apply(&mut render_pass);
-        instance.atlas.draw_all(&mut render_pass);
+        render_pass.set_pipeline(instance.pipeline.raw());
+        instance.pipeline.atlas().draw_all(&mut render_pass);
         // render_pass.set_pipeline(instance.pipeline.raw()); // 2.
         // render_pass.draw(0..3, 0..1); // 3.
     }
@@ -252,14 +251,13 @@ pub fn create_matrix_instance(window: &mut Res<Window>, res: &mut Res<MatrixRend
     );
 
     res.replace(MatrixRenderInstance {
-        device_queue,
         wgpu_instance: instance,
         surface,
         surface_config: config,
         is_surface_updated: false,
         _shaders: shaders,
         pipeline,
-        atlas: Atlas::default(),
+        device_queue,
     });
 }
 

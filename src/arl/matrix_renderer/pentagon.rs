@@ -2,15 +2,18 @@ use std::any::TypeId;
 
 use crate::arl::{matrix_renderer::matrix_vertex::MatrixVertex, models::Model};
 
+#[derive(Debug, Hash, PartialEq, Clone, Copy, Eq, PartialOrd, Ord)]
+pub struct MatrixModelID(TypeId);
+
 pub struct Pentagon;
 
-impl Model<TypeId> for Pentagon {
+impl Model<MatrixModelID> for Pentagon {
     type VGroup = (MatrixVertex,);
 
     type I = u16;
 
-    fn id(&self) -> TypeId {
-        TypeId::of::<Self>()
+    fn id(&self) -> MatrixModelID {
+        MatrixModelID(TypeId::of::<Self>())
     }
 
     fn vertecies(

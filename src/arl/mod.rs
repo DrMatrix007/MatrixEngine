@@ -3,7 +3,7 @@ pub mod buffers;
 pub mod device_queue;
 pub mod matrix_renderer;
 pub mod models;
-pub mod render_pipelines;
+pub mod render_pipeline;
 pub mod shaders;
 pub mod vertex;
 pub mod passable;

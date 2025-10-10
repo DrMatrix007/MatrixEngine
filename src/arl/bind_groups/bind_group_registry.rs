@@ -4,10 +4,10 @@ use paste::paste;
 
 use crate::{
     arl::{
-        bind_groups::bind_groups::{BindGroup, BindGroupLayout, BindGroupable},
+        bind_groups::{BindGroup, BindGroupLayout, BindGroupable},
         device_queue::DeviceQueue,
     },
-    count_types, impl_all,
+    impl_all,
 };
 
 pub struct BindGroupRegistry<Group: BindGroupable> {
@@ -75,4 +75,16 @@ macro_rules! impl_group_factory {
     }
 }
 
-impl_all!(mini impl_group_factory);
+impl_all!(impl_group_factory);
+
+impl BindGroupGroupRegistry for () {
+    type Input<'a> = ();
+
+    type Output = ();
+
+    fn query_groups<'a>(&mut self, _: Self::Input<'a>) -> Self::Output {}
+
+    fn layout_desc(&self) -> impl AsRef<[&wgpu::BindGroupLayout]> {
+        []
+    }
+}

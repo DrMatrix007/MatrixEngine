@@ -3,7 +3,12 @@ use std::marker::PhantomData;
 use wgpu::SurfaceConfiguration;
 
 use crate::arl::{
-    device_queue::DeviceQueue, passable::Passable, shaders::Shaders, vertex::vertexable::VertexableGroup,
+    atlas::Atlas,
+    bind_groups::bind_group_group::BindGroupGroup,
+    device_queue::DeviceQueue,
+    models::ModelIDable,
+    shaders::Shaders,
+    vertex::vertexable::{VertexIndexer, VertexableGroup},
 };
 
 pub struct RenderPipelineArgs<'a, 'b> {
@@ -11,25 +16,38 @@ pub struct RenderPipelineArgs<'a, 'b> {
     pub surface_config: &'b SurfaceConfiguration,
 }
 
-pub struct RenderPipeline<VertexBuffers: VertexableGroup> {
+pub struct RenderPipeline<
+    ModelID: ModelIDable,
+    Indexer: VertexIndexer,
+    VertexGroup: VertexableGroup,
+    BindGroups: BindGroupGroup,
+> {
     pipeline: wgpu::RenderPipeline,
     _pipeline_layout: wgpu::PipelineLayout,
-    marker: PhantomData<VertexBuffers>,
+    atlas: Atlas<ModelID, Indexer, VertexGroup, BindGroups>,
+    marker: PhantomData<(VertexGroup, BindGroups)>,
 }
 
-impl<VertexBuffers: VertexableGroup> RenderPipeline<VertexBuffers> {
+impl<
+    ModelID: ModelIDable,
+    Indexer: VertexIndexer,
+    VertexGroup: VertexableGroup,
+    BindGroups: BindGroupGroup,
+> RenderPipeline<ModelID, Indexer, VertexGroup, BindGroups>
+{
     pub fn new(label: &str, args: RenderPipelineArgs<'_, '_>, device_queue: &DeviceQueue) -> Self {
+        let atlas = Atlas::new(device_queue);
         let pipeline_layout =
             device_queue
                 .device()
                 .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: Some(format!("{label} layout").as_str()),
-                    bind_group_layouts: &[],
+                    bind_group_layouts: atlas.layout_desc().as_ref(),
                     push_constant_ranges: &[],
                 });
 
-        let buffer_attrs = VertexBuffers::attrs();
-        let buffer_attrs = VertexBuffers::desc(&buffer_attrs);
+        let buffer_attrs = VertexGroup::attrs();
+        let buffer_attrs = VertexGroup::desc(&buffer_attrs);
         let pipeline =
             device_queue
                 .device()
@@ -74,6 +92,7 @@ impl<VertexBuffers: VertexableGroup> RenderPipeline<VertexBuffers> {
         Self {
             _pipeline_layout: pipeline_layout,
             pipeline,
+            atlas,
             marker: PhantomData,
         }
     }
@@ -81,10 +100,12 @@ impl<VertexBuffers: VertexableGroup> RenderPipeline<VertexBuffers> {
     pub fn raw(&self) -> &wgpu::RenderPipeline {
         &self.pipeline
     }
-}
 
-impl<VGroup: VertexableGroup> Passable for RenderPipeline<VGroup> {
-    fn apply<'a>(&self, pass: &mut wgpu::RenderPass<'a>) {
-        pass.set_pipeline(&self.pipeline);
+    pub fn atlas(&self) -> &Atlas<ModelID, Indexer, VertexGroup, BindGroups> {
+        &self.atlas
+    }
+
+    pub fn atlas_mut(&mut self) -> &mut Atlas<ModelID, Indexer, VertexGroup, BindGroups> {
+        &mut self.atlas
     }
 }

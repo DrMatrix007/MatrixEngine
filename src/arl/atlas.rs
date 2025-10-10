@@ -1,26 +1,34 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::arl::{
+    bind_groups::{bind_group_registry::BindGroupGroupRegistry, bind_group_group::BindGroupGroup},
     device_queue::DeviceQueue,
-    id::ID,
-    models::{Model, ModelBuffer},
+    id::IDable,
+    models::{Model, ModelBuffer, ModelIDable},
     passable::Passable,
     vertex::vertexable::{VertexIndexer, VertexableGroup},
 };
 
-pub struct Atlas<ModelID: ID, I: VertexIndexer, VGroup: VertexableGroup> {
+pub struct Atlas<
+    ModelID: ModelIDable,
+    I: VertexIndexer,
+    VGroup: VertexableGroup,
+    BindGroups: BindGroupGroup,
+> {
     models: HashMap<ModelID, Arc<ModelBuffer<ModelID, I, VGroup>>>,
+    bind_groups: BindGroups::Registry,
 }
 
-impl<ModelID: ID, I: VertexIndexer, VGroup: VertexableGroup> Default for Atlas<ModelID, I, VGroup> {
-    fn default() -> Self {
+impl<ModelID: IDable, I: VertexIndexer, VGroup: VertexableGroup, BindGroups: BindGroupGroup>
+    Atlas<ModelID, I, VGroup, BindGroups>
+{
+    pub fn new(device_queue: &DeviceQueue) -> Self {
         Self {
             models: Default::default(),
+            bind_groups: BindGroups::create_registry(device_queue),
         }
     }
-}
 
-impl<ModelID: ID, I: VertexIndexer, VGroup: VertexableGroup> Atlas<ModelID, I, VGroup> {
     pub fn try_insert_model(
         &mut self,
         m: &dyn Model<ModelID, VGroup = VGroup, I = I>,
@@ -40,5 +48,9 @@ impl<ModelID: ID, I: VertexIndexer, VGroup: VertexableGroup> Atlas<ModelID, I, V
             buffer.apply(pass);
             pass.draw_indexed(0..buffer.index_size(), 0, 0..1);
         }
+    }
+
+    pub fn layout_desc(&self) -> impl AsRef<[&wgpu::BindGroupLayout]> {
+        self.bind_groups.layout_desc()
     }
 }
