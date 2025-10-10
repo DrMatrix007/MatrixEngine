@@ -5,7 +5,7 @@ use anymap::AnyMap;
 use crate::{
     engine::entity::Entity,
     impl_all,
-    lockable::{Lockable, LockableError, LockableReadGuard, LockableWriteGuard},
+    utils::lockable::{Lockable, LockableError, LockableReadGuard, LockableWriteGuard},
 };
 
 pub trait Component: Send + Sync + 'static {}

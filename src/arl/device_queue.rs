@@ -1,14 +1,25 @@
-use std::sync::Arc;
-
 use wgpu::{Device, Queue};
 
+#[derive(Debug, Clone)]
 pub struct DeviceQueue {
-    device: Arc<Device>,
-    queue: Arc<Queue>,
+    device: Device,
+    queue: Queue,
+}
+
+impl AsRef<Queue> for DeviceQueue {
+    fn as_ref(&self) -> &Queue {
+        &self.queue
+    }
+}
+
+impl AsRef<Device> for DeviceQueue {
+    fn as_ref(&self) -> &Device {
+        &self.device
+    }
 }
 
 impl DeviceQueue {
-    pub fn new(device: Arc<Device>, queue: Arc<Queue>) -> Self {
+    pub fn new(device: Device, queue: Queue) -> Self {
         Self { device, queue }
     }
 

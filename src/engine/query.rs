@@ -9,7 +9,7 @@ use crate::{
         system_registries::Stage,
     },
     impl_all,
-    lockable::{LockableError, LockableReadGuard, LockableWriteGuard},
+    utils::lockable::{LockableError, LockableReadGuard, LockableWriteGuard},
 };
 
 pub struct Read<T: Component> {

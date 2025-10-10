@@ -2,8 +2,7 @@ use std::marker::PhantomData;
 
 use crate::{
     engine::query::{Query, QueryError},
-    impl_all,
-    lockable::LockableError,
+    impl_all, utils::lockable::LockableError,
 };
 
 pub trait System: Send {

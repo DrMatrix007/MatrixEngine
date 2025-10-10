@@ -5,7 +5,7 @@ use std::collections::VecDeque;
 
 use crate::{engine::{
     query::{Query, QueryError}, EngineState, Scene
-}, lockable::LockableError};
+}, utils::lockable::LockableError};
 
 #[derive(Default)]
 pub struct CommandBuffer<T = EngineState> {

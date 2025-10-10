@@ -1,6 +1,6 @@
 use anymap::AnyMap;
 
-use crate::lockable::{Lockable, LockableError, LockableWriteGuard};
+use crate::utils::lockable::{Lockable, LockableError, LockableWriteGuard};
 
 pub trait Resource: Send {}
 impl<T: Send + 'static> Resource for T {}

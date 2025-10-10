@@ -1,4 +1,5 @@
-use crate::arl::vertex::Vertex;
+use crate::arl::vertex::vertexable::Vertexable;
+
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -7,7 +8,7 @@ pub struct MatrixVertex {
     pub color: [f32; 3],
 }
 
-impl Vertex for MatrixVertex {
+impl Vertexable for MatrixVertex {
     fn desc() -> (wgpu::VertexStepMode, Vec<wgpu::VertexFormat>) {
         (
             wgpu::VertexStepMode::Vertex,

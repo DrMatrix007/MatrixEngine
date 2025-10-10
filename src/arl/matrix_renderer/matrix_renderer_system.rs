@@ -10,12 +10,15 @@ use crate::{
     arl::{
         atlas::Atlas,
         device_queue::DeviceQueue,
-        matrix_renderer::matrix_vertex::MatrixVertex,
+        matrix_renderer::{matrix_render_object::MatrixRenderObject, matrix_vertex::MatrixVertex},
         passable::Passable,
         render_pipelines::{RenderPipeline, RenderPipelineArgs},
         shaders::{Shaders, ShadersArgs},
     },
-    engine::{query::Res, system_registries::Stage},
+    engine::{
+        query::{Read, Res},
+        system_registries::Stage,
+    },
 };
 
 pub struct MatrixRenderInstance {
@@ -59,6 +62,7 @@ pub fn matrix_renderer(
     stage: &mut Stage,
     window: &mut Res<Window>,
     instance: &mut Res<MatrixRenderInstance>,
+    objects: &mut Read<MatrixRenderObject>,
 ) {
     let window = match (stage, window.as_mut()) {
         (Stage::Render(id), maybe_window) => {
@@ -107,6 +111,12 @@ pub fn matrix_renderer(
         },
     );
 
+    for (_, o) in objects.iter() {
+        instance
+            .atlas
+            .try_insert_model(o.object(), &instance.device_queue);
+    }
+
     {
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Render Pass"),
@@ -130,6 +140,7 @@ pub fn matrix_renderer(
         });
 
         instance.pipeline.apply(&mut render_pass);
+        instance.atlas.draw_all(&mut render_pass);
         // render_pass.set_pipeline(instance.pipeline.raw()); // 2.
         // render_pass.draw(0..3, 0..1); // 3.
     }
@@ -217,9 +228,9 @@ pub fn create_matrix_instance(window: &mut Res<Window>, res: &mut Res<MatrixRend
         desired_maximum_frame_latency: 2,
     };
 
-    config.present_mode = wgpu::PresentMode::AutoNoVsync;
+    config.present_mode = wgpu::PresentMode::AutoVsync;
 
-    let device_queue = DeviceQueue::new(Arc::new(device), Arc::new(queue));
+    let device_queue = DeviceQueue::new(device, queue);
 
     let shaders = Shaders::new(
         "matrix shaders",

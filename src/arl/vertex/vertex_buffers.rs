@@ -1,5 +1,5 @@
 use crate::{
-    arl::{buffers::Buffer, device_queue::DeviceQueue, vertex::Vertex},
+    arl::{buffers::Buffer, device_queue::DeviceQueue, vertex::vertexable::Vertexable},
     impl_all,
 };
 
@@ -15,12 +15,12 @@ macro_rules! impl_tuple_vertex_buffer {
 
     ($($t:ident),+) => {
         #[allow(non_snake_case)]
-        impl<$($t: Vertex + 'static),+> VertexBufferGroup for ($(Buffer<$t>,)+) {
+        impl<$($t: Vertexable + 'static),+> VertexBufferGroup for ($(Buffer<$t>,)+) {
             type Raw<'a> = ($(&'a [$t],)+);
 
             fn from<'a>(data: Self::Raw<'a>, device_queue:&DeviceQueue) -> Self {
                 let ($($t,)+) = data;
-                ($(Buffer::new("tuple vertex buffer", $t, wgpu::BufferUsages::VERTEX, device_queue),)+)
+                ($(Buffer::new("tuple vertex buffer", $t, wgpu::BufferUsages::VERTEX, device_queue.clone()),)+)
             }
 
             fn apply<'a>(&self, pass: &mut wgpu::RenderPass<'a>) {

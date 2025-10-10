@@ -5,7 +5,7 @@ use crate::{
         component::{Component, ComponentRegistry},
         entity::Entity,
     },
-    lockable::LockableError,
+    utils::lockable::LockableError,
 };
 
 pub trait ComponentGroup: Send {

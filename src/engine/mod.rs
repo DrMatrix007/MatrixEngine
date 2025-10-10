@@ -10,7 +10,7 @@ use crate::{
         system_registries::{Stage, StageDescriptor, SystemRegistry},
         systems::{QuerySystem, QuerySystemHolder},
     },
-    lockable::{Lockable, LockableError, LockableWriteGuard},
+    utils::lockable::{Lockable, LockableError, LockableWriteGuard},
 };
 
 pub mod commands;

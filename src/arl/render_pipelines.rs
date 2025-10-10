@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use wgpu::SurfaceConfiguration;
 
 use crate::arl::{
-    device_queue::DeviceQueue, passable::Passable, shaders::Shaders, vertex::VertexGroup,
+    device_queue::DeviceQueue, passable::Passable, shaders::Shaders, vertex::vertexable::VertexableGroup,
 };
 
 pub struct RenderPipelineArgs<'a, 'b> {
@@ -11,13 +11,13 @@ pub struct RenderPipelineArgs<'a, 'b> {
     pub surface_config: &'b SurfaceConfiguration,
 }
 
-pub struct RenderPipeline<VertexBuffers: VertexGroup> {
+pub struct RenderPipeline<VertexBuffers: VertexableGroup> {
     pipeline: wgpu::RenderPipeline,
     _pipeline_layout: wgpu::PipelineLayout,
     marker: PhantomData<VertexBuffers>,
 }
 
-impl<VertexBuffers: VertexGroup> RenderPipeline<VertexBuffers> {
+impl<VertexBuffers: VertexableGroup> RenderPipeline<VertexBuffers> {
     pub fn new(label: &str, args: RenderPipelineArgs<'_, '_>, device_queue: &DeviceQueue) -> Self {
         let pipeline_layout =
             device_queue
@@ -83,7 +83,7 @@ impl<VertexBuffers: VertexGroup> RenderPipeline<VertexBuffers> {
     }
 }
 
-impl<VGroup: VertexGroup> Passable for RenderPipeline<VGroup> {
+impl<VGroup: VertexableGroup> Passable for RenderPipeline<VGroup> {
     fn apply<'a>(&self, pass: &mut wgpu::RenderPass<'a>) {
         pass.set_pipeline(&self.pipeline);
     }
