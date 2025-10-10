@@ -130,6 +130,13 @@ impl Engine {
     pub fn scene(&self) -> &Scene {
         &self.registry.scene
     }
+    pub fn add_system_to_scene<Args: Query<EngineState> + 'static>(
+        &mut self,
+        stage: StageDescriptor,
+        system: impl QuerySystem<EngineState, Args> + 'static,
+    ) {
+        self.registry.scene.add_system(stage, system);
+    }
 }
 
 pub struct EngineState {

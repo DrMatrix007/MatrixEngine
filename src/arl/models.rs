@@ -4,7 +4,6 @@ use crate::arl::{
     buffers::Buffer,
     device_queue::DeviceQueue,
     id::IDable,
-    passable::Passable,
     vertex::{
         vertex_buffers::VertexBufferGroup,
         vertexable::{VertexIndexer, VertexableGroup},
@@ -30,15 +29,6 @@ pub struct ModelBuffer<ModelID: ModelIDable, I: VertexIndexer, VGroup: Vertexabl
     index_buffer: Buffer<I>,
     vertex_buffers: VGroup::BufferGroup,
     marker: PhantomData<(ModelID, I, VGroup)>,
-}
-
-impl<ID: ModelIDable, I: VertexIndexer, VGroup: VertexableGroup> Passable
-    for ModelBuffer<ID, I, VGroup>
-{
-    fn apply<'a>(&self, pass: &mut wgpu::RenderPass<'a>) {
-        self.vertex_buffers.apply(pass);
-        pass.set_index_buffer(self.index_buffer.raw().slice(..), I::format());
-    }
 }
 
 impl<ID: ModelIDable, I: VertexIndexer, VGroup: VertexableGroup> ModelBuffer<ID, I, VGroup> {
@@ -71,5 +61,10 @@ impl<ID: ModelIDable, I: VertexIndexer, VGroup: VertexableGroup> ModelBuffer<ID,
 
     pub fn vertex_buffers(&self) -> &VGroup::BufferGroup {
         &self.vertex_buffers
+    }
+
+    pub fn apply<'a>(&self, pass: &mut wgpu::RenderPass<'a>) {
+        self.vertex_buffers.apply(pass);
+        pass.set_index_buffer(self.index_buffer.raw().slice(..), I::format());
     }
 }

@@ -7,13 +7,15 @@ pub struct MatrixModelID(TypeId);
 
 pub struct Pentagon;
 
+static TYPE: TypeId = TypeId::of::<Pentagon>();
+
 impl Model<MatrixModelID> for Pentagon {
     type VGroup = (MatrixVertex,);
 
     type I = u16;
 
     fn id(&self) -> MatrixModelID {
-        MatrixModelID(TypeId::of::<Self>())
+        MatrixModelID(TYPE)
     }
 
     fn vertecies(

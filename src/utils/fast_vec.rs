@@ -62,4 +62,11 @@ impl<T> FastVec<T> {
             .enumerate()
             .filter_map(|(i, x)| x.as_ref().map(move |x| (i, x)))
     }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (usize, &mut T)> {
+        self.data
+            .iter_mut()
+            .enumerate()
+            .filter_map(|(i, x)| x.as_mut().map(move |x| (i, x)))
+    }
 }

@@ -15,7 +15,7 @@ use crate::{
         shaders::{Shaders, ShadersArgs},
     },
     engine::{
-        query::{Read, Res},
+        query::{Read, Res, Write},
         system_registries::Stage,
     },
 };
@@ -53,6 +53,49 @@ impl MatrixRenderInstance {
 
     pub fn wgpu_instance(&self) -> &Instance {
         &self.wgpu_instance
+    }
+}
+
+pub fn prepare_renderer_frame(
+    objects: &mut Write<MatrixRenderObject>,
+    res: &mut Res<MatrixRenderInstance>,
+) {
+    let instance = match res.as_mut() {
+        Some(data) => data,
+        None => return,
+    };
+
+    let mut fix = Vec::with_capacity(0);
+    for data in instance
+        .pipeline
+        .atlas_mut()
+        .entities_mut()
+        .iter_all_entities()
+    {
+        if let Some(object) = objects.get(data.entity) {
+            *data.updated = true;
+
+            let id = (object.model_id(), object.bind_groups_id());
+            if id != (&data.id.0, &data.id.1) {
+                fix.push(data.to_op((*id.0, *id.1)));
+            }
+        }
+    }
+    instance
+        .pipeline
+        .atlas_mut()
+        .entities_mut()
+        .fix_entities(fix.into_iter());
+
+    for (e, obj) in objects.iter_mut() {
+        if !obj.is_added() {
+            obj.set_added(true);
+            instance
+                .pipeline
+                .atlas_mut()
+                .entities_mut()
+                .add_entity((obj.object().id(), *obj.bind_groups_id()), e);
+        }
     }
 }
 
@@ -139,7 +182,7 @@ pub fn matrix_renderer(
         });
 
         render_pass.set_pipeline(instance.pipeline.raw());
-        instance.pipeline.atlas().draw_all(&mut render_pass);
+        instance.pipeline.atlas_mut().draw_all(&mut render_pass);
         // render_pass.set_pipeline(instance.pipeline.raw()); // 2.
         // render_pass.draw(0..3, 0..1); // 3.
     }

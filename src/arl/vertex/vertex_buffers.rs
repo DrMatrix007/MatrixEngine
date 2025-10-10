@@ -35,8 +35,6 @@ macro_rules! impl_tuple_vertex_buffer {
                     }
                 )+
             }
-
-
         }
     }
 }

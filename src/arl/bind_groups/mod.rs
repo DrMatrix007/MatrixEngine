@@ -4,7 +4,6 @@ use crate::arl::{device_queue::DeviceQueue, id::IDable};
 
 pub mod bind_group_group;
 pub mod bind_group_registry;
-pub mod bind_groups_to_entities;
 
 pub struct BindGroupLayoutEntry {
     pub visibility: wgpu::ShaderStages,
@@ -12,8 +11,12 @@ pub struct BindGroupLayoutEntry {
     pub count: Option<NonZero<u32>>,
 }
 
+pub trait BindGroupIDable: IDable {}
+
+impl<T: IDable> BindGroupIDable for T {}
+
 pub trait BindGroupable {
-    type BindGroupID: IDable;
+    type BindGroupID: BindGroupIDable;
 
     fn new(id: &Self::BindGroupID) -> Self;
 

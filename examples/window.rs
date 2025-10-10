@@ -3,7 +3,9 @@ use std::time::{Duration, Instant};
 use matrix_engine::{
     arl::matrix_renderer::{
         matrix_render_object::MatrixRenderObject,
-        matrix_renderer_system::{create_matrix_instance, matrix_renderer, update_surface_size},
+        matrix_renderer_system::{
+            create_matrix_instance, matrix_renderer, prepare_renderer_frame, update_surface_size,
+        },
         pentagon::Pentagon,
     },
     engine::{
@@ -33,21 +35,15 @@ fn main() {
 
     let mut engine = Engine::new(SingleThreadedRuntime);
 
-    engine
-        .scene_mut()
-        .add_system(StageDescriptor::Startup, start);
+    engine.add_system_to_scene(StageDescriptor::Startup, start);
 
-    engine
-        .scene_mut()
-        .add_system(StageDescriptor::Startup, create_matrix_instance);
+    engine.add_system_to_scene(StageDescriptor::Startup, create_matrix_instance);
 
-    engine
-        .scene_mut()
-        .add_system(StageDescriptor::Render, matrix_renderer);
+    engine.add_system_to_scene(StageDescriptor::Render, matrix_renderer);
 
-    engine
-        .scene_mut()
-        .add_system(StageDescriptor::WindowEvent, update_surface_size);
+    engine.add_system_to_scene(StageDescriptor::WindowEvent, update_surface_size);
+    
+    engine.add_system_to_scene(StageDescriptor::PreRender, prepare_renderer_frame);
 
     let mut last_time = Instant::now();
     let mut frame_count = 0;

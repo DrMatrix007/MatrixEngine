@@ -34,8 +34,8 @@ impl<T> LockableState<T> {
     }
 
     pub fn consume_read(&mut self, arc: Arc<T>) -> Result<(), LockableError> {
-        if Arc::strong_count(&arc) == 1 {
-            match std::mem::replace(self, LockableState::Write) {
+        if Arc::strong_count(&arc) == 2 {
+            match std::mem::replace(    self, LockableState::Write) {
                 LockableState::Read(current) => {
                     if Arc::ptr_eq(&arc, &current) {
                         *self = LockableState::Available(current);

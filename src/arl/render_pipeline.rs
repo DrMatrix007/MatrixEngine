@@ -4,7 +4,7 @@ use wgpu::SurfaceConfiguration;
 
 use crate::arl::{
     atlas::Atlas,
-    bind_groups::bind_group_group::BindGroupGroup,
+    bind_groups::bind_group_group::BindGroupableGroup,
     device_queue::DeviceQueue,
     models::ModelIDable,
     shaders::Shaders,
@@ -20,7 +20,7 @@ pub struct RenderPipeline<
     ModelID: ModelIDable,
     Indexer: VertexIndexer,
     VertexGroup: VertexableGroup,
-    BindGroups: BindGroupGroup,
+    BindGroups: BindGroupableGroup,
 > {
     pipeline: wgpu::RenderPipeline,
     _pipeline_layout: wgpu::PipelineLayout,
@@ -32,7 +32,7 @@ impl<
     ModelID: ModelIDable,
     Indexer: VertexIndexer,
     VertexGroup: VertexableGroup,
-    BindGroups: BindGroupGroup,
+    BindGroups: BindGroupableGroup,
 > RenderPipeline<ModelID, Indexer, VertexGroup, BindGroups>
 {
     pub fn new(label: &str, args: RenderPipelineArgs<'_, '_>, device_queue: &DeviceQueue) -> Self {

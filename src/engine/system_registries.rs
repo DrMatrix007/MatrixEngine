@@ -108,21 +108,6 @@ impl<Registry> Default for SystemRegistry<Registry> {
 }
 
 impl<Registry> SystemRegistry<Registry> {
-    pub fn startup_systems_mut(&mut self) -> &mut SystemCollection<Registry> {
-        &mut self.startup_systems
-    }
-
-    pub fn pre_update_systems_mut(&mut self) -> &mut SystemCollection<Registry> {
-        &mut self.pre_update_systems
-    }
-
-    pub fn update_systems_mut(&mut self) -> &mut SystemCollection<Registry> {
-        &mut self.update_systems
-    }
-
-    pub fn post_update_systems_mut(&mut self) -> &mut SystemCollection<Registry> {
-        &mut self.post_update_systems
-    }
 
     pub fn add_system(
         &mut self,

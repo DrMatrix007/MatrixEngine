@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use paste::paste;
 
@@ -6,12 +6,13 @@ use crate::{
     arl::{
         bind_groups::{BindGroup, BindGroupLayout, BindGroupable},
         device_queue::DeviceQueue,
+        id::IDWrapper,
     },
     impl_all,
 };
 
 pub struct BindGroupRegistry<Group: BindGroupable> {
-    groups: HashMap<Group::BindGroupID, Arc<BindGroup<Group>>>,
+    groups: HashMap<Group::BindGroupID, BindGroup<Group>>,
     layout: BindGroupLayout<Group>,
     device_queue: DeviceQueue,
 }
@@ -27,15 +28,14 @@ impl<Group: BindGroupable> BindGroupRegistry<Group> {
         }
     }
 
-    pub fn get(&self, id: &Group::BindGroupID) -> Option<&Arc<BindGroup<Group>>> {
+    pub fn get(&self, id: &Group::BindGroupID) -> Option<&BindGroup<Group>> {
         self.groups.get(id)
     }
 
-    pub fn get_or_create(&mut self, id: Group::BindGroupID) -> &Arc<BindGroup<Group>> {
-        self.groups.entry(id).or_insert_with(|| {
-            let group = self.layout.create(Group::new(&id), &self.device_queue);
-            Arc::new(group)
-        })
+    pub fn get_or_create(&mut self, id: Group::BindGroupID) -> &BindGroup<Group> {
+        self.groups
+            .entry(id)
+            .or_insert_with(|| self.layout.create(Group::new(&id), &self.device_queue))
     }
 
     pub fn layout(&self) -> &BindGroupLayout<Group> {
@@ -43,11 +43,11 @@ impl<Group: BindGroupable> BindGroupRegistry<Group> {
     }
 }
 
-pub trait BindGroupGroupRegistry {
-    type Input<'a>;
-    type Output;
+pub trait BindGroupGroupRegistry: 'static {
+    type Input;
+    type Output<'a>;
 
-    fn query_groups<'a>(&mut self, data: Self::Input<'a>) -> Self::Output;
+    fn query_groups(&mut self, data: &Self::Input) -> Self::Output<'_>;
 
     fn layout_desc(&self) -> impl AsRef<[&wgpu::BindGroupLayout]>;
 }
@@ -57,13 +57,13 @@ macro_rules! impl_group_factory {
     ($($t:ident),+) => {
         #[allow(non_snake_case)]
         impl<$($t: BindGroupable + 'static),+> BindGroupGroupRegistry for ($(BindGroupRegistry<$t>,)+) {
-            type Input<'a> = ($(&'a $t::BindGroupID,)+);
-            type Output = ($(Arc<BindGroup<$t>>,)+);
+            type Input = IDWrapper<($($t::BindGroupID,)+)>;
+            type Output<'a> = ($(&'a BindGroup<$t>,)+);
 
-            fn query_groups<'a>(&mut self, data: Self::Input<'a>) -> Self::Output {
+            fn query_groups<'a>(&'a mut self, data: &Self::Input) -> Self::Output<'a> {
                 let ($($t,)+) = self;
-                let ($(paste! { [<$t _id>] },)+) = data;
-                ($(paste! { $t.get_or_create(*[<$t _id>]).clone() },)+)
+                let ($(paste! { [<$t _id>] },)+) = data.0;
+                ($(paste! { $t.get_or_create([<$t _id>]) },)+)
             }
 
             fn layout_desc(& self) -> impl AsRef<[&wgpu::BindGroupLayout]> {
@@ -78,11 +78,11 @@ macro_rules! impl_group_factory {
 impl_all!(impl_group_factory);
 
 impl BindGroupGroupRegistry for () {
-    type Input<'a> = ();
+    type Input = ();
 
-    type Output = ();
+    type Output<'a> = ();
 
-    fn query_groups<'a>(&mut self, _: Self::Input<'a>) -> Self::Output {}
+    fn query_groups(&mut self, _: &Self::Input) -> Self::Output<'_> {}
 
     fn layout_desc(&self) -> impl AsRef<[&wgpu::BindGroupLayout]> {
         []
