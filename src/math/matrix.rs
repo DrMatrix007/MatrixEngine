@@ -30,9 +30,14 @@ impl<const N: usize, const M: usize, T: Num> Matrix<N, M, T> {
         }
     }
 
-    pub fn zero() -> Self {
+    pub fn zeros() -> Self {
         Self::from_fn(|_, _| T::zero())
     }
+    
+    pub fn ones() -> Self {
+        Self::from_fn(|_, _| T::one())
+    }
+
     pub fn identity() -> Self {
         Self::from_fn(|m, n| if m == n { T::one() } else { T::zero() })
     }

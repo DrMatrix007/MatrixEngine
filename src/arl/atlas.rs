@@ -9,7 +9,11 @@ use crate::arl::{
     id::IDable,
     id_to_entities::IdToEntitiesRegistry,
     models::{Model, ModelBuffer, ModelIDable},
-    vertex::{instantiable::InstantiableGroup, vertexable::{VertexIndexer, VertexableGroup}},
+    vertex::{
+        buffers::InstanceBufferGroup,
+        instantiable::InstantiableGroup,
+        vertexable::{VertexIndexer, VertexableGroup},
+    },
 };
 
 pub struct Atlas<
@@ -22,16 +26,25 @@ pub struct Atlas<
     models: HashMap<ModelID, Arc<ModelBuffer<ModelID, I, VGroup>>>,
     bind_groups: BindGroups::Registry,
     entities: IdToEntitiesRegistry<(ModelID, BindGroups::ID)>,
+    instances: HashMap<(ModelID, BindGroups::ID), InstanceGroup::BufferGroup>,
+    device_queue: DeviceQueue,
 }
 
-impl<ModelID: IDable, I: VertexIndexer, VGroup: VertexableGroup, BindGroups: BindGroupableGroup>
-    Atlas<ModelID, I, VGroup, BindGroups>
+impl<
+    ModelID: IDable,
+    I: VertexIndexer,
+    VGroup: VertexableGroup,
+    InstanceGroup: InstantiableGroup,
+    BindGroups: BindGroupableGroup,
+> Atlas<ModelID, I, VGroup, InstanceGroup, BindGroups>
 {
-    pub fn new(device_queue: &DeviceQueue) -> Self {
+    pub fn new(device_queue: DeviceQueue) -> Self {
         Self {
             models: Default::default(),
-            bind_groups: BindGroups::create_registry(device_queue),
+            bind_groups: BindGroups::create_registry(&device_queue),
             entities: IdToEntitiesRegistry::new(),
+            instances: Default::default(),
+            device_queue,
         }
     }
 
@@ -50,14 +63,24 @@ impl<ModelID: IDable, I: VertexIndexer, VGroup: VertexableGroup, BindGroups: Bin
     }
 
     pub fn draw_all(&mut self, pass: &mut wgpu::RenderPass<'_>) {
-        for (model_id, binds_id) in self.entities.iter_ids() {
+        for id in self.entities.iter_ids() {
             let mut index = 0;
-            let model = self.models.get(model_id).unwrap();
-            let binds = self.bind_groups.query_groups(binds_id);
+            let instances = self.instances.entry(*id).or_insert_with(|| {
+                <InstanceGroup::BufferGroup as InstanceBufferGroup>::new(&self.device_queue)
+            });
+            let model = self.models.get(&id.0).unwrap();
+            let binds = self.bind_groups.query_groups(&id.1);
+
+            let instance_count= instances.len();
+            if instance_count == 0 {
+                continue;
+            }
+
             model.apply(&mut index, pass);
+            instances.apply(&mut index, pass);
             binds.apply(pass);
 
-            pass.draw_indexed(0..model.index_size(), 0, 0..1);
+            pass.draw_indexed(0..model.index_size(), 0, 0..instance_count);
         }
     }
 
@@ -71,5 +94,15 @@ impl<ModelID: IDable, I: VertexIndexer, VGroup: VertexableGroup, BindGroups: Bin
 
     pub fn entities_mut(&mut self) -> &mut IdToEntitiesRegistry<(ModelID, BindGroups::ID)> {
         &mut self.entities
+    }
+
+    pub fn instances(&self) -> &HashMap<(ModelID, BindGroups::ID), InstanceGroup::BufferGroup> {
+        &self.instances
+    }
+
+    pub fn instances_mut(
+        &mut self,
+    ) -> &mut HashMap<(ModelID, BindGroups::ID), InstanceGroup::BufferGroup> {
+        &mut self.instances
     }
 }

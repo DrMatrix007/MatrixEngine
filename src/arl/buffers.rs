@@ -54,6 +54,7 @@ impl<T: Pod + Zeroable> Buffer<T> {
     }
 
     pub fn resize(&mut self, size: u64, copy_data: bool) {
+        let size = size * core::mem::size_of::<T>() as u64;
         let new_buff = self
             .device_queue
             .device()

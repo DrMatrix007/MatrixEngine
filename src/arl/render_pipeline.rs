@@ -8,7 +8,10 @@ use crate::arl::{
     device_queue::DeviceQueue,
     models::ModelIDable,
     shaders::Shaders,
-    vertex::{instantiable::InstantiableGroup, vertexable::{VertexIndexer, VertexableGroup}},
+    vertex::{
+        instantiable::InstantiableGroup,
+        vertexable::{VertexIndexer, VertexableGroup},
+    },
 };
 
 pub struct RenderPipelineArgs<'a, 'b> {
@@ -38,7 +41,7 @@ impl<
 > RenderPipeline<ModelID, Indexer, VertexGroup, InstanceGroup, BindGroups>
 {
     pub fn new(label: &str, args: RenderPipelineArgs<'_, '_>, device_queue: &DeviceQueue) -> Self {
-        let atlas = Atlas::new(device_queue);
+        let atlas = Atlas::new(device_queue.clone());
         let pipeline_layout =
             device_queue
                 .device()
@@ -50,8 +53,10 @@ impl<
 
         let mut index = 0;
 
-        let buffer_attrs = VertexGroup::attrs(&mut index);
-        let buffer_attrs = VertexGroup::desc(&buffer_attrs);
+        let vertex_attrs = VertexGroup::attrs(&mut index);
+        let instace_attrs = InstanceGroup::attrs(&mut index);
+        let vertex_attrs = VertexGroup::desc(&vertex_attrs);
+        let instace_attrs = InstanceGroup::desc(&instace_attrs);
         let pipeline =
             device_queue
                 .device()
@@ -62,7 +67,11 @@ impl<
                         module: args.shaders.raw(),
                         entry_point: Some(args.shaders.vertex_entry()),
                         compilation_options: Default::default(),
-                        buffers: &buffer_attrs,
+                        buffers: vertex_attrs
+                            .into_iter()
+                            .chain(instace_attrs)
+                            .collect::<Vec<_>>()
+                            .as_ref(),
                     },
                     fragment: Some(wgpu::FragmentState {
                         module: args.shaders.raw(),
@@ -105,11 +114,13 @@ impl<
         &self.pipeline
     }
 
-    pub fn atlas(&self) -> &Atlas<ModelID, Indexer, VertexGroup, BindGroups> {
+    pub fn atlas(&self) -> &Atlas<ModelID, Indexer, VertexGroup, InstanceGroup, BindGroups> {
         &self.atlas
     }
 
-    pub fn atlas_mut(&mut self) -> &mut Atlas<ModelID, Indexer, VertexGroup, BindGroups> {
+    pub fn atlas_mut(
+        &mut self,
+    ) -> &mut Atlas<ModelID, Indexer, VertexGroup, InstanceGroup, BindGroups> {
         &mut self.atlas
     }
 }

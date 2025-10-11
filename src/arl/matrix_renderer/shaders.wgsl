@@ -7,10 +7,14 @@ struct VertexOutput {
 fn vs_main(
     @location(0) position: vec3<f32>,
     @location(1) color: vec3<f32>,
+    @location(2) data: vec4<f32>,
+    @location(3) data1: vec4<f32>,
+    @location(4) data2: vec4<f32>,
+    @location(5) data3: vec4<f32>,
 ) -> VertexOutput {
     var out: VertexOutput;
     out.color = color;
-    let mat = mat4x4<f32>(1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0);
+    let mat = mat4x4(data, data1, data2, data3);
     out.clip_position = mat * vec4<f32>(position, 1.0);
     return out;
 }

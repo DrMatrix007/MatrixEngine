@@ -59,6 +59,12 @@ pub trait InstanceBufferGroup {
     fn clear(&mut self);
 
     fn flush(&mut self);
+
+    fn len(&self) -> u32;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 macro_rules! impl_tuple_instance_buffer {
     ($($t:ident),+) => {
@@ -67,7 +73,7 @@ macro_rules! impl_tuple_instance_buffer {
             type Raw = ($($t,)+);
 
             fn new<'a>(device_queue: &DeviceQueue) -> Self {
-                ($(BufferedVec::new(format!("tuple vertex buffer {}",core::any::type_name::<$t>()).as_str(), wgpu::BufferUsages::VERTEX, device_queue.clone()),)+)
+                ($(BufferedVec::new(format!("tuple vertex buffer {}",core::any::type_name::<$t>()).as_str(), wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, device_queue.clone()),)+)
             }
 
             fn push<'a>(&mut self, data: Self::Raw) {
@@ -102,6 +108,7 @@ macro_rules! impl_tuple_instance_buffer {
                 )+
 
             }
+
             fn flush(&mut self) {
                 let ($($t,)+) = self;
                 $(
@@ -111,8 +118,31 @@ macro_rules! impl_tuple_instance_buffer {
                 )+
 
             }
+
+            fn len(&self) -> u32 {
+                let (first, ..) = self;
+                first.curr_size()
+            }
         }
     }
 }
 
 impl_all!(impl_tuple_instance_buffer);
+
+impl InstanceBufferGroup for () {
+    type Raw = ();
+
+    fn push(&mut self, _: Self::Raw) {}
+
+    fn new(_: &DeviceQueue) -> Self {}
+
+    fn apply<'a>(&self, _: &mut u32, _: &mut wgpu::RenderPass<'a>) {}
+
+    fn clear(&mut self) {}
+
+    fn flush(&mut self) {}
+
+    fn len(&self) -> u32 {
+        1
+    }
+}

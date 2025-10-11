@@ -15,7 +15,7 @@ pub trait InstantiableGroup {
     type ATTRS;
     type BufferGroup: InstanceBufferGroup;
 
-    fn attrs() -> Self::ATTRS;
+    fn attrs(current_shader_location: &mut u32) -> Self::ATTRS;
 
     fn desc<'a>(attrs: &'a Self::ATTRS) -> Vec<wgpu::VertexBufferLayout<'a>>;
 }
@@ -34,8 +34,7 @@ macro_rules! impl_tuple_vertex_buffer {
             type ATTRS = ($(InstanceBufferLayoutDescriptorHelper<$t>,)+);
             type BufferGroup = ($(BufferedVec<$t>,)+);
 
-            fn attrs() -> Self::ATTRS {
-                let mut shader_location = 0;
+            fn attrs(current_shader_location:&mut u32) -> Self::ATTRS {
                 ($({
                 let mut addr_offset = 0;
                 let d = $t::desc();
@@ -45,9 +44,9 @@ macro_rules! impl_tuple_vertex_buffer {
                             let attr = wgpu::VertexAttribute {
                                 format: *format,
                                 offset: addr_offset,
-                                shader_location,
+                                shader_location: *current_shader_location,
                             };
-                            shader_location += 1;
+                            *current_shader_location += 1;
                             addr_offset += format.size();
 
                             attr
@@ -77,3 +76,15 @@ macro_rules! impl_tuple_vertex_buffer {
 }
 
 impl_all!(impl_tuple_vertex_buffer);
+
+impl InstantiableGroup for () {
+    type ATTRS = ();
+
+    type BufferGroup = ();
+
+    fn attrs(_: &mut u32) -> Self::ATTRS {}
+
+    fn desc<'a>(_: &'a Self::ATTRS) -> Vec<wgpu::VertexBufferLayout<'a>> {
+        vec![]
+    }
+}

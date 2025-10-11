@@ -7,6 +7,7 @@ use matrix_engine::{
             create_matrix_instance, matrix_renderer, prepare_renderer_frame, update_surface_size,
         },
         pentagon::Pentagon,
+        transform::Transform,
     },
     engine::{
         Engine,
@@ -17,6 +18,7 @@ use matrix_engine::{
         runtime::SingleThreadedRuntime,
         system_registries::StageDescriptor,
     },
+    math::matrix::Matrix,
 };
 use winit::{event_loop::EventLoop, window::WindowAttributes};
 
@@ -25,12 +27,24 @@ fn start(commands: &mut CommandBuffer) {
     commands.add_command(
         AddEntityCommand::new()
             .with(MatrixRenderObject::new(Pentagon))
+            .unwrap()
+            .with(Transform::new(
+                Matrix::new([[0.0, 1.0, 1.0]]),
+                Matrix::identity(),
+                Matrix::ones(),
+            ))
             .unwrap(),
     );
 
     commands.add_command(
         AddEntityCommand::new()
             .with(MatrixRenderObject::new(Pentagon))
+            .unwrap()
+            .with(Transform::new(
+                Matrix::new([[1.0, 0.0, 0.0]]),
+                Matrix::identity(),
+                Matrix::ones(),
+            ))
             .unwrap(),
     );
 }

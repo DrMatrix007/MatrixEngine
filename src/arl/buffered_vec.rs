@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, num::NonZeroUsize};
 
 use bytemuck::{Pod, Zeroable};
 use wgpu::BufferSlice;
@@ -33,18 +33,25 @@ impl<T: Pod + Zeroable> BufferedVec<T> {
         self.vec.shrink_to(new_size);
     }
 
-    pub fn flush(&mut self) -> BufferSlice<'_> {
+    pub fn flush(&mut self) {
         self.shrink();
         let target_cap = self.vec.capacity() as u64;
         if self.buffer.raw().size() != target_cap {
             self.buffer.resize(target_cap, false);
         }
+        println!("{}", self.vec.len());
         self.buffer.write(&self.vec);
-
-        self.buffer.raw().slice(0..(self.vec.len() as u64))
     }
 
     pub fn buffer(&self) -> &Buffer<T> {
         &self.buffer
+    }
+
+    pub fn curr_size(&self) -> u32 {
+        self.vec.len() as _
+    }
+
+    pub fn curr_data(&self) -> &[T] {
+        &self.vec
     }
 }

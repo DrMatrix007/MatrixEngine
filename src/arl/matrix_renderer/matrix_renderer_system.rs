@@ -6,13 +6,17 @@ use winit::{event::WindowEvent, window::Window};
 
 use crate::{
     arl::{
+        buffered_vec::BufferedVec,
         device_queue::DeviceQueue,
         matrix_renderer::{
-            matrix_render_object::MatrixRenderObject, matrix_vertex::MatrixVertex,
+            matrix_render_object::MatrixRenderObject,
+            matrix_vertex::MatrixVertex,
             pentagon::MatrixModelID,
+            transform::{Transform, TransformRaw},
         },
         render_pipeline::{RenderPipeline, RenderPipelineArgs},
         shaders::{Shaders, ShadersArgs},
+        vertex::{buffers::InstanceBufferGroup, instantiable::InstantiableGroup},
     },
     engine::{
         query::{Read, Res, Write},
@@ -27,7 +31,7 @@ pub struct MatrixRenderInstance {
     surface_config: SurfaceConfiguration,
     is_surface_updated: bool,
     _shaders: Shaders,
-    pipeline: RenderPipeline<MatrixModelID, u16, (MatrixVertex,), ()>,
+    pipeline: RenderPipeline<MatrixModelID, u16, (MatrixVertex,), (TransformRaw,), ()>,
 }
 
 impl MatrixRenderInstance {
@@ -58,6 +62,7 @@ impl MatrixRenderInstance {
 
 pub fn prepare_renderer_frame(
     objects: &mut Write<MatrixRenderObject>,
+    transforms: &mut Write<Transform>,
     res: &mut Res<MatrixRenderInstance>,
 ) {
     let instance = match res.as_mut() {
@@ -87,15 +92,32 @@ pub fn prepare_renderer_frame(
         .entities_mut()
         .fix_entities(fix.into_iter());
 
-    for (e, obj) in objects.iter_mut() {
+    for i in instance.pipeline.atlas_mut().instances_mut().values_mut() {
+        i.clear();
+    }
+
+    for (e, obj) in (objects).iter_mut() {
+        let model_id = obj.object().id();
+        obj.bind_groups_id();
         if !obj.is_added() {
             obj.set_added(true);
             instance
                 .pipeline
                 .atlas_mut()
                 .entities_mut()
-                .add_entity((obj.object().id(), *obj.bind_groups_id()), e);
+                .add_entity((model_id, ()), e);
         }
+        if let Some(transform) = transforms.get_mut(&e) {
+            transform.update_raw();
+            instance.pipeline.atlas_mut().instances_mut()
+            .entry((model_id, ()))
+            .or_insert_with(||<<(TransformRaw,) as InstantiableGroup>::BufferGroup as InstanceBufferGroup>::new(&instance.device_queue))
+            .push((*transform.raw(),));
+        }
+    }
+    for i in instance.pipeline.atlas_mut().instances_mut().values_mut() {
+        // println!("{:#?}", i.0.curr_data());
+        i.flush();
     }
 }
 
@@ -183,7 +205,7 @@ pub fn matrix_renderer(
 
         render_pass.set_pipeline(instance.pipeline.raw());
         instance.pipeline.atlas_mut().draw_all(&mut render_pass);
-        
+
         // render_pass.set_pipeline(instance.pipeline.raw()); // 2.
         // render_pass.draw(0..3, 0..1); // 3.
     }
