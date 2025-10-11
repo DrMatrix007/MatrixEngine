@@ -79,13 +79,10 @@ impl<ID: IDable> IdToEntitiesRegistry<ID> {
     }
 
     pub fn add_entity(&mut self, id: ID, entity: Entity) {
-        self.entities.entry(id).or_default().push(
-            (),
-            EntityRef {
-                entity,
-                updated: false,
-            },
-        );
+        self.entities.entry(id).or_default().push((),EntityRef {
+            entity,
+            updated: false,
+        });
     }
     pub fn iter_ids(&self) -> impl Iterator<Item = &ID> {
         self.entities.keys()

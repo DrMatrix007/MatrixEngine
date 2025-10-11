@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use wgpu::RenderPass;
 
 use crate::{
@@ -15,9 +17,9 @@ use crate::{
 pub trait BindGroupGroupLayouts {}
 
 pub trait BindGroupableGroup {
-    type Registry: for<'a> BindGroupGroupRegistry<CreationParams = Self::ID, Output<'a> = Self::BindGroups<'a>>;
+    type Registry: BindGroupGroupRegistry<Input = Self::ID, Output = Self::BindGroups>;
     type ID: BindGroupIDable;
-    type BindGroups<'a>: BindGroupGroupRef<'a>;
+    type BindGroups: BindGroupGroupRef;
 
     fn create_registry(device_queue: &DeviceQueue) -> Self::Registry;
 }
@@ -30,7 +32,7 @@ macro_rules! impl_bind_groupable_group_tuple {
 
             type ID = IDWrapper<($($t::BindGroupID,)+)>;
 
-            type BindGroups<'a> = ($(&'a BindGroup<$t>,)+);
+            type BindGroups = ($(Arc<BindGroup<$t>>,)+);
             fn create_registry(device_queue: &DeviceQueue) -> Self::Registry {
                 ($(BindGroupRegistry::<$t>::new(device_queue.clone()),)+)
             }
@@ -47,14 +49,14 @@ impl BindGroupableGroup for () {
 
     type ID = ();
 
-    type BindGroups<'a> = ();
+    type BindGroups = ();
 
     fn create_registry(_: &DeviceQueue) -> Self::Registry {}
 }
 
 impl_all!(impl_bind_groupable_group_tuple);
 
-pub trait BindGroupGroupRef<'a> {
+pub trait BindGroupGroupRef {
     fn apply<'b>(&self, pass: &mut RenderPass<'b>);
 }
 
@@ -62,7 +64,7 @@ macro_rules! impl_bind_group_group {
 
     ($($t:ident),+) => {
         #[allow(non_snake_case)]
-        impl<'a, $($t: BindGroupable + 'static),+> BindGroupGroupRef<'a> for ($(&'a BindGroup<$t>,)+) {
+        impl<$($t: BindGroupable + 'static),+> BindGroupGroupRef for ($(Arc<BindGroup<$t>>,)+) {
             fn apply<'b>(&self, pass: &mut RenderPass<'b>) {
                 let ($($t,)+) = self;
                 let mut index = 0;
@@ -82,6 +84,6 @@ macro_rules! impl_bind_group_group {
 
 impl_all!(impl_bind_group_group);
 
-impl BindGroupGroupRef<'_> for () {
+impl BindGroupGroupRef for () {
     fn apply<'a>(&self, _: &mut RenderPass<'a>) {}
 }

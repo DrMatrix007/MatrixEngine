@@ -28,13 +28,15 @@ use winit::{event::WindowEvent, event_loop::EventLoop, window::WindowAttributes}
 fn start(commands: &mut CommandBuffer) {
     commands.add_command(AddWindowResourceCommand::new(WindowAttributes::default()));
 
-    for i in 0..1000000 {
+    let max = 1000000;
+
+    for i in 0..max {
         commands.add_command(
             AddEntityCommand::new()
                 .with(MatrixRenderObject::new(Pentagon))
                 .unwrap()
                 .with(Transform::new(
-                    Matrix::new([[0.0, 1.0, 1.0]]),
+                    Matrix::new([[i as f32/max as f32, 0.0, 1.0]]),
                     Matrix::identity(),
                     Matrix::ones(),
                 ))

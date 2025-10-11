@@ -1,3 +1,4 @@
+use rayon::iter::{ParallelBridge, ParallelIterator};
 use wgpu::{
     Instance, RenderPassColorAttachment, Surface, SurfaceConfiguration, SurfaceError,
     TextureViewDescriptor,
@@ -6,7 +7,6 @@ use winit::{event::WindowEvent, window::Window};
 
 use crate::{
     arl::{
-        buffered_vec::BufferedVec,
         device_queue::DeviceQueue,
         matrix_renderer::{
             matrix_render_object::MatrixRenderObject,
@@ -16,10 +16,10 @@ use crate::{
         },
         render_pipeline::{RenderPipeline, RenderPipelineArgs},
         shaders::{Shaders, ShadersArgs},
-        vertex::{buffers::InstanceBufferGroup, instantiable::InstantiableGroup},
+        vertex::buffers::InstanceBufferGroup,
     },
     engine::{
-        query::{Read, Res, Write},
+        query::{Res, Write},
         system_registries::Stage,
     },
 };
@@ -70,58 +70,56 @@ pub fn prepare_renderer_frame(
         None => return,
     };
 
-    let mut fix = Vec::with_capacity(0);
-    for data in instance
-        .pipeline
-        .atlas_mut()
-        .entities_mut()
-        .iter_all_entities()
-    {
-        if let Some(object) = objects.get(data.entity) {
-            *data.updated = true;
-
-            let id = (object.model_id(), object.bind_groups_id());
-            if id != (&data.id.0, &data.id.1) {
-                fix.push(data.to_op((*id.0, *id.1)));
-            }
-        }
-    }
-    instance
-        .pipeline
-        .atlas_mut()
-        .entities_mut()
-        .fix_entities(fix.into_iter());
-
     for i in instance.pipeline.atlas_mut().iter_instances() {
-        i.clear();
+        i.instance_data.clear();
     }
+
+    // transforms.iter_mut().for_each(|x| x.1.update_raw());
+    // transforms
+    // .iter_mut()
+    // .par_bridge()
+    // .for_each(|x| x.1.update_raw());
 
     for (e, obj) in (objects).iter_mut() {
-        let model_id = obj.object().id();
-        obj.bind_groups_id();
-        if !obj.is_added() {
-            obj.set_added(true);
-            instance
-                .pipeline
-                .atlas_mut()
-                .entities_mut()
-                .add_entity((model_id, ()), e);
-        }
-        if let Some(transform) = transforms.get_mut(&e)
-            && let Some(index) = obj.instance_ptr()
-        {
-            transform.update_raw();
-            instance
-                .pipeline
-                .atlas_mut()
-                .instances_mut()
-                .get_mut(index)
-                .unwrap()
-                .push((*transform.raw(),));
-        }
+        let transform = match transforms.get_mut(&e) {
+            None => continue,
+            Some(transform) => transform,
+        };
+
+        transform.update_raw();
+
+        let index = match obj.render_archetype_index() {
+            None => {
+                instance
+                    .pipeline
+                    .atlas_mut()
+                    .try_register_model(obj.object());
+                instance
+                    .pipeline
+                    .atlas_mut()
+                    .try_register_bind_groups(&obj.bind_groups_id());
+
+                let i = instance
+                    .pipeline
+                    .atlas_mut()
+                    .get_index(&(obj.object().id(), obj.bind_groups_id()));
+                obj.set_render_archetype_index(i);
+
+                i
+            }
+            Some(i) => i,
+        };
+
+        instance
+            .pipeline
+            .atlas_mut()
+            .instance_at(index)
+            .unwrap()
+            .instance_data
+            .push((*transform.raw(),));
     }
     for i in instance.pipeline.atlas_mut().iter_instances() {
-        i.flush();
+        i.instance_data.flush();
     }
 }
 
@@ -129,7 +127,7 @@ pub fn matrix_renderer(
     stage: &mut Stage,
     window: &mut Res<Window>,
     instance: &mut Res<MatrixRenderInstance>,
-    objects: &mut Write<MatrixRenderObject>,
+    // objects: &mut Write<MatrixRenderObject>,
 ) {
     let window = match (stage, window.as_mut()) {
         (Stage::Render(id), maybe_window) => {
@@ -177,50 +175,6 @@ pub fn matrix_renderer(
             label: Some("Matrix Render Encoder"),
         },
     );
-
-    for (_, o) in objects.iter_mut() {
-        let mut model_option = None;
-        let mut bind_group_option = None;
-        let mut instance_option = None;
-        let bind_group_id = o.bind_groups_id();
-        let model_id = o.model_id();
-        if let None = o.model_ptr() {
-            model_option = (Some(
-                instance
-                    .pipeline
-                    .atlas_mut()
-                    .try_insert_model(o.object(), &instance.device_queue),
-            ));
-        }
-
-        if let None = o.bind_groups_ptr() {
-            bind_group_option = (Some(
-                instance
-                    .pipeline
-                    .atlas_mut()
-                    .try_insert_bind_groups(bind_group_id, &instance.device_queue),
-            ));
-        }
-
-        if let None = o.instance_ptr() {
-            instance_option = (Some(
-                instance
-                    .pipeline
-                    .atlas_mut()
-                    .try_insert_instance(model_id, bind_group_id),
-            ));
-        }
-        if let Some(index) = model_option {
-            o.set_model_ptr(Some(index));
-        }
-        if let Some(index) = bind_group_option {
-            o.set_bind_groups_ptr(Some(index));
-        }
-
-        if let Some(index) = instance_option {
-            o.set_instance_ptr(Some(index));
-        }
-    }
 
     {
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

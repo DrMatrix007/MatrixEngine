@@ -1,7 +1,6 @@
-use std::{marker::PhantomData, num::NonZeroUsize};
+use std::marker::PhantomData;
 
 use bytemuck::{Pod, Zeroable};
-use wgpu::BufferSlice;
 
 use crate::arl::{buffers::Buffer, device_queue::DeviceQueue};
 

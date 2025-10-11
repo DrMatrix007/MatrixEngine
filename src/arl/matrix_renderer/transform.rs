@@ -32,15 +32,15 @@ impl Transform {
         trans[(3, 1)] = self.pos[1];
         trans[(3, 2)] = self.pos[2];
 
-        let rot = self.quat.to_rot_matrix();
+        // let _rot = self.quat.to_rot_matrix();
 
-        let scale = Matrix4::from_fn(|n, m| {
-            if n == m {
-                if n < 3 { self.scale[n] } else { 1.0 }
-            } else {
-                0.0
-            }
-        });
+        // let _scale = Matrix4::from_fn(|n, m| {
+        //     if n == m {
+        //         if n < 3 { self.scale[n] } else { 1.0 }
+        //     } else {
+        //         0.0
+        //     }
+        // });
 
         let res = trans;
 

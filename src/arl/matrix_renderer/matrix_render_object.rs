@@ -7,9 +7,7 @@ pub struct MatrixRenderObject {
     model: Box<dyn Model<MatrixModelID, VGroup = (MatrixVertex,), I = u16> + Send + Sync>,
     model_id: MatrixModelID,
     added: bool,
-    model_ptr: Option<usize>,
-    instance_ptr: Option<usize>,
-    bind_groups_ptr: Option<()>,
+    render_archetype_index: Option<usize>,
 }
 
 impl MatrixRenderObject {
@@ -20,9 +18,7 @@ impl MatrixRenderObject {
             model_id: data.id(),
             model: Box::new(data),
             added: false,
-            model_ptr: None,
-            bind_groups_ptr: None,
-            instance_ptr: None
+            render_archetype_index: None,
         }
     }
 
@@ -30,9 +26,7 @@ impl MatrixRenderObject {
         self.model.as_ref()
     }
 
-    pub fn bind_groups_id(&self) -> &() {
-        &()
-    }
+    pub fn bind_groups_id(&self) {}
 
     pub fn is_added(&self) -> bool {
         self.added
@@ -46,27 +40,14 @@ impl MatrixRenderObject {
         &self.model_id
     }
 
-    pub fn model_ptr(&self) -> Option<usize> {
-        self.model_ptr
+    pub fn render_archetype_index(&self) -> Option<usize> {
+        self.render_archetype_index
     }
 
-    pub fn set_model_ptr(&mut self, model_ptr: Option<usize>) {
-        self.model_ptr = model_ptr;
+    pub fn set_render_archetype_index(&mut self, render_archetype_index: usize) {
+        self.render_archetype_index = Some(render_archetype_index);
     }
-
-    pub fn bind_groups_ptr(&self) -> Option<()> {
-        self.bind_groups_ptr
-    }
-
-    pub fn set_bind_groups_ptr(&mut self, bind_groups_ptr: Option<()>) {
-        self.bind_groups_ptr = bind_groups_ptr;
-    }
-    
-    pub fn instance_ptr(&self) -> Option<usize> {
-        self.instance_ptr
-    }
-    
-    pub fn set_instance_ptr(&mut self, instance_ptr: Option<usize>) {
-        self.instance_ptr = instance_ptr;
+    pub fn clear_render_archetype_index(&mut self) {
+        self.render_archetype_index = None;
     }
 }

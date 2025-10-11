@@ -1109,6 +1109,7 @@ dependencies = [
  "image",
  "num-traits",
  "paste",
+ "rayon",
  "tokio",
  "wgpu",
  "winit",
