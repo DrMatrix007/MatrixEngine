@@ -8,7 +8,7 @@ use crate::arl::{
     device_queue::DeviceQueue,
     models::ModelIDable,
     shaders::Shaders,
-    vertex::vertexable::{VertexIndexer, VertexableGroup},
+    vertex::{instantiable::InstantiableGroup, vertexable::{VertexIndexer, VertexableGroup}},
 };
 
 pub struct RenderPipelineArgs<'a, 'b> {
@@ -20,11 +20,12 @@ pub struct RenderPipeline<
     ModelID: ModelIDable,
     Indexer: VertexIndexer,
     VertexGroup: VertexableGroup,
+    InstanceGroup: InstantiableGroup,
     BindGroups: BindGroupableGroup,
 > {
     pipeline: wgpu::RenderPipeline,
     _pipeline_layout: wgpu::PipelineLayout,
-    atlas: Atlas<ModelID, Indexer, VertexGroup, BindGroups>,
+    atlas: Atlas<ModelID, Indexer, VertexGroup, InstanceGroup, BindGroups>,
     marker: PhantomData<(VertexGroup, BindGroups)>,
 }
 
@@ -32,8 +33,9 @@ impl<
     ModelID: ModelIDable,
     Indexer: VertexIndexer,
     VertexGroup: VertexableGroup,
+    InstanceGroup: InstantiableGroup,
     BindGroups: BindGroupableGroup,
-> RenderPipeline<ModelID, Indexer, VertexGroup, BindGroups>
+> RenderPipeline<ModelID, Indexer, VertexGroup, InstanceGroup, BindGroups>
 {
     pub fn new(label: &str, args: RenderPipelineArgs<'_, '_>, device_queue: &DeviceQueue) -> Self {
         let atlas = Atlas::new(device_queue);
@@ -46,7 +48,9 @@ impl<
                     push_constant_ranges: &[],
                 });
 
-        let buffer_attrs = VertexGroup::attrs();
+        let mut index = 0;
+
+        let buffer_attrs = VertexGroup::attrs(&mut index);
         let buffer_attrs = VertexGroup::desc(&buffer_attrs);
         let pipeline =
             device_queue

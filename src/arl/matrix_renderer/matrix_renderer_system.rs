@@ -183,6 +183,7 @@ pub fn matrix_renderer(
 
         render_pass.set_pipeline(instance.pipeline.raw());
         instance.pipeline.atlas_mut().draw_all(&mut render_pass);
+        
         // render_pass.set_pipeline(instance.pipeline.raw()); // 2.
         // render_pass.draw(0..3, 0..1); // 3.
     }
@@ -270,7 +271,7 @@ pub fn create_matrix_instance(window: &mut Res<Window>, res: &mut Res<MatrixRend
         desired_maximum_frame_latency: 2,
     };
 
-    config.present_mode = wgpu::PresentMode::AutoVsync;
+    config.present_mode = wgpu::PresentMode::AutoNoVsync;
 
     let device_queue = DeviceQueue::new(device, queue);
 

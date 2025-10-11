@@ -1107,6 +1107,7 @@ dependencies = [
  "anymap",
  "bytemuck",
  "image",
+ "num-traits",
  "paste",
  "tokio",
  "wgpu",

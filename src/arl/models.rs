@@ -5,7 +5,7 @@ use crate::arl::{
     device_queue::DeviceQueue,
     id::IDable,
     vertex::{
-        vertex_buffers::VertexBufferGroup,
+        buffers::VertexBufferGroup,
         vertexable::{VertexIndexer, VertexableGroup},
     },
 };
@@ -63,8 +63,8 @@ impl<ID: ModelIDable, I: VertexIndexer, VGroup: VertexableGroup> ModelBuffer<ID,
         &self.vertex_buffers
     }
 
-    pub fn apply<'a>(&self, pass: &mut wgpu::RenderPass<'a>) {
-        self.vertex_buffers.apply(pass);
+    pub fn apply<'a>(&self, index: &mut u32, pass: &mut wgpu::RenderPass<'a>) {
+        self.vertex_buffers.apply(index, pass);
         pass.set_index_buffer(self.index_buffer.raw().slice(..), I::format());
     }
 }

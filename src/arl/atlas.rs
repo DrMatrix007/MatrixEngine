@@ -9,13 +9,14 @@ use crate::arl::{
     id::IDable,
     id_to_entities::IdToEntitiesRegistry,
     models::{Model, ModelBuffer, ModelIDable},
-    vertex::vertexable::{VertexIndexer, VertexableGroup},
+    vertex::{instantiable::InstantiableGroup, vertexable::{VertexIndexer, VertexableGroup}},
 };
 
 pub struct Atlas<
     ModelID: ModelIDable,
     I: VertexIndexer,
     VGroup: VertexableGroup,
+    InstanceGroup: InstantiableGroup,
     BindGroups: BindGroupableGroup,
 > {
     models: HashMap<ModelID, Arc<ModelBuffer<ModelID, I, VGroup>>>,
@@ -50,9 +51,10 @@ impl<ModelID: IDable, I: VertexIndexer, VGroup: VertexableGroup, BindGroups: Bin
 
     pub fn draw_all(&mut self, pass: &mut wgpu::RenderPass<'_>) {
         for (model_id, binds_id) in self.entities.iter_ids() {
+            let mut index = 0;
             let model = self.models.get(model_id).unwrap();
             let binds = self.bind_groups.query_groups(binds_id);
-            model.apply(pass);
+            model.apply(&mut index, pass);
             binds.apply(pass);
 
             pass.draw_indexed(0..model.index_size(), 0, 0..1);

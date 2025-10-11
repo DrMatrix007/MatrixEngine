@@ -1,2 +1,3 @@
 pub mod vertexable;
-pub mod vertex_buffers;
+pub mod buffers;
+pub mod instantiable;

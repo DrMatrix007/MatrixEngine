@@ -12,8 +12,7 @@ pub trait Runtime<Registry> {
 pub struct SingleThreadedRuntime;
 
 impl<Registry> Runtime<Registry> for SingleThreadedRuntime {
-    fn run(&mut self, registry: &mut Registry, systems: &mut SystemCollection<Registry>, stage: Stage) {
-        println!("{stage:?}");
+    fn run(&mut self, registry: &mut Registry, systems: &mut SystemCollection<Registry>, _: Stage) {
         while let Some(mut system) = systems.take_out_system() {
             system.prepare_args(registry).unwrap();
             system.run();

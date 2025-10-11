@@ -27,6 +27,12 @@ fn start(commands: &mut CommandBuffer) {
             .with(MatrixRenderObject::new(Pentagon))
             .unwrap(),
     );
+
+    commands.add_command(
+        AddEntityCommand::new()
+            .with(MatrixRenderObject::new(Pentagon))
+            .unwrap(),
+    );
 }
 
 fn main() {
@@ -42,7 +48,7 @@ fn main() {
     engine.add_system_to_scene(StageDescriptor::Render, matrix_renderer);
 
     engine.add_system_to_scene(StageDescriptor::WindowEvent, update_surface_size);
-    
+
     engine.add_system_to_scene(StageDescriptor::PreRender, prepare_renderer_frame);
 
     let mut last_time = Instant::now();

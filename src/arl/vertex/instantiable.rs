@@ -3,39 +3,39 @@ use std::marker::PhantomData;
 use bytemuck::{Pod, Zeroable};
 
 use crate::{
-    arl::{buffers::Buffer, vertex::buffers::VertexBufferGroup},
+    arl::{buffered_vec::BufferedVec, vertex::buffers::InstanceBufferGroup},
     impl_all,
 };
 
-pub trait Vertexable: Zeroable + Pod {
+pub trait Instantiable: Zeroable + Pod {
     fn desc() -> impl AsRef<[wgpu::VertexFormat]>;
 }
 
-pub trait VertexableGroup {
+pub trait InstantiableGroup {
     type ATTRS;
-    type BufferGroup: VertexBufferGroup;
+    type BufferGroup: InstanceBufferGroup;
 
-    fn attrs(current_shader_location: &mut u32) -> Self::ATTRS;
+    fn attrs() -> Self::ATTRS;
 
     fn desc<'a>(attrs: &'a Self::ATTRS) -> Vec<wgpu::VertexBufferLayout<'a>>;
 }
 
-pub struct VertexBufferLayoutDescriptorHelper<T = ()> {
+pub struct InstanceBufferLayoutDescriptorHelper<T = ()> {
     step: wgpu::VertexStepMode,
     attrs: Vec<wgpu::VertexAttribute>,
     size: u64,
     marker: PhantomData<T>,
 }
-
 macro_rules! impl_tuple_vertex_buffer {
 
     ($($t:ident),+) => {
         #[allow(non_snake_case)]
-        impl<$($t: Vertexable + 'static),+> VertexableGroup for ($($t,)+) {
-            type ATTRS = ($(VertexBufferLayoutDescriptorHelper<$t>,)+);
-            type BufferGroup = ($(Buffer<$t>,)+);
+        impl<$($t: Instantiable + 'static),+> InstantiableGroup for ($($t,)+) {
+            type ATTRS = ($(InstanceBufferLayoutDescriptorHelper<$t>,)+);
+            type BufferGroup = ($(BufferedVec<$t>,)+);
 
-            fn attrs(current_shader_location: &mut u32) -> Self::ATTRS {
+            fn attrs() -> Self::ATTRS {
+                let mut shader_location = 0;
                 ($({
                 let mut addr_offset = 0;
                 let d = $t::desc();
@@ -45,17 +45,17 @@ macro_rules! impl_tuple_vertex_buffer {
                             let attr = wgpu::VertexAttribute {
                                 format: *format,
                                 offset: addr_offset,
-                                shader_location: *current_shader_location,
+                                shader_location,
                             };
-                            *current_shader_location += 1;
+                            shader_location += 1;
                             addr_offset += format.size();
 
                             attr
                         })
                         .collect();
 
-                VertexBufferLayoutDescriptorHelper {
-                    step: wgpu::VertexStepMode::Vertex,
+                InstanceBufferLayoutDescriptorHelper {
+                    step: wgpu::VertexStepMode::Instance,
                     attrs,
                     size: addr_offset,
                     marker: PhantomData
@@ -77,19 +77,3 @@ macro_rules! impl_tuple_vertex_buffer {
 }
 
 impl_all!(impl_tuple_vertex_buffer);
-
-pub trait VertexIndexer: Pod + Zeroable {
-    fn format() -> wgpu::IndexFormat;
-}
-
-impl VertexIndexer for u32 {
-    fn format() -> wgpu::IndexFormat {
-        wgpu::IndexFormat::Uint32
-    }
-}
-
-impl VertexIndexer for u16 {
-    fn format() -> wgpu::IndexFormat {
-        wgpu::IndexFormat::Uint16
-    }
-}

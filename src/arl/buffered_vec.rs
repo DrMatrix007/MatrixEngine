@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use bytemuck::{Pod, Zeroable};
 use wgpu::BufferSlice;
 
-use crate::arl::buffers::Buffer;
+use crate::arl::{buffers::Buffer, device_queue::DeviceQueue};
 
 pub struct BufferedVec<T: Pod + Zeroable> {
     buffer: Buffer<T>,
@@ -12,6 +12,14 @@ pub struct BufferedVec<T: Pod + Zeroable> {
 }
 
 impl<T: Pod + Zeroable> BufferedVec<T> {
+    pub fn new(label: &str, usage: wgpu::BufferUsages, device_queue: DeviceQueue) -> Self {
+        Self {
+            buffer: Buffer::new(label, &[], usage, device_queue),
+            vec: Vec::with_capacity(0),
+            marker: PhantomData,
+        }
+    }
+
     pub fn push(&mut self, value: T) {
         self.vec.push(value)
     }
@@ -20,12 +28,13 @@ impl<T: Pod + Zeroable> BufferedVec<T> {
         self.vec.clear()
     }
 
-    pub fn shrink(&mut self) {
+    fn shrink(&mut self) {
         let new_size = self.vec.len().next_power_of_two();
         self.vec.shrink_to(new_size);
     }
 
     pub fn flush(&mut self) -> BufferSlice<'_> {
+        self.shrink();
         let target_cap = self.vec.capacity() as u64;
         if self.buffer.raw().size() != target_cap {
             self.buffer.resize(target_cap, false);
@@ -33,5 +42,9 @@ impl<T: Pod + Zeroable> BufferedVec<T> {
         self.buffer.write(&self.vec);
 
         self.buffer.raw().slice(0..(self.vec.len() as u64))
+    }
+
+    pub fn buffer(&self) -> &Buffer<T> {
+        &self.buffer
     }
 }

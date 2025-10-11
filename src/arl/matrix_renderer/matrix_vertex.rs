@@ -1,6 +1,5 @@
 use crate::arl::vertex::vertexable::Vertexable;
 
-
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct MatrixVertex {
@@ -9,10 +8,7 @@ pub struct MatrixVertex {
 }
 
 impl Vertexable for MatrixVertex {
-    fn desc() -> (wgpu::VertexStepMode, Vec<wgpu::VertexFormat>) {
-        (
-            wgpu::VertexStepMode::Vertex,
-            vec![wgpu::VertexFormat::Float32x3, wgpu::VertexFormat::Float32x3],
-        )
+    fn desc() -> impl AsRef<[wgpu::VertexFormat]> {
+        [wgpu::VertexFormat::Float32x3, wgpu::VertexFormat::Float32x3]
     }
 }

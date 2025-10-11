@@ -10,7 +10,8 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
     out.color = color;
-    out.clip_position = vec4<f32>(position, 1.0);
+    let mat = mat4x4<f32>(1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0);
+    out.clip_position = mat * vec4<f32>(position, 1.0);
     return out;
 }
  

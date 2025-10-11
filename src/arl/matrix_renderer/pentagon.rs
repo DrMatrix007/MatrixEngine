@@ -20,7 +20,7 @@ impl Model<MatrixModelID> for Pentagon {
 
     fn vertecies(
         &self,
-    ) -> <<Self::VGroup as crate::arl::vertex::vertexable::VertexableGroup>::BufferGroup as crate::arl::vertex::vertex_buffers::VertexBufferGroup>::Raw<'_>{
+    ) -> <<Self::VGroup as crate::arl::vertex::vertexable::VertexableGroup>::BufferGroup as crate::arl::vertex::buffers::VertexBufferGroup>::Raw<'_>{
         (&[
             MatrixVertex {
                 position: [-0.0868241, 0.49240386, 0.0],
