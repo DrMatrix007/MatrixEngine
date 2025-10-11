@@ -15,7 +15,7 @@ use crate::{
 pub trait BindGroupGroupLayouts {}
 
 pub trait BindGroupableGroup {
-    type Registry: for<'a> BindGroupGroupRegistry<Input = Self::ID, Output<'a> = Self::BindGroups<'a>>;
+    type Registry: for<'a> BindGroupGroupRegistry<CreationParams = Self::ID, Output<'a> = Self::BindGroups<'a>>;
     type ID: BindGroupIDable;
     type BindGroups<'a>: BindGroupGroupRef<'a>;
 

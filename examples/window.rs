@@ -1,4 +1,7 @@
-use std::time::{Duration, Instant};
+use std::{
+    process::exit,
+    time::{Duration, Instant},
+};
 
 use matrix_engine::{
     arl::matrix_renderer::{
@@ -16,37 +19,28 @@ use matrix_engine::{
             add_window_resource_command::AddWindowResourceCommand,
         },
         runtime::SingleThreadedRuntime,
-        system_registries::StageDescriptor,
+        system_registries::{Stage, StageDescriptor},
     },
     math::matrix::Matrix,
 };
-use winit::{event_loop::EventLoop, window::WindowAttributes};
+use winit::{event::WindowEvent, event_loop::EventLoop, window::WindowAttributes};
 
 fn start(commands: &mut CommandBuffer) {
     commands.add_command(AddWindowResourceCommand::new(WindowAttributes::default()));
-    commands.add_command(
-        AddEntityCommand::new()
-            .with(MatrixRenderObject::new(Pentagon))
-            .unwrap()
-            .with(Transform::new(
-                Matrix::new([[0.0, 1.0, 1.0]]),
-                Matrix::identity(),
-                Matrix::ones(),
-            ))
-            .unwrap(),
-    );
 
-    commands.add_command(
-        AddEntityCommand::new()
-            .with(MatrixRenderObject::new(Pentagon))
-            .unwrap()
-            .with(Transform::new(
-                Matrix::new([[1.0, 0.0, 0.0]]),
-                Matrix::identity(),
-                Matrix::ones(),
-            ))
-            .unwrap(),
-    );
+    for i in 0..1000000 {
+        commands.add_command(
+            AddEntityCommand::new()
+                .with(MatrixRenderObject::new(Pentagon))
+                .unwrap()
+                .with(Transform::new(
+                    Matrix::new([[0.0, 1.0, 1.0]]),
+                    Matrix::identity(),
+                    Matrix::ones(),
+                ))
+                .unwrap(),
+        );
+    }
 }
 
 fn main() {
@@ -61,6 +55,11 @@ fn main() {
 
     engine.add_system_to_scene(StageDescriptor::Render, matrix_renderer);
 
+    engine.add_system_to_scene(StageDescriptor::WindowEvent, |stage: &mut Stage| {
+        if let Stage::WindowEvent(WindowEvent::CloseRequested) = stage {
+            exit(0);
+        };
+    });
     engine.add_system_to_scene(StageDescriptor::WindowEvent, update_surface_size);
 
     engine.add_system_to_scene(StageDescriptor::PreRender, prepare_renderer_frame);

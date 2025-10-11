@@ -6,13 +6,14 @@ use crate::{
     arl::{
         bind_groups::{BindGroup, BindGroupLayout, BindGroupable},
         device_queue::DeviceQueue,
-        id::IDWrapper,
+        id::{IDWrapper, IDable},
     },
     impl_all,
+    utils::fast_vec::FastVec,
 };
 
 pub struct BindGroupRegistry<Group: BindGroupable> {
-    groups: HashMap<Group::BindGroupID, BindGroup<Group>>,
+    groups: FastVec<Group::BindGroupID, BindGroup<Group>>,
     layout: BindGroupLayout<Group>,
     device_queue: DeviceQueue,
 }
@@ -24,18 +25,23 @@ impl<Group: BindGroupable> BindGroupRegistry<Group> {
         Self {
             device_queue,
             layout,
-            groups: HashMap::new(),
+            groups: Default::default(),
         }
     }
 
-    pub fn get(&self, id: &Group::BindGroupID) -> Option<&BindGroup<Group>> {
-        self.groups.get(id)
+    pub fn get(&self, index: usize) -> Option<&BindGroup<Group>> {
+        self.groups.get(index)
     }
 
-    pub fn get_or_create(&mut self, id: Group::BindGroupID) -> &BindGroup<Group> {
-        self.groups
-            .entry(id)
-            .or_insert_with(|| self.layout.create(Group::new(&id), &self.device_queue))
+    pub fn get_or_create(&mut self, id: &Group::BindGroupID) -> usize {
+        match self.groups.get_index_by_id(id) {
+            Some((index, _)) => index,
+            None => {
+                self.groups
+                    .push(*id, self.layout.create(Group::new(id), &self.device_queue))
+                    .0
+            }
+        }
     }
 
     pub fn layout(&self) -> &BindGroupLayout<Group> {
@@ -44,12 +50,21 @@ impl<Group: BindGroupable> BindGroupRegistry<Group> {
 }
 
 pub trait BindGroupGroupRegistry: 'static {
+    type CreationParams;
     type Input;
     type Output<'a>;
 
-    fn query_groups(&mut self, data: &Self::Input) -> Self::Output<'_>;
+    fn try_create(&mut self, data: &Self::CreationParams) -> Self::Input;
+
+    fn query_groups(&mut self, data: &Self::Input) -> Option<Self::Output<'_>>;
 
     fn layout_desc(&self) -> impl AsRef<[&wgpu::BindGroupLayout]>;
+}
+trait UsizeType {
+    type Usize: Into<usize>;
+}
+impl<T> UsizeType for T {
+    type Usize = usize;
 }
 
 macro_rules! impl_group_factory {
@@ -57,13 +72,21 @@ macro_rules! impl_group_factory {
     ($($t:ident),+) => {
         #[allow(non_snake_case)]
         impl<$($t: BindGroupable + 'static),+> BindGroupGroupRegistry for ($(BindGroupRegistry<$t>,)+) {
-            type Input = IDWrapper<($($t::BindGroupID,)+)>;
+            type CreationParams = IDWrapper<($($t::BindGroupID,)+)>;
+            type Input = ($(<$t as UsizeType>::Usize,)+);
             type Output<'a> = ($(&'a BindGroup<$t>,)+);
 
-            fn query_groups<'a>(&'a mut self, data: &Self::Input) -> Self::Output<'a> {
+            fn try_create(&mut self, data: &Self::CreationParams) -> Self::Input {
                 let ($($t,)+) = self;
                 let ($(paste! { [<$t _id>] },)+) = data.0;
-                ($(paste! { $t.get_or_create([<$t _id>]) },)+)
+                ($(paste! { $t.get_or_create(&[<$t _id>]) },)+)
+            }
+
+            fn query_groups<'a>(&'a mut self, data: &Self::Input) -> Option<Self::Output<'a>> {
+                let ($($t,)+) = self;
+                let ($(paste! { [<$t _id>] },)+) = *data;
+                Some(($(paste! { $t.get([<$t _id>].into())? },)+))
+
             }
 
             fn layout_desc(& self) -> impl AsRef<[&wgpu::BindGroupLayout]> {
@@ -82,9 +105,15 @@ impl BindGroupGroupRegistry for () {
 
     type Output<'a> = ();
 
-    fn query_groups(&mut self, _: &Self::Input) -> Self::Output<'_> {}
+    fn query_groups(&mut self, _: &Self::Input) -> Option<Self::Output<'_>> {
+        Some(())
+    }
 
     fn layout_desc(&self) -> impl AsRef<[&wgpu::BindGroupLayout]> {
         []
     }
+
+    type CreationParams = ();
+
+    fn try_create(&mut self, _: &Self::CreationParams) -> Self::Input {}
 }

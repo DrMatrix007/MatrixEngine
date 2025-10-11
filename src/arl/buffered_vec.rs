@@ -39,7 +39,6 @@ impl<T: Pod + Zeroable> BufferedVec<T> {
         if self.buffer.raw().size() != target_cap {
             self.buffer.resize(target_cap, false);
         }
-        println!("{}", self.vec.len());
         self.buffer.write(&self.vec);
     }
 

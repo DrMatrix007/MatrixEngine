@@ -92,7 +92,7 @@ pub fn prepare_renderer_frame(
         .entities_mut()
         .fix_entities(fix.into_iter());
 
-    for i in instance.pipeline.atlas_mut().instances_mut().values_mut() {
+    for i in instance.pipeline.atlas_mut().iter_instances() {
         i.clear();
     }
 
@@ -107,16 +107,20 @@ pub fn prepare_renderer_frame(
                 .entities_mut()
                 .add_entity((model_id, ()), e);
         }
-        if let Some(transform) = transforms.get_mut(&e) {
+        if let Some(transform) = transforms.get_mut(&e)
+            && let Some(index) = obj.instance_ptr()
+        {
             transform.update_raw();
-            instance.pipeline.atlas_mut().instances_mut()
-            .entry((model_id, ()))
-            .or_insert_with(||<<(TransformRaw,) as InstantiableGroup>::BufferGroup as InstanceBufferGroup>::new(&instance.device_queue))
-            .push((*transform.raw(),));
+            instance
+                .pipeline
+                .atlas_mut()
+                .instances_mut()
+                .get_mut(index)
+                .unwrap()
+                .push((*transform.raw(),));
         }
     }
-    for i in instance.pipeline.atlas_mut().instances_mut().values_mut() {
-        // println!("{:#?}", i.0.curr_data());
+    for i in instance.pipeline.atlas_mut().iter_instances() {
         i.flush();
     }
 }
@@ -125,7 +129,7 @@ pub fn matrix_renderer(
     stage: &mut Stage,
     window: &mut Res<Window>,
     instance: &mut Res<MatrixRenderInstance>,
-    objects: &mut Read<MatrixRenderObject>,
+    objects: &mut Write<MatrixRenderObject>,
 ) {
     let window = match (stage, window.as_mut()) {
         (Stage::Render(id), maybe_window) => {
@@ -174,11 +178,48 @@ pub fn matrix_renderer(
         },
     );
 
-    for (_, o) in objects.iter() {
-        instance
-            .pipeline
-            .atlas_mut()
-            .try_insert_model(o.object(), &instance.device_queue);
+    for (_, o) in objects.iter_mut() {
+        let mut model_option = None;
+        let mut bind_group_option = None;
+        let mut instance_option = None;
+        let bind_group_id = o.bind_groups_id();
+        let model_id = o.model_id();
+        if let None = o.model_ptr() {
+            model_option = (Some(
+                instance
+                    .pipeline
+                    .atlas_mut()
+                    .try_insert_model(o.object(), &instance.device_queue),
+            ));
+        }
+
+        if let None = o.bind_groups_ptr() {
+            bind_group_option = (Some(
+                instance
+                    .pipeline
+                    .atlas_mut()
+                    .try_insert_bind_groups(bind_group_id, &instance.device_queue),
+            ));
+        }
+
+        if let None = o.instance_ptr() {
+            instance_option = (Some(
+                instance
+                    .pipeline
+                    .atlas_mut()
+                    .try_insert_instance(model_id, bind_group_id),
+            ));
+        }
+        if let Some(index) = model_option {
+            o.set_model_ptr(Some(index));
+        }
+        if let Some(index) = bind_group_option {
+            o.set_bind_groups_ptr(Some(index));
+        }
+
+        if let Some(index) = instance_option {
+            o.set_instance_ptr(Some(index));
+        }
     }
 
     {

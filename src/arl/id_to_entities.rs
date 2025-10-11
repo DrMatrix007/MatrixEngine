@@ -31,7 +31,7 @@ pub struct EntityRef {
 }
 
 pub struct IdToEntitiesRegistry<ID: IDable> {
-    entities: HashMap<ID, FastVec<EntityRef>>,
+    entities: HashMap<ID, FastVec<(), EntityRef>>,
 }
 
 impl<ID: IDable> IdToEntitiesRegistry<ID> {
@@ -67,7 +67,7 @@ impl<ID: IDable> IdToEntitiesRegistry<ID> {
             if let Some(v) = self.entities.get_mut(&id)
                 && let Some(e) = v.remove(index)
             {
-                self.entities.entry(move_to_id).or_default().push(e);
+                self.entities.entry(move_to_id).or_default().push((), e);
             }
         }
     }
@@ -79,10 +79,13 @@ impl<ID: IDable> IdToEntitiesRegistry<ID> {
     }
 
     pub fn add_entity(&mut self, id: ID, entity: Entity) {
-        self.entities.entry(id).or_default().push(EntityRef {
-            entity,
-            updated: false,
-        });
+        self.entities.entry(id).or_default().push(
+            (),
+            EntityRef {
+                entity,
+                updated: false,
+            },
+        );
     }
     pub fn iter_ids(&self) -> impl Iterator<Item = &ID> {
         self.entities.keys()

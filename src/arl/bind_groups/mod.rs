@@ -17,7 +17,6 @@ impl<T: IDable> BindGroupIDable for T {}
 
 pub trait BindGroupable {
     type BindGroupID: BindGroupIDable;
-
     fn new(id: &Self::BindGroupID) -> Self;
 
     fn label(&self) -> String;

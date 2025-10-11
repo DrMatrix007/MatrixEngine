@@ -13,3 +13,6 @@ paste = "1.0.15"
 tokio = { version = "1.47.1", features = ["rt"] }
 wgpu = "27.0.1"
 winit = "0.30.12"
+
+[profile.release]
+debug = true
