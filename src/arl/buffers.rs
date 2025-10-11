@@ -1,4 +1,7 @@
-use std::marker::PhantomData;
+use std::{
+    marker::PhantomData,
+    sync::{Arc, atomic::AtomicBool},
+};
 
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
@@ -11,6 +14,17 @@ pub struct Buffer<T: Pod + Zeroable> {
     label: String,
     marker: PhantomData<T>,
     usage: wgpu::BufferUsages,
+    mapped: bool,
+}
+
+fn map_buffer(b: &wgpu::Buffer) {
+    let atomic_send = Arc::new(AtomicBool::new(false));
+    let atomic = atomic_send.clone();
+    b.map_async(wgpu::MapMode::Write, .., move |_| {
+        atomic_send.store(true, std::sync::atomic::Ordering::Release)
+    });
+
+    while atomic.load(std::sync::atomic::Ordering::Relaxed) {}
 }
 
 impl<T: Pod + Zeroable> Buffer<T> {
@@ -32,6 +46,32 @@ impl<T: Pod + Zeroable> Buffer<T> {
             device_queue,
             label: label.to_string(),
             usage,
+            mapped: false,
+        }
+    }
+
+    pub fn new_mapped(
+        label: &str,
+        usage: wgpu::BufferUsages,
+        device_queue: DeviceQueue,
+        size: u64,
+    ) -> Self {
+        let buffer = device_queue
+            .device()
+            .create_buffer(&wgpu::BufferDescriptor {
+                label: Some(label),
+                mapped_at_creation: true,
+                usage,
+                size,
+            });
+        // map_buffer(&buffer);
+        Self {
+            buffer,
+            marker: PhantomData,
+            device_queue,
+            label: label.to_string(),
+            usage,
+            mapped: true,
         }
     }
 
@@ -62,8 +102,9 @@ impl<T: Pod + Zeroable> Buffer<T> {
                 label: Some(self.label.as_str()),
                 size,
                 usage: self.usage,
-                mapped_at_creation: false,
+                mapped_at_creation: self.mapped,
             });
+        // map_buffer(&new_buff);
 
         if copy_data {
             let mut encoder = self.device_queue.device().create_command_encoder(

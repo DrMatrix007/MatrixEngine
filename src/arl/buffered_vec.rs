@@ -13,7 +13,7 @@ pub struct BufferedVec<T: Pod + Zeroable> {
 impl<T: Pod + Zeroable> BufferedVec<T> {
     pub fn new(label: &str, usage: wgpu::BufferUsages, device_queue: DeviceQueue) -> Self {
         Self {
-            buffer: Buffer::new(label, &[], usage, device_queue),
+            buffer: Buffer::new_mapped(label, usage, device_queue, 4),
             vec: Vec::with_capacity(0),
             marker: PhantomData,
         }
@@ -38,7 +38,8 @@ impl<T: Pod + Zeroable> BufferedVec<T> {
         if self.buffer.raw().size() != target_cap {
             self.buffer.resize(target_cap, false);
         }
-        self.buffer.write(&self.vec);
+
+        let map = self.buffer.raw().get_mapped_range_mut(..);
     }
 
     pub fn buffer(&self) -> &Buffer<T> {
