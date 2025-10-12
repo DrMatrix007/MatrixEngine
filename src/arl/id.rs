@@ -37,4 +37,4 @@ macro_rules! impl_idable_for_tuple {
         impl<$( $t: Hash + Eq + Clone + Copy ),+> Copy for IDWrapper<($( $t, )+)> {}
     };
 }
-impl_all!(impl_idable_for_tuple);
+impl_all!(mini impl_idable_for_tuple);

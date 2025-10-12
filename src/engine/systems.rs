@@ -86,7 +86,7 @@ macro_rules! impl_fn_query {
     };
 }
 
-impl_all!(impl_fn_query);
+impl_all!(mini impl_fn_query);
 
 impl<Reg, Function: FnMut() + Send> QuerySystem<Reg, ()> for Function {
     fn run(&mut self, _: &mut ()) {

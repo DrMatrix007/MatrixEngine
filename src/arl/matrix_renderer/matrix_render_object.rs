@@ -1,5 +1,6 @@
 use crate::arl::{
-    matrix_renderer::{matrix_vertex::MatrixVertex, pentagon::MatrixModelID},
+    id::IDWrapper,
+    matrix_renderer::{camera::CameraID, matrix_vertex::MatrixVertex, square::MatrixModelID},
     models::Model,
 };
 
@@ -26,7 +27,9 @@ impl MatrixRenderObject {
         self.model.as_ref()
     }
 
-    pub fn bind_groups_id(&self) {}
+    pub fn bind_groups_id(&self) -> IDWrapper<(CameraID,)> {
+        IDWrapper((CameraID::Defualt,))
+    }
 
     pub fn is_added(&self) -> bool {
         self.added

@@ -13,7 +13,8 @@ pub struct BufferedVec<T: Pod + Zeroable> {
 impl<T: Pod + Zeroable> BufferedVec<T> {
     pub fn new(label: &str, usage: wgpu::BufferUsages, device_queue: DeviceQueue) -> Self {
         Self {
-            buffer: Buffer::new_mapped(label, usage, device_queue, 4),
+            // buffer: Buffer::new_mapped(label, usage, device_queue, 0),
+            buffer: Buffer::new(label, &[], usage, device_queue),
             vec: Vec::with_capacity(0),
             marker: PhantomData,
         }
@@ -35,11 +36,40 @@ impl<T: Pod + Zeroable> BufferedVec<T> {
     pub fn flush(&mut self) {
         self.shrink();
         let target_cap = self.vec.capacity() as u64;
-        if self.buffer.raw().size() != target_cap {
+        if self.buffer.len() != target_cap {
+            println!("????");
             self.buffer.resize(target_cap, false);
         }
 
-        let map = self.buffer.raw().get_mapped_range_mut(..);
+        self.buffer.device_queue().queue().write_buffer(
+            self.buffer.raw(),
+            0,
+            bytemuck::cast_slice(&self.vec),
+        );
+
+        // let bounds = 0..(self.vec.len() as u64 * core::mem::size_of::<T>() as u64);
+        // if !resized {
+        //     self.buffer.raw().map_async(
+        //         wgpu::MapMode::Write,
+        //         bounds.clone(),
+        //         |res| if res.is_ok() {},
+        //     );
+
+        //     self.buffer
+        //         .device_queue()
+        //         .device()
+        //         .poll(wgpu::wgt::PollType::Poll)
+        //         .unwrap();
+        // }
+
+        // let mut map = self.buffer.raw().get_mapped_range_mut(bounds);
+
+        // map.as_mut()
+        //     .copy_from_slice(bytemuck::cast_slice(&self.vec));
+
+        // drop(map);
+
+        // self.buffer.raw().unmap();
     }
 
     pub fn buffer(&self) -> &Buffer<T> {

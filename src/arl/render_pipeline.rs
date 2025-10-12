@@ -55,8 +55,10 @@ impl<
 
         let vertex_attrs = VertexGroup::attrs(&mut index);
         let instace_attrs = InstanceGroup::attrs(&mut index);
+
         let vertex_attrs = VertexGroup::desc(&vertex_attrs);
         let instace_attrs = InstanceGroup::desc(&instace_attrs);
+
         let pipeline =
             device_queue
                 .device()

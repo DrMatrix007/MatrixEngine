@@ -154,4 +154,8 @@ impl<
     ) -> Option<&mut RenderArchetype<ModelID, I, VGroup, InstanceGroup, BindGroups>> {
         self.instances.get_mut(index)
     }
+    
+    pub fn bind_groups_registry(&self) -> &BindGroups::Registry {
+        &self.bind_groups_registry
+    }
 }

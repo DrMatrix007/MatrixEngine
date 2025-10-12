@@ -10,6 +10,15 @@ impl ApplicationHandler for Engine {
         self.run_stages(&[Stage::Startup], active_event_loop);
     }
 
+    fn device_event(
+        &mut self,
+        active_event_loop: &ActiveEventLoop,
+        id: winit::event::DeviceId,
+        event: winit::event::DeviceEvent,
+    ) {
+        self.run_stages(&[Stage::DeviceEvent(id,event)], active_event_loop);
+    }
+
     fn window_event(
         &mut self,
         active_event_loop: &ActiveEventLoop,

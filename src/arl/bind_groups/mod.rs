@@ -17,13 +17,13 @@ impl<T: IDable> BindGroupIDable for T {}
 
 pub trait BindGroupable {
     type BindGroupID: BindGroupIDable;
-    fn new(id: &Self::BindGroupID) -> Self;
+    fn new(id: &Self::BindGroupID, device_queue: &DeviceQueue) -> Self;
 
     fn label(&self) -> String;
     fn layout_label() -> String;
 
     fn get_layout_entries() -> &'static [BindGroupLayoutEntry];
-    fn get_group_entries(&self) -> Vec<wgpu::BindingResource<'_>>;
+    fn get_group_entries(&self) -> impl AsRef<[wgpu::BindingResource<'_>]>;
 
     fn id(&self) -> Self::BindGroupID;
 }
@@ -67,11 +67,12 @@ impl<Group: BindGroupable> BindGroupLayout<Group> {
                 layout: &self.layout,
                 entries: data
                     .get_group_entries()
-                    .into_iter()
+                    .as_ref()
+                    .iter()
                     .enumerate()
                     .map(|(index, entry)| wgpu::BindGroupEntry {
                         binding: index as _,
-                        resource: entry,
+                        resource: entry.clone(),
                     })
                     .collect::<Vec<_>>()
                     .as_slice(),

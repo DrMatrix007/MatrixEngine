@@ -1,26 +1,23 @@
-use std::{
-    iter::Sum,
-    ops::{Add, Index, IndexMut, Mul, Sub},
-};
+use std::ops::{Add, Div, Index, IndexMut, Mul, Sub};
 
 use bytemuck::{Pod, Zeroable};
 use num_traits::Num;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
-pub struct Matrix<const N: usize, const M: usize, T: Num> {
+pub struct Matrix<const M: usize, const N: usize, T: Num> {
     matrix: [[T; N]; M],
 }
 
 unsafe impl<const N: usize, const M: usize, T: Num + Pod + Copy> Pod for Matrix<N, M, T> {}
 unsafe impl<const N: usize, const M: usize, T: Num + Pod + Zeroable> Zeroable for Matrix<N, M, T> {}
 
-impl<const N: usize, const M: usize, T: Num> Matrix<N, M, T> {
+impl<const N: usize, const M: usize, T: Num> Matrix<M, N, T> {
     const IS_VECTOR: bool = (N == 1) ^ (M == 1); // XOR: exactly one of them is 1
     const IS_ROW_VECTOR: bool = (M == 1);
     const IS_COL_VECTOR: bool = (N == 1);
 
-    pub fn new(matrix: [[T; N]; M]) -> Self {
+    pub const fn new(matrix: [[T; N]; M]) -> Self {
         Self { matrix }
     }
 
@@ -33,7 +30,7 @@ impl<const N: usize, const M: usize, T: Num> Matrix<N, M, T> {
     pub fn zeros() -> Self {
         Self::from_fn(|_, _| T::zero())
     }
-    
+
     pub fn ones() -> Self {
         Self::from_fn(|_, _| T::one())
     }
@@ -44,6 +41,13 @@ impl<const N: usize, const M: usize, T: Num> Matrix<N, M, T> {
 
     pub fn raw(&self) -> &[[T; N]; M] {
         &self.matrix
+    }
+
+    pub fn transposed(&self) -> Matrix<N, M, T>
+    where
+        T: Copy,
+    {
+        Matrix::from_fn(|m, n| self[(n, m)])
     }
 }
 
@@ -69,26 +73,38 @@ impl<const N: usize, const M: usize, T: Num + Copy> Sub for Matrix<N, M, T> {
     }
 }
 
-impl<const M: usize, const K: usize, const N: usize, T: Num + Copy + Sum> Mul<Matrix<K, M, T>>
+impl<const M: usize, const K: usize, const N: usize, T: Num + Copy> Mul<Matrix<K, M, T>>
     for Matrix<N, K, T>
 {
     type Output = Matrix<N, M, T>;
 
     fn mul(self, rhs: Matrix<K, M, T>) -> Self::Output {
         let result = std::array::from_fn(|i| {
-            std::array::from_fn(|j| (0..K).map(|k| self.matrix[i][k] * rhs.matrix[k][j]).sum())
+            std::array::from_fn(|j| {
+                (0..K)
+                    .map(|k| self.matrix[i][k] * rhs.matrix[k][j])
+                    .fold(T::zero(), |a, b| a + b)
+            })
         });
         Matrix::new(result)
     }
 }
 
-pub type RowVector<const N: usize, T> = Matrix<N, 1, T>;
-pub type ColVector<const N: usize, T> = Matrix<1, N, T>;
-pub type SquareMatrix<const N: usize, T> = Matrix<N, N, T>;
+impl<const N: usize, const M: usize, T: Num + Copy> Mul<T> for Matrix<N, M, T> {
+    type Output = Matrix<N, M, T>;
 
-pub type Matrix2<T> = SquareMatrix<2, T>;
-pub type Matrix3<T> = SquareMatrix<3, T>;
-pub type Matrix4<T> = SquareMatrix<4, T>;
+    fn mul(self, rhs: T) -> Self::Output {
+        Matrix::from_fn(|m, n| self[(m, n)] * rhs)
+    }
+}
+
+impl<const N: usize, const M: usize, T: Num + Copy> Div<T> for Matrix<N, M, T> {
+    type Output = Matrix<N, M, T>;
+
+    fn div(self, rhs: T) -> Self::Output {
+        Matrix::from_fn(|m, n| self[(m, n)] / rhs)
+    }
+}
 
 impl<const N: usize, const M: usize, T: Num> Index<usize> for Matrix<N, M, T> {
     type Output = T;
@@ -139,3 +155,11 @@ impl<const N: usize, const M: usize, T: Num> IndexMut<(usize, usize)> for Matrix
         &mut self.matrix[row][col]
     }
 }
+
+pub type RowVector<const N: usize, T> = Matrix<1, N, T>;
+pub type ColVector<const N: usize, T> = Matrix<N, 1, T>;
+pub type SquareMatrix<const N: usize, T> = Matrix<N, N, T>;
+
+pub type Matrix2<T> = SquareMatrix<2, T>;
+pub type Matrix3<T> = SquareMatrix<3, T>;
+pub type Matrix4<T> = SquareMatrix<4, T>;

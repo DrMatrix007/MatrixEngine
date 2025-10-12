@@ -23,6 +23,7 @@ pub trait BindGroupableGroup {
 
     fn create_registry(device_queue: &DeviceQueue) -> Self::Registry;
 }
+
 macro_rules! impl_bind_groupable_group_tuple {
 
     ($($t:ident),+) => {
@@ -54,7 +55,7 @@ impl BindGroupableGroup for () {
     fn create_registry(_: &DeviceQueue) -> Self::Registry {}
 }
 
-impl_all!(impl_bind_groupable_group_tuple);
+impl_all!(mini impl_bind_groupable_group_tuple);
 
 pub trait BindGroupGroupRef {
     fn apply<'b>(&self, pass: &mut RenderPass<'b>);
@@ -82,7 +83,7 @@ macro_rules! impl_bind_group_group {
     }
 }
 
-impl_all!(impl_bind_group_group);
+impl_all!(mini impl_bind_group_group);
 
 impl BindGroupGroupRef for () {
     fn apply<'a>(&self, _: &mut RenderPass<'a>) {}

@@ -75,7 +75,7 @@ macro_rules! impl_tuple_vertex_buffer {
     };
 }
 
-impl_all!(impl_tuple_vertex_buffer);
+impl_all!(mini impl_tuple_vertex_buffer);
 
 impl InstantiableGroup for () {
     type ATTRS = ();

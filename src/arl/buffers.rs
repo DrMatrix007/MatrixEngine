@@ -1,7 +1,4 @@
-use std::{
-    marker::PhantomData,
-    sync::{Arc, atomic::AtomicBool},
-};
+use std::marker::PhantomData;
 
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
@@ -15,16 +12,6 @@ pub struct Buffer<T: Pod + Zeroable> {
     marker: PhantomData<T>,
     usage: wgpu::BufferUsages,
     mapped: bool,
-}
-
-fn map_buffer(b: &wgpu::Buffer) {
-    let atomic_send = Arc::new(AtomicBool::new(false));
-    let atomic = atomic_send.clone();
-    b.map_async(wgpu::MapMode::Write, .., move |_| {
-        atomic_send.store(true, std::sync::atomic::Ordering::Release)
-    });
-
-    while atomic.load(std::sync::atomic::Ordering::Relaxed) {}
 }
 
 impl<T: Pod + Zeroable> Buffer<T> {

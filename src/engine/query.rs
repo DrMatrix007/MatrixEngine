@@ -175,4 +175,4 @@ macro_rules! impl_tuple_query {
     };
 }
 
-impl_all!(impl_tuple_query);
+impl_all!(mini impl_tuple_query);

@@ -76,7 +76,7 @@ macro_rules! impl_tuple_vertex_buffer {
     };
 }
 
-impl_all!(impl_tuple_vertex_buffer);
+impl_all!(mini impl_tuple_vertex_buffer);
 
 pub trait VertexIndexer: Pod + Zeroable {
     fn format() -> wgpu::IndexFormat;

@@ -3,6 +3,9 @@ struct VertexOutput {
     @location(0) color: vec3<f32>
 };
 
+@group(0) @binding(0)
+var<uniform> camera: mat4x4<f32>;
+
 @vertex
 fn vs_main(
     @location(0) position: vec3<f32>,
@@ -14,8 +17,8 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
     out.color = color;
-    let mat = mat4x4(data, data1, data2, data3);
-    out.clip_position = mat * vec4<f32>(position, 1.0);
+    let mat = mat4x4<f32>(data, data1, data2, data3);
+    out.clip_position = camera * mat * vec4<f32>(position, 1.0);
     return out;
 }
  

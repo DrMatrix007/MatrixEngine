@@ -24,7 +24,7 @@ macro_rules! impl_all {
     };
 
     (mini $m:ident) => {
-        $crate::impl_all!(no_single $m, A, B, C, D, E, F, G, H, I, J);
+        $crate::impl_all!($m, A, B, C, D, E, F, G, H, I, J);
     };
 }
 

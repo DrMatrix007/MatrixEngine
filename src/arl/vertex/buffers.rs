@@ -45,7 +45,7 @@ macro_rules! impl_tuple_vertex_buffer {
     }
 }
 
-impl_all!(impl_tuple_vertex_buffer);
+impl_all!(mini impl_tuple_vertex_buffer);
 
 pub trait InstanceBufferGroup {
     type Raw;
@@ -127,7 +127,7 @@ macro_rules! impl_tuple_instance_buffer {
     }
 }
 
-impl_all!(impl_tuple_instance_buffer);
+impl_all!(mini impl_tuple_instance_buffer);
 
 impl InstanceBufferGroup for () {
     type Raw = ();

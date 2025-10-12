@@ -1,6 +1,9 @@
 use std::{collections::VecDeque, mem::swap};
 
-use winit::{event::WindowEvent, window::WindowId};
+use winit::{
+    event::{DeviceEvent, DeviceId, WindowEvent},
+    window::WindowId,
+};
 
 use crate::engine::systems::System;
 
@@ -12,6 +15,7 @@ pub enum Stage {
     PreRender(WindowId),
     Render(WindowId),
     WindowEvent(WindowEvent),
+    DeviceEvent(DeviceId, DeviceEvent),
 
     Startup,
 }
@@ -24,6 +28,7 @@ impl Stage {
             Stage::PreRender(_) => StageDescriptor::PreRender,
             Stage::Render(_) => StageDescriptor::Render,
             Stage::WindowEvent(_) => StageDescriptor::WindowEvent,
+            Stage::DeviceEvent(_, _) => StageDescriptor::DeviceEvent,
             Stage::Startup => StageDescriptor::Startup,
         }
     }
@@ -36,6 +41,7 @@ pub enum StageDescriptor {
     PreRender,
     Render,
     WindowEvent,
+    DeviceEvent,
 
     Startup,
 }
@@ -91,6 +97,7 @@ pub struct SystemRegistry<Registry> {
     pre_render_systems: SystemCollection<Registry>,
     render_systems: SystemCollection<Registry>,
     window_event_systems: SystemCollection<Registry>,
+    device_event_systems: SystemCollection<Registry>,
 }
 
 impl<Registry> Default for SystemRegistry<Registry> {
@@ -102,13 +109,13 @@ impl<Registry> Default for SystemRegistry<Registry> {
             post_update_systems: Default::default(),
             pre_render_systems: Default::default(),
             render_systems: Default::default(),
-            window_event_systems: Default::default()
+            window_event_systems: Default::default(),
+            device_event_systems: Default::default(),
         }
     }
 }
 
 impl<Registry> SystemRegistry<Registry> {
-
     pub fn add_system(
         &mut self,
         stage: StageDescriptor,
@@ -127,8 +134,8 @@ impl<Registry> SystemRegistry<Registry> {
             StageDescriptor::PreRender => &mut self.pre_render_systems,
             StageDescriptor::Render => &mut self.render_systems,
             StageDescriptor::WindowEvent => &mut self.window_event_systems,
+            StageDescriptor::DeviceEvent => &mut self.device_event_systems,
             StageDescriptor::Startup => &mut self.startup_systems,
-
         }
     }
 }

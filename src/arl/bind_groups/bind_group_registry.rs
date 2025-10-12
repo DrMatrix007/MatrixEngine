@@ -33,9 +33,12 @@ impl<Group: BindGroupable> BindGroupRegistry<Group> {
     }
 
     pub fn get_or_create(&mut self, id: &Group::BindGroupID) -> &Arc<BindGroup<Group>> {
-        self.groups
-            .entry(*id)
-            .or_insert_with(|| Arc::new(self.layout.create(Group::new(id), &self.device_queue)))
+        self.groups.entry(*id).or_insert_with(|| {
+            Arc::new(
+                self.layout
+                    .create(Group::new(id, &self.device_queue), &self.device_queue),
+            )
+        })
     }
 
     pub fn layout(&self) -> &BindGroupLayout<Group> {
@@ -76,7 +79,7 @@ macro_rules! impl_group_factory {
     }
 }
 
-impl_all!(impl_group_factory);
+impl_all!(mini impl_group_factory);
 
 impl BindGroupGroupRegistry for () {
     type Input = ();

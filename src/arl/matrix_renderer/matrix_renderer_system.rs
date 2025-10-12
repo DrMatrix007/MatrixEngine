@@ -1,4 +1,3 @@
-use rayon::iter::{ParallelBridge, ParallelIterator};
 use wgpu::{
     Instance, RenderPassColorAttachment, Surface, SurfaceConfiguration, SurfaceError,
     TextureViewDescriptor,
@@ -9,9 +8,10 @@ use crate::{
     arl::{
         device_queue::DeviceQueue,
         matrix_renderer::{
+            camera::{Camera, CameraID, CameraUniform},
             matrix_render_object::MatrixRenderObject,
             matrix_vertex::MatrixVertex,
-            pentagon::MatrixModelID,
+            square::MatrixModelID,
             transform::{Transform, TransformRaw},
         },
         render_pipeline::{RenderPipeline, RenderPipelineArgs},
@@ -31,7 +31,8 @@ pub struct MatrixRenderInstance {
     surface_config: SurfaceConfiguration,
     is_surface_updated: bool,
     _shaders: Shaders,
-    pipeline: RenderPipeline<MatrixModelID, u16, (MatrixVertex,), (TransformRaw,), ()>,
+    pipeline:
+        RenderPipeline<MatrixModelID, u16, (MatrixVertex,), (TransformRaw,), (CameraUniform,)>,
 }
 
 impl MatrixRenderInstance {
@@ -73,12 +74,6 @@ pub fn prepare_renderer_frame(
     for i in instance.pipeline.atlas_mut().iter_instances() {
         i.instance_data.clear();
     }
-
-    // transforms.iter_mut().for_each(|x| x.1.update_raw());
-    // transforms
-    // .iter_mut()
-    // .par_bridge()
-    // .for_each(|x| x.1.update_raw());
 
     for (e, obj) in (objects).iter_mut() {
         let transform = match transforms.get_mut(&e) {
@@ -127,24 +122,16 @@ pub fn matrix_renderer(
     stage: &mut Stage,
     window: &mut Res<Window>,
     instance: &mut Res<MatrixRenderInstance>,
-    // objects: &mut Write<MatrixRenderObject>,
+    camera: &mut Res<Camera>,
 ) {
     let window = match (stage, window.as_mut()) {
-        (Stage::Render(id), maybe_window) => {
-            if let Some(window) = maybe_window {
-                if *id != window.id() {
-                    return;
-                } else {
-                    window
-                }
-            } else {
-                return;
-            }
-        }
+        (Stage::Render(id), Some(window)) if window.id() == *id => window,
+        (Stage::Render(_), None) => return,
         _ => {
             panic!("this should be run in StageDescriptor::Render!");
         }
     };
+
     let instance = match instance.as_mut() {
         Some(instance) => instance,
         None => return,
@@ -155,6 +142,23 @@ pub fn matrix_renderer(
         instance
             .surface
             .configure(instance.device_queue().device(), instance.surface_config());
+    }
+
+    if let Some(camera) = camera.as_mut() {
+        camera.aspect =
+            instance.surface_config.width as f32 / instance.surface_config.height as f32;
+
+        camera.update_raw();
+
+        if let Some(camera_uniform) = instance
+            .pipeline
+            .atlas()
+            .bind_groups_registry()
+            .0
+            .get(&CameraID::Defualt)
+        {
+            camera_uniform.group().write(&camera.raw());
+        }
     }
 
     let output = match instance.surface.get_current_texture() {

@@ -135,7 +135,7 @@ macro_rules! impl_join {
 }
 
 // expand for tuple arities you want
-impl_all!(impl_join);
+impl_all!(mini impl_join);
 
 #[derive(Debug)]
 pub struct ComponentRegistry {
