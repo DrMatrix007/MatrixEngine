@@ -1,17 +1,12 @@
 use bytemuck::{Pod, Zeroable};
-use num_traits::{Float, cast, float::FloatCore};
+use cgmath::{Matrix4, PerspectiveFov, Point3, SquareMatrix, Vector3};
+use num_traits::{Float, cast};
 use wgpu::{BufferUsages, ShaderStages};
 
-use crate::{
-    arl::{
-        bind_groups::{BindGroupLayoutEntry, BindGroupable},
-        buffers::Buffer,
-        device_queue::DeviceQueue,
-    },
-    math::{
-        matrix::{ColVector, Matrix, Matrix4},
-        vector::{CrossableVector, Vector},
-    },
+use crate::arl::{
+    bind_groups::{BindGroupLayoutEntry, BindGroupable},
+    buffers::Buffer,
+    device_queue::DeviceQueue,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -20,46 +15,39 @@ pub enum CameraID {
 }
 
 pub struct Camera {
-    pub pos: ColVector<3, f32>,
-    pub direction: ColVector<3, f32>,
-    pub up: ColVector<3, f32>,
-    pub aspect: f32,
-    pub fovy: f32,
-    pub znear: f32,
-    pub zfar: f32,
+    pub pos: Point3<f32>,
+    pub direction: Vector3<f32>,
+    pub up: Vector3<f32>,
+    pub perspective: PerspectiveFov<f32>,
 
     raw: CameraRaw,
 }
 
 impl Camera {
     pub fn new(
-        pos: ColVector<3, f32>,
-        direction: ColVector<3, f32>,
-        up: ColVector<3, f32>,
-        aspect: f32,
-        fovy: f32,
-        znear: f32,
-        zfar: f32,
+        pos: Point3<f32>,
+        direction: Vector3<f32>,
+        up: Vector3<f32>,
+        perspective: PerspectiveFov<f32>,
     ) -> Self {
         Self {
             pos,
             direction,
             up,
-            aspect,
-            fovy,
-            znear,
-            zfar,
+            perspective,
             raw: CameraRaw {
-                proj: Matrix::zeros(),
+                proj: Matrix4::identity().into(),
             },
         }
     }
 
     pub fn update_raw(&mut self) {
         // self.raw.proj = Matrix::identity()
-        self.raw.proj = OPENGL_TO_WGPU_MATRIX
-            * Matrix4::prespective(&self.fovy, &self.aspect, &self.znear, &self.zfar)
-            * Matrix4::look_to_rh(&self.pos, &self.direction, &self.up)
+        let mat = OPENGL_TO_WGPU_MATRIX
+            * Matrix4::from(self.perspective)
+            * Matrix4::look_to_rh(self.pos, self.direction, self.up);
+
+        self.raw.proj = mat.into();
     }
 
     pub fn raw(&self) -> CameraRaw {
@@ -70,71 +58,7 @@ impl Camera {
 #[repr(C)]
 #[derive(Debug, Pod, Zeroable, Clone, Copy)]
 pub struct CameraRaw {
-    pub proj: Matrix4<f32>,
-}
-
-pub trait CameraLookableMatrix {
-    type Position;
-    type Scalar;
-
-    fn look_to_rh(eye: &Self::Position, dir: &Self::Position, up: &Self::Position) -> Self;
-    fn prespective(
-        fovy: &Self::Scalar,
-        aspect: &Self::Scalar,
-        near: &Self::Scalar,
-        far: &Self::Scalar,
-    ) -> Self;
-}
-
-impl<T: Float> CameraLookableMatrix for Matrix4<T> {
-    type Position = ColVector<3, T>;
-
-    type Scalar = T;
-
-    fn look_to_rh(eye: &Self::Position, dir: &Self::Position, up: &Self::Position) -> Self {
-        let forward = dir.normalized().unwrap();
-        let right = forward.cross(up).normalized().unwrap();
-        let new_up = right.cross(&forward);
-
-        Matrix4::new([
-            [right[0], new_up[0], -forward[0], T::zero()],
-            [right[1], new_up[1], -forward[1], T::zero()],
-            [right[2], new_up[2], -forward[2], T::zero()],
-            [
-                -eye.dot(&right),
-                -eye.dot(&new_up),
-                eye.dot(&forward),
-                T::one(),
-            ],
-        ])
-    }
-
-    fn prespective(
-        fovy: &Self::Scalar,
-        aspect: &Self::Scalar,
-        near: &Self::Scalar,
-        far: &Self::Scalar,
-    ) -> Self {
-        let two: T = cast(2).unwrap();
-        let fovy = T::one() / T::tan(*fovy / two);
-
-        Matrix4::new([
-            [fovy / *aspect, T::zero(), T::zero(), T::zero()],
-            [T::zero(), fovy, T::zero(), T::zero()],
-            [
-                T::zero(),
-                T::zero(),
-                (*far + *near) / (*near - *far),
-                -T::one(),
-            ],
-            [
-                T::zero(),
-                T::zero(),
-                (two * *far * *near) / (*near - *far),
-                T::zero(),
-            ],
-        ])
-    }
+    pub proj: [[f32; 4]; 4],
 }
 
 pub struct CameraUniform {
@@ -155,7 +79,7 @@ impl BindGroupable for CameraUniform {
             buffer: Buffer::new(
                 "camera buffer",
                 &[CameraRaw {
-                    proj: Matrix::identity(),
+                    proj: [[0.0; 4]; 4],
                 }],
                 BufferUsages::UNIFORM | BufferUsages::COPY_DST,
                 device_queue.clone(),
@@ -192,9 +116,9 @@ impl BindGroupable for CameraUniform {
     }
 }
 
-pub const OPENGL_TO_WGPU_MATRIX: Matrix4<f32> = Matrix4::new([
-    [1.0, 0.0, 0.0, 0.0],
-    [0.0, 1.0, 0.0, 0.0],
-    [0.0, 0.0, 0.5, 0.0],
-    [0.0, 0.0, 0.5, 1.0],
-]);
+pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::from_cols(
+    cgmath::Vector4::new(1.0, 0.0, 0.0, 0.0),
+    cgmath::Vector4::new(0.0, 1.0, 0.0, 0.0),
+    cgmath::Vector4::new(0.0, 0.0, 0.5, 0.0),
+    cgmath::Vector4::new(0.0, 0.0, 0.5, 1.0),
+);

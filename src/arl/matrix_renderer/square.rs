@@ -28,21 +28,21 @@ impl Model<MatrixModelID> for Square {
             }, // A
             MatrixVertex {
                 position: [-0.5, 0.5, 0.0],
-                color: [0.0,1.0,0.0], // Blue
+                color: [0.0, 1.0, 0.0], // Blue
             }, // B
             MatrixVertex {
                 position: [0.5, -0.5, 0.0],
-                color: [0.0,0.0,1.0], // Electric purple
+                color: [0.0, 0.0, 1.0], // Electric purple
             }, // C
             MatrixVertex {
                 position: [-0.5, -0.5, 0.0],
-                color: [1.0,1.0,1.0], // Muted teal
+                color: [1.0, 1.0, 1.0], // Muted teal
             }, // D
         ],)
     }
 
     fn indecies(&self) -> &[Self::I] {
-        &[0, 1, 2, 1, 3, 2]
+        &[0, 1, 2, 1, 3, 2, 0, 2, 1, 1, 2, 3, ]
         // &[0, 1, 2]
     }
 }

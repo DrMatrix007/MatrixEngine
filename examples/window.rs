@@ -4,6 +4,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use cgmath::{InnerSpace, Point3, Quaternion, Rad, Vector3};
 use matrix_engine::{
     arl::matrix_renderer::{
         camera::Camera,
@@ -25,14 +26,11 @@ use matrix_engine::{
         system_registries::{Stage, StageDescriptor},
         systems::QuerySystem,
     },
-    math::{
-        matrix::{ColVector, Matrix},
-        vector::Vector,
-    },
 };
 use winit::{
     event::{DeviceEvent, WindowEvent},
     event_loop::EventLoop,
+    keyboard::{KeyCode, PhysicalKey},
     window::WindowAttributes,
 };
 
@@ -68,29 +66,37 @@ fn main() {
 fn start(commands: &mut CommandBuffer, camera: &mut Res<Camera>) {
     commands.add_command(AddWindowResourceCommand::new(WindowAttributes::default()));
 
-    let max = 1000;
+    let x_max = 100;
+    let y_max = 100;
+    let z_max = 100;
 
-    for _ in 0..max {
-        commands.add_command(
-            AddEntityCommand::new()
-                .with(MatrixRenderObject::new(Square))
-                .unwrap()
-                .with(Transform::new(
-                    Matrix::new([[0.0, 0.0, 0.0]]),
-                    Matrix::identity(),
-                    Matrix::ones(),
-                ))
-                .unwrap(),
-        );
+    for x in 0..x_max {
+        for y in 0..y_max {
+            for z in 0..z_max {
+                commands.add_command(
+                    AddEntityCommand::new()
+                        .with(MatrixRenderObject::new(Square))
+                        .unwrap()
+                        .with(Transform::new(
+                            Vector3::from([(x * 2) as _, (y * 2) as _, (z * 2) as _]),
+                            Quaternion::new(1.0, 0.0, 0.0, 0.0),
+                            Vector3::new(1.0, 1.0, 1.0),
+                        ))
+                        .unwrap(),
+                );
+            }
+        }
     }
     let cam = Camera::new(
-        ColVector::new([[0.0], [0.0], [0.0]]),
-        ColVector::new([[0.1], [0.5], [-1.]]),
-        ColVector::new([[0.0], [1.0], [0.0]]),
-        1.0,
-        PI / 4.0,
-        0.1,
-        10000.0,
+        Point3::from([0.0, 0.0, -1.0]),
+        Vector3::from([0.0, 0.0, 1.]),
+        Vector3::from([0.0, 1.0, 0.0]),
+        cgmath::PerspectiveFov {
+            fovy: Rad(PI / 2.0),
+            aspect: 1.0,
+            near: 0.1,
+            far: 1000.0,
+        },
     );
 
     camera.replace(cam);
@@ -139,12 +145,13 @@ impl Default for MouseMovement {
 }
 impl QuerySystem<EngineState, (Res<Camera>, Stage)> for MouseMovement {
     fn run(&mut self, (cam, stage): &mut (Res<Camera>, Stage)) {
-        // Match on stage to see if it contains a DeviceEvent::MouseMotion event
+        let sensitivity = 0.01;
+        let movement_speed = 0.5; // Adjust as needed
+
+        // Handle mouse movement (rotation)
         if let Stage::DeviceEvent(_, event) = stage
             && let DeviceEvent::MouseMotion { delta: (dx, dy) } = event
         {
-            let sensitivity = 0.1;
-
             // Update yaw and pitch based on mouse delta (invert dy for pitch)
             self.yaw += (*dx as f32) * sensitivity;
             self.pitch -= (*dy as f32) * sensitivity;
@@ -160,14 +167,44 @@ impl QuerySystem<EngineState, (Res<Camera>, Stage)> for MouseMovement {
             let front_y = pitch_rad.sin();
             let front_z = yaw_rad.sin() * pitch_rad.cos();
 
-            let length = (front_x * front_x + front_y * front_y + front_z * front_z).sqrt();
-
-            let front = Matrix::new([[front_x / length], [front_y / length], [front_z / length]]);
+            let front = Vector3::from([front_x, front_y, front_z]).normalize();
 
             // Update camera direction
             if let Some(cam) = cam.as_mut() {
                 cam.direction = front;
             }
+        }
+
+        // Handle keyboard input (movement)
+        if let Stage::DeviceEvent(_, event) = stage
+            && let DeviceEvent::Key(key_event) = event
+            && let Some(cam) = cam.as_mut()
+        {
+            // Calculate right vector as cross product of front and world up (0,1,0)
+            let world_up = &Vector3::from([0.0, 1.0, 0.0]);
+            let front = Vector3::from([0.0, 0.0, 1.0]);
+
+            let right = world_up.cross(front).normalize();
+
+            // Move camera position based on key pressed
+            match key_event.physical_key {
+                PhysicalKey::Code(KeyCode::KeyW) => {
+                    cam.pos += front * movement_speed ;
+                }
+                PhysicalKey::Code(KeyCode::KeyS) => {
+                    cam.pos -= front * movement_speed ;
+                }
+                PhysicalKey::Code(KeyCode::KeyA) => {
+                    cam.pos += right * movement_speed;
+                }
+                PhysicalKey::Code(KeyCode::KeyD) => {
+                    cam.pos -= right * movement_speed;
+                }
+                _ => {}
+            }
+            // cam.direction = cam.pos;
+
+            println!("{:?}", cam.pos);
         }
     }
 }

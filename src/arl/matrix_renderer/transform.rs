@@ -1,21 +1,18 @@
 use bytemuck::{Pod, Zeroable};
+use cgmath::{Matrix4, Quaternion, SquareMatrix, Vector3};
 
-use crate::{
-    arl::vertex::instantiable::Instantiable,
-    math::matrix::{Matrix, Matrix4, RowVector},
-};
+use crate::arl::vertex::instantiable::Instantiable;
 
 #[repr(C)]
-#[derive(Pod, Zeroable, Debug, Clone, Copy)]
 pub struct Transform {
-    pos: RowVector<3, f32>,
-    quat: RowVector<4, f32>,
-    scale: RowVector<3, f32>,
+    pos: Vector3<f32>,
+    quat: Quaternion<f32>,
+    scale: Vector3<f32>,
     raw: TransformRaw,
 }
 
 impl Transform {
-    pub fn new(pos: RowVector<3, f32>, quat: RowVector<4, f32>, scale: RowVector<3, f32>) -> Self {
+    pub fn new(pos: Vector3<f32>, quat: Quaternion<f32>, scale: Vector3<f32>) -> Self {
         Self {
             pos,
             quat,
@@ -25,11 +22,7 @@ impl Transform {
     }
 
     pub fn update_raw(&mut self) {
-        let mut trans = Matrix4::<f32>::identity();
-        trans[(3, 0)] = self.pos[0];
-        trans[(3, 1)] = self.pos[1];
-        trans[(3, 2)] = self.pos[2];
-
+        let mut trans = Matrix4::from_translation(self.pos);
         // // let _rot = self.quat.to_rot_matrix();
 
         // // let _scale = Matrix4::from_fn(|n, m| {
@@ -42,7 +35,7 @@ impl Transform {
 
         // // let res = trans;
 
-        self.raw.raw = trans;
+        self.raw.raw = trans.into();
     }
 
     pub fn raw(&self) -> &TransformRaw {
@@ -53,7 +46,7 @@ impl Transform {
 #[repr(C)]
 #[derive(Pod, Zeroable, Debug, Clone, Copy)]
 pub struct TransformRaw {
-    pub raw: Matrix<4, 4, f32>,
+    pub raw: [[f32; 4]; 4],
 }
 
 impl Instantiable for TransformRaw {
@@ -70,7 +63,7 @@ impl Instantiable for TransformRaw {
 impl TransformRaw {
     pub fn new() -> Self {
         Self {
-            raw: Matrix::zeros(),
+            raw: Matrix4::identity().into(),
         }
     }
 }

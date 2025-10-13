@@ -145,7 +145,7 @@ pub fn matrix_renderer(
     }
 
     if let Some(camera) = camera.as_mut() {
-        camera.aspect =
+        camera.perspective.aspect =
             instance.surface_config.width as f32 / instance.surface_config.height as f32;
 
         camera.update_raw();
@@ -256,7 +256,7 @@ pub fn create_matrix_instance(window: &mut Res<Window>, res: &mut Res<MatrixRend
             let (device, queue) = adapter
                 .request_device(&wgpu::DeviceDescriptor {
                     label: None,
-                    required_features: wgpu::Features::empty(),
+                    required_features: wgpu::Features::POLYGON_MODE_LINE,
                     experimental_features: wgpu::ExperimentalFeatures::disabled(),
                     // WebGL doesn't support all of wgpu's features, so if
                     // we're building for the web we'll have to disable some.
