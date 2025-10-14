@@ -2,6 +2,7 @@ use crate::arl::{
     id::IDWrapper,
     matrix_renderer::{camera::CameraID, matrix_vertex::MatrixVertex, square::MatrixModelID},
     models::Model,
+    texture::TextureID,
 };
 
 pub struct MatrixRenderObject {
@@ -9,17 +10,20 @@ pub struct MatrixRenderObject {
     model_id: MatrixModelID,
     added: bool,
     render_archetype_index: Option<usize>,
+    texture_path: &'static str,
 }
 
 impl MatrixRenderObject {
     pub fn new(
         data: impl Model<MatrixModelID, VGroup = (MatrixVertex,), I = u16> + Send + Sync + 'static,
+        texture_path: &'static str,
     ) -> Self {
         Self {
             model_id: data.id(),
             model: Box::new(data),
             added: false,
             render_archetype_index: None,
+            texture_path,
         }
     }
 
@@ -27,8 +31,13 @@ impl MatrixRenderObject {
         self.model.as_ref()
     }
 
-    pub fn bind_groups_id(&self) -> IDWrapper<(CameraID,)> {
-        IDWrapper((CameraID::Defualt,))
+    pub fn bind_groups_id(&self) -> IDWrapper<(CameraID, TextureID)> {
+        IDWrapper((
+            CameraID::Defualt,
+            TextureID {
+                path: self.texture_path,
+            },
+        ))
     }
 
     pub fn is_added(&self) -> bool {

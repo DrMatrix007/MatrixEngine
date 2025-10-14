@@ -16,6 +16,7 @@ use crate::{
         },
         render_pipeline::{RenderPipeline, RenderPipelineArgs},
         shaders::{Shaders, ShadersArgs},
+        texture::Texture,
         vertex::buffers::InstanceBufferGroup,
     },
     engine::{
@@ -31,8 +32,13 @@ pub struct MatrixRenderInstance {
     surface_config: SurfaceConfiguration,
     is_surface_updated: bool,
     _shaders: Shaders,
-    pipeline:
-        RenderPipeline<MatrixModelID, u16, (MatrixVertex,), (TransformRaw,), (CameraUniform,)>,
+    pipeline: RenderPipeline<
+        MatrixModelID,
+        u16,
+        (MatrixVertex,),
+        (TransformRaw,),
+        (CameraUniform, Texture),
+    >,
 }
 
 impl MatrixRenderInstance {

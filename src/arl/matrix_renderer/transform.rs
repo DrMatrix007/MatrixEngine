@@ -22,7 +22,7 @@ impl Transform {
     }
 
     pub fn update_raw(&mut self) {
-        let mut trans = Matrix4::from_translation(self.pos);
+        let trans = Matrix4::from_translation(self.pos);
         // // let _rot = self.quat.to_rot_matrix();
 
         // // let _scale = Matrix4::from_fn(|n, m| {

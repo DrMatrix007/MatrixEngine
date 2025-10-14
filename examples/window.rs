@@ -7,24 +7,14 @@ use std::{
 use cgmath::{InnerSpace, Point3, Quaternion, Rad, Vector3};
 use matrix_engine::{
     arl::matrix_renderer::{
-        camera::Camera,
-        matrix_render_object::MatrixRenderObject,
-        matrix_renderer_system::{
+        camera::Camera, cube::Cube, matrix_render_object::MatrixRenderObject, matrix_renderer_system::{
             create_matrix_instance, matrix_renderer, prepare_renderer_frame, update_surface_size,
-        },
-        square::Square,
-        transform::Transform,
+        }, square::Square, transform::Transform
     },
     engine::{
-        Engine, EngineState,
         commands::{
-            CommandBuffer, add_entity_command::AddEntityCommand,
-            add_window_resource_command::AddWindowResourceCommand,
-        },
-        query::Res,
-        runtime::SingleThreadedRuntime,
-        system_registries::{Stage, StageDescriptor},
-        systems::QuerySystem,
+            add_entity_command::AddEntityCommand, add_window_resource_command::AddWindowResourceCommand, CommandBuffer
+        }, query::Res, runtime::SingleThreadedRuntime, system_registries::{Stage, StageDescriptor}, systems::QuerySystem, Engine, EngineState
     },
 };
 use winit::{
@@ -47,18 +37,7 @@ fn main() {
     engine.add_system_to_scene(StageDescriptor::WindowEvent, update_surface_size);
     engine.add_system_to_scene(StageDescriptor::PreRender, prepare_renderer_frame);
     engine.add_system_to_scene(StageDescriptor::DeviceEvent, MouseMovement::new());
-    engine.add_system_to_scene(StageDescriptor::Update, |cam: &mut Res<Camera>| {
-        if let Some(cam) = cam.as_mut() {
-
-            // println!("{:?}", cam.raw().proj);
-        }
-    });
-
-    let log_fps = create_fps_counter();
-
-    engine
-        .scene_mut()
-        .add_system(StageDescriptor::PostUpdate, log_fps);
+    engine.add_system_to_scene(StageDescriptor::PostUpdate, create_fps_counter());
 
     event_loop.run_app(&mut engine).unwrap();
 }
@@ -70,15 +49,15 @@ fn start(commands: &mut CommandBuffer, camera: &mut Res<Camera>) {
     let y_max = 100;
     let z_max = 100;
 
-    for x in 0..x_max {
-        for y in 0..y_max {
-            for z in 0..z_max {
+    for x in (0..x_max).rev() {
+        for y in (0..y_max).rev() {
+            for z in (0..z_max).rev() {
                 commands.add_command(
                     AddEntityCommand::new()
-                        .with(MatrixRenderObject::new(Square))
+                        .with(MatrixRenderObject::new(Cube, "rickroll.jpeg"))
                         .unwrap()
                         .with(Transform::new(
-                            Vector3::from([(x * 2) as _, (y * 2) as _, (z * 2) as _]),
+                            Vector3::from([(x * 10) as _, (y * 10) as _, (-z * 10) as _]),
                             Quaternion::new(1.0, 0.0, 0.0, 0.0),
                             Vector3::new(1.0, 1.0, 1.0),
                         ))
@@ -88,14 +67,14 @@ fn start(commands: &mut CommandBuffer, camera: &mut Res<Camera>) {
         }
     }
     let cam = Camera::new(
-        Point3::from([0.0, 0.0, -1.0]),
+        Point3::from([0.0, 0.0, 0.0]),
         Vector3::from([0.0, 0.0, 1.]),
         Vector3::from([0.0, 1.0, 0.0]),
         cgmath::PerspectiveFov {
             fovy: Rad(PI / 2.0),
             aspect: 1.0,
             near: 0.1,
-            far: 1000.0,
+            far: 10000.0,
         },
     );
 
@@ -132,7 +111,7 @@ pub struct MouseMovement {
 impl MouseMovement {
     pub fn new() -> Self {
         Self {
-            yaw: -90.0, // facing -Z initially
+            yaw: -90.0,
             pitch: 0.0,
         }
     }
@@ -146,20 +125,16 @@ impl Default for MouseMovement {
 impl QuerySystem<EngineState, (Res<Camera>, Stage)> for MouseMovement {
     fn run(&mut self, (cam, stage): &mut (Res<Camera>, Stage)) {
         let sensitivity = 0.01;
-        let movement_speed = 0.5; // Adjust as needed
+        let movement_speed = 0.5;
 
-        // Handle mouse movement (rotation)
         if let Stage::DeviceEvent(_, event) = stage
             && let DeviceEvent::MouseMotion { delta: (dx, dy) } = event
         {
-            // Update yaw and pitch based on mouse delta (invert dy for pitch)
             self.yaw += (*dx as f32) * sensitivity;
             self.pitch -= (*dy as f32) * sensitivity;
 
-            // Clamp the pitch so the camera doesn't flip
             self.pitch = self.pitch.clamp(-89.0, 89.0);
 
-            // Calculate new front vector based on updated yaw and pitch
             let yaw_rad = self.yaw.to_radians();
             let pitch_rad = self.pitch.to_radians();
 
@@ -169,30 +144,26 @@ impl QuerySystem<EngineState, (Res<Camera>, Stage)> for MouseMovement {
 
             let front = Vector3::from([front_x, front_y, front_z]).normalize();
 
-            // Update camera direction
             if let Some(cam) = cam.as_mut() {
                 cam.direction = front;
             }
         }
 
-        // Handle keyboard input (movement)
         if let Stage::DeviceEvent(_, event) = stage
             && let DeviceEvent::Key(key_event) = event
             && let Some(cam) = cam.as_mut()
         {
-            // Calculate right vector as cross product of front and world up (0,1,0)
-            let world_up = &Vector3::from([0.0, 1.0, 0.0]);
-            let front = Vector3::from([0.0, 0.0, 1.0]);
+            let world_up = Vector3::unit_y();
+            let front = cam.direction;
 
             let right = world_up.cross(front).normalize();
 
-            // Move camera position based on key pressed
             match key_event.physical_key {
                 PhysicalKey::Code(KeyCode::KeyW) => {
-                    cam.pos += front * movement_speed ;
+                    cam.pos += front * movement_speed;
                 }
                 PhysicalKey::Code(KeyCode::KeyS) => {
-                    cam.pos -= front * movement_speed ;
+                    cam.pos -= front * movement_speed;
                 }
                 PhysicalKey::Code(KeyCode::KeyA) => {
                     cam.pos += right * movement_speed;
@@ -202,7 +173,6 @@ impl QuerySystem<EngineState, (Res<Camera>, Stage)> for MouseMovement {
                 }
                 _ => {}
             }
-            // cam.direction = cam.pos;
 
             println!("{:?}", cam.pos);
         }
